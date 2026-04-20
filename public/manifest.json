@@ -1,0 +1,25 @@
+{
+  "name": "LTSD — Limited Time Super Deals",
+  "short_name": "LTSD",
+  "description": "Discover personalised Amazon deals before they expire.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#F8F9FA",
+  "theme_color": "#C82750",
+  "orientation": "portrait-primary",
+  "categories": ["shopping", "lifestyle"],
+  "icons": [
+    {
+      "src": "/images/ltsd-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/images/ltsd-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

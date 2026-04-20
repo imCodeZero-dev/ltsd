@@ -24,13 +24,7 @@ const nextConfig: NextConfig = {
     ],
   },
 
-  // Strict mode for better development DX
   reactStrictMode: true,
-
-  // Allow underscore in image alt text (minor strictness)
-  eslint: {
-    ignoreDuringBuilds: false,
-  },
 };
 
 export default nextConfig;

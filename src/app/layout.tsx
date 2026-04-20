@@ -1,12 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Geist } from "next/font/google";
+import { Inter, Lato, DM_Sans } from "next/font/google";
+import { Toaster } from "sonner";
 import "./globals.css";
-import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({
   variable: "--font-inter",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const lato = Lato({
+  variable: "--font-lato",
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
   display: "swap",
 });
@@ -35,7 +46,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: "#C82750",
-  viewportFit: "cover", // handles iPhone notch / Dynamic Island
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -44,8 +55,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("h-full", inter.variable, "font-sans", geist.variable)}>
-      <body className="min-h-full antialiased">{children}</body>
+    <html lang="en" className={`${inter.variable} ${lato.variable} ${dmSans.variable} h-full`}>
+      <body className="min-h-full antialiased">
+        {children}
+        <Toaster position="top-center" richColors closeButton />
+      </body>
     </html>
   );
 }

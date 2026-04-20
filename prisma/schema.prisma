@@ -1,0 +1,295 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// AUTH & USERS
+// ─────────────────────────────────────────
+
+model User {
+  id                  String    @id @default(cuid())
+  email               String    @unique
+  emailVerified       DateTime?
+  passwordHash        String?
+  name                String?
+  image               String?
+  role                Role      @default(USER)
+  onboardingCompleted Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  accounts            Account[]
+  sessions            Session[]
+  preferences         UserPreferences?
+  watchlistItems      WatchlistItem[]
+  notifications       Notification[]
+  pushSubscriptions   PushSubscription[]
+  categoryPreferences UserCategoryPreference[]
+  alertHistory        AlertHistory[]
+
+  @@index([email])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────
+// USER PREFERENCES
+// ─────────────────────────────────────────
+
+model UserPreferences {
+  id                    String     @id @default(cuid())
+  userId                String     @unique
+  emailAlerts           Boolean    @default(true)
+  pushAlerts            Boolean    @default(true)
+  dealAlerts            Boolean    @default(true)
+  priceDropAlerts       Boolean    @default(true)
+  weeklyDigest          Boolean    @default(false)
+  quietHoursEnabled     Boolean    @default(false)
+  quietHoursStart       String?
+  quietHoursEnd         String?
+  alertThresholdPercent Int        @default(10)
+  minDiscountPercent    Int?
+  maxPrice              Float?
+  brandPreferences      String[]
+  dealTypePreferences   DealType[]
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id                 String  @id @default(cuid())
+  name               String  @unique
+  slug               String  @unique
+  iconUrl            String?
+  amazonBrowseNodeId String?
+
+  userPreferences UserCategoryPreference[]
+  deals           DealCategory[]
+}
+
+model UserCategoryPreference {
+  userId     String
+  categoryId String
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([userId, categoryId])
+}
+
+// ─────────────────────────────────────────
+// DEALS & PRODUCTS
+// ─────────────────────────────────────────
+
+model Deal {
+  id                  String    @id @default(cuid())
+  asin                String    @unique
+  title               String
+  slug                String    @unique
+  brand               String?
+  imageUrl            String?
+  affiliateUrl        String
+  currentPrice        Float
+  originalPrice       Float?
+  discountPercent     Int?
+  rating              Float?
+  reviewCount         Int?
+  isFeatured          Boolean   @default(false)
+  isFeaturedDayDeal   Boolean   @default(false)
+  dealOfDaySelectedAt DateTime?
+  isActive            Boolean   @default(true)
+  claimedCount        Int       @default(0)
+  totalSlots          Int?
+  dealType            DealType  @default(PRICE_DROP)
+  expiresAt           DateTime?
+  lastSyncedAt        DateTime  @default(now())
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  metadata            Json?
+
+  categories     DealCategory[]
+  priceHistory   PriceHistory[]
+  watchlistItems WatchlistItem[]
+  notifications  Notification[]
+
+  @@index([asin])
+  @@index([slug])
+  @@index([isFeatured])
+  @@index([isFeaturedDayDeal])
+  @@index([isActive, discountPercent])
+  @@index([expiresAt])
+}
+
+enum DealType {
+  PRICE_DROP
+  LIGHTNING_DEAL
+  COUPON
+  DEAL_OF_DAY
+  PRIME_EXCLUSIVE
+}
+
+model DealCategory {
+  dealId     String
+  categoryId String
+
+  deal     Deal     @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([dealId, categoryId])
+}
+
+model PriceHistory {
+  id         String   @id @default(cuid())
+  dealId     String
+  price      Float
+  source     String   @default("amazon")
+  recordedAt DateTime @default(now())
+
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@index([dealId, recordedAt])
+}
+
+// ─────────────────────────────────────────
+// WATCHLIST
+// ─────────────────────────────────────────
+
+model WatchlistItem {
+  id          String   @id @default(cuid())
+  userId      String
+  dealId      String
+  targetPrice Float?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dealId])
+  @@index([userId])
+  @@index([dealId])
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATIONS & ALERTS
+// ─────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  dealId    String?
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deal Deal? @relation(fields: [dealId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+}
+
+enum NotificationType {
+  PRICE_DROP
+  TARGET_PRICE_HIT
+  DEAL_EXPIRING
+  DEAL_EXPIRED
+  SYSTEM
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dhKey String
+  authKey   String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AlertHistory {
+  id      String           @id @default(cuid())
+  userId  String
+  dealId  String?
+  type    NotificationType
+  channel AlertChannel
+  sentAt  DateTime         @default(now())
+  success Boolean
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([sentAt])
+  @@index([userId])
+}
+
+enum AlertChannel {
+  EMAIL
+  PUSH
+  IN_APP
+}
+
+// ─────────────────────────────────────────
+// PASSWORD RESET
+// ─────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  token     String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  @@index([token])
+}

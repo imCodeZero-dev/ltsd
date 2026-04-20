@@ -7,9 +7,26 @@
 /* ─────────────────────────────────────────────
    LTSD Design Tokens — sourced from Figma
    (file: 6pAN2JVEoyxpP8eE55lFPE)
+   Note: --color-border, --color-muted, --radius-* are
+   handled by shadcn's @theme inline below — we wire
+   them via :root overrides.
    ───────────────────────────────────────────── */
 @theme {
-  /* Brand colours */
+  /* Fonts */
+  --font-lato:    var(--font-lato);
+  --font-dm-sans: var(--font-dm-sans);
+  --font-inter:   var(--font-inter);
+
+  /* Auth form tokens (from Figma) */
+  --color-input-border:         #E5E7EB;   /* default input border */
+  --color-input-border-focus:   #143057;   /* focused input border */
+  --color-input-text:           #2D3648;   /* input value text */
+  --color-label:                rgba(81,83,94,0.9); /* field label */
+  --color-divider:              rgba(196,198,207,0.6); /* "or" divider lines */
+  --color-link:                 #708AB5;   /* Forgot Password? */
+  --color-muted-text:           #747474;   /* "Already have account?" */
+
+  /* Brand colours — LTSD-namespaced to avoid shadcn conflicts */
   --color-crimson:      #C82750;   /* primary CTA, nav active */
   --color-orange:       #FF7C56;   /* secondary, hover states */
   --color-yellow:       #FFC700;   /* Lightning deal badge */
@@ -19,12 +36,10 @@
   --color-navy-btn:     #011C3D;   /* dark buttons */
   --color-carbon:       #2D2D2D;   /* primary body text */
   --color-body:         #44474E;   /* secondary body text */
-  --color-muted:        #74777F;   /* placeholders, old prices */
 
   /* Surfaces */
   --color-bg:           #F8F9FA;   /* page background */
   --color-surface:      #FFFFFF;   /* cards, modals */
-  --color-border:       #E7E8E9;   /* dividers */
   --color-border-mid:   #CBCBCB;   /* stronger borders */
 
   /* Badges */
@@ -37,60 +52,156 @@
   --color-success:      #1A6932;
   --color-success-bg:   #C8F0D4;
 
-  /* Typography scale */
-  --font-sans: var(--font-inter);
-
-  /* Spacing / radius */
-  --radius-sm:   4px;
-  --radius-md:   8px;
-  --radius-lg:   12px;
-  --radius-xl:   16px;
-  --radius-full: 9999px;
-
   /* Shadows */
-  --shadow-card: 0 1px 4px 0 rgba(0, 0, 0, 0.08);
-  --shadow-modal: 0 8px 24px 0 rgba(0, 0, 0, 0.12);
+  --shadow-card:        0 1px 4px 0 rgba(0, 0, 0, 0.08);
+  --shadow-modal:       0 8px 24px 0 rgba(0, 0, 0, 0.12);
+}
+
+/* ─────────────────────────────────────────────
+   shadcn @theme inline — resolves semantic tokens
+   (--color-border → var(--border), etc.)
+   ───────────────────────────────────────────── */
+@theme inline {
+  --font-heading:                    var(--font-sans);
+  --font-sans:                       var(--font-sans);
+  --color-sidebar-ring:              var(--sidebar-ring);
+  --color-sidebar-border:            var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent:            var(--sidebar-accent);
+  --color-sidebar-primary-foreground:var(--sidebar-primary-foreground);
+  --color-sidebar-primary:           var(--sidebar-primary);
+  --color-sidebar-foreground:        var(--sidebar-foreground);
+  --color-sidebar:                   var(--sidebar);
+  --color-chart-5:                   var(--chart-5);
+  --color-chart-4:                   var(--chart-4);
+  --color-chart-3:                   var(--chart-3);
+  --color-chart-2:                   var(--chart-2);
+  --color-chart-1:                   var(--chart-1);
+  --color-ring:                      var(--ring);
+  --color-input:                     var(--input);
+  --color-border:                    var(--border);
+  --color-destructive:               var(--destructive);
+  --color-accent-foreground:         var(--accent-foreground);
+  --color-accent:                    var(--accent);
+  --color-muted-foreground:          var(--muted-foreground);
+  --color-muted:                     var(--muted);
+  --color-secondary-foreground:      var(--secondary-foreground);
+  --color-secondary:                 var(--secondary);
+  --color-primary-foreground:        var(--primary-foreground);
+  --color-primary:                   var(--primary);
+  --color-popover-foreground:        var(--popover-foreground);
+  --color-popover:                   var(--popover);
+  --color-card-foreground:           var(--card-foreground);
+  --color-card:                      var(--card);
+  --color-foreground:                var(--foreground);
+  --color-background:                var(--background);
+  --radius-sm:   calc(var(--radius) * 0.5);   /* 6px  */
+  --radius-md:   calc(var(--radius) * 0.667); /* 8px  */
+  --radius-lg:   var(--radius);               /* 12px */
+  --radius-xl:   calc(var(--radius) * 1.333); /* 16px */
+  --radius-2xl:  calc(var(--radius) * 1.667); /* 20px */
+  --radius-full: 9999px;
+}
+
+/* ─────────────────────────────────────────────
+   LTSD brand theme — overrides shadcn defaults
+   Maps semantic tokens → brand values
+   ───────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --background:              #F8F9FA;   /* page bg */
+  --foreground:              #2D2D2D;   /* carbon text */
+  --card:                    #FFFFFF;
+  --card-foreground:         #2D2D2D;
+  --popover:                 #FFFFFF;
+  --popover-foreground:      #2D2D2D;
+
+  /* Primary = crimson */
+  --primary:                 #C82750;
+  --primary-foreground:      #FFFFFF;
+
+  /* Secondary = light gray */
+  --secondary:               #F0F1F2;
+  --secondary-foreground:    #2D2D2D;
+
+  /* Muted */
+  --muted:                   #F0F1F2;
+  --muted-foreground:        #74777F;
+
+  /* Accent = orange */
+  --accent:                  #FF7C56;
+  --accent-foreground:       #FFFFFF;
+
+  /* Destructive = error */
+  --destructive:             #BA1A1A;
+
+  /* Borders & inputs */
+  --border:                  #E7E8E9;
+  --input:                   #E7E8E9;
+
+  /* Focus ring = crimson */
+  --ring:                    #C82750;
+
+  /* Base radius = 12px */
+  --radius:                  0.75rem;
+
+  /* Charts */
+  --chart-1:                 #C82750;
+  --chart-2:                 #FF7C56;
+  --chart-3:                 #FFC700;
+  --chart-4:                 #000A1E;
+  --chart-5:                 #74777F;
+
+  /* Sidebar (admin panel) */
+  --sidebar:                 #000A1E;
+  --sidebar-foreground:      #FFFFFF;
+  --sidebar-primary:         #C82750;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent:          #011C3D;
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border:          #1A2A4A;
+  --sidebar-ring:            #C82750;
 }
 
 /* ─────────────────────────────────────────────
    Base styles
    ───────────────────────────────────────────── */
-*, *::before, *::after {
-  box-sizing: border-box;
-}
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
 
-html {
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-  height: 100%;
-}
+  * {
+    @apply border-border outline-ring/50;
+  }
 
-body {
-  background-color: var(--color-bg);
-  color: var(--color-carbon);
-  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 100%;
-  /* Bottom tab nav safe area on mobile */
-  padding-bottom: env(safe-area-inset-bottom);
-}
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    height: 100%;
+    scrollbar-gutter: stable;
+    @apply font-sans;
+  }
 
-/* Prevent layout shift from scrollbar */
-html {
-  scrollbar-gutter: stable;
-}
+  body {
+    @apply bg-background text-foreground;
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100%;
+    /* Reserve space for fixed bottom tab nav on mobile */
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 
-/* Focus visible for keyboard nav */
-:focus-visible {
-  outline: 2px solid var(--color-crimson);
-  outline-offset: 2px;
+  :focus-visible {
+    outline: 2px solid var(--color-crimson);
+    outline-offset: 2px;
+  }
 }
 
 /* ─────────────────────────────────────────────
-   Typography helpers (used with @apply)
+   Typography utilities
    ───────────────────────────────────────────── */
 .text-display {
   font-size: clamp(1.75rem, 5vw, 2.5rem);
@@ -115,7 +226,7 @@ html {
 }
 
 /* ─────────────────────────────────────────────
-   Mobile PWA — safe areas & viewport
+   Mobile PWA — safe areas
    ───────────────────────────────────────────── */
 .safe-bottom {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
@@ -123,11 +234,6 @@ html {
 
 .safe-top {
   padding-top: max(0px, env(safe-area-inset-top));
-}
-
-/* Bottom tab nav — fixed, 60px tall + safe area */
-.bottom-nav-height {
-  height: calc(60px + env(safe-area-inset-bottom));
 }
 
 /* Reserve space so content isn't hidden behind fixed bottom nav */
@@ -138,141 +244,7 @@ html {
 /* ─────────────────────────────────────────────
    Scrollbar styling (WebKit)
    ───────────────────────────────────────────── */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: var(--color-border-mid);
-  border-radius: var(--radius-full);
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-muted);
-}
-
-@theme inline {
-  --font-heading:      var(--font-sans);
-  --font-sans:      var(--font-sans);
-  --color-sidebar-ring:      var(--sidebar-ring);
-  --color-sidebar-border:      var(--sidebar-border);
-  --color-sidebar-accent-foreground:      var(--sidebar-accent-foreground);
-  --color-sidebar-accent:      var(--sidebar-accent);
-  --color-sidebar-primary-foreground:      var(--sidebar-primary-foreground);
-  --color-sidebar-primary:      var(--sidebar-primary);
-  --color-sidebar-foreground:      var(--sidebar-foreground);
-  --color-sidebar:      var(--sidebar);
-  --color-chart-5:      var(--chart-5);
-  --color-chart-4:      var(--chart-4);
-  --color-chart-3:      var(--chart-3);
-  --color-chart-2:      var(--chart-2);
-  --color-chart-1:      var(--chart-1);
-  --color-ring:      var(--ring);
-  --color-input:      var(--input);
-  --color-border:      var(--border);
-  --color-destructive:      var(--destructive);
-  --color-accent-foreground:      var(--accent-foreground);
-  --color-accent:      var(--accent);
-  --color-muted-foreground:      var(--muted-foreground);
-  --color-muted:      var(--muted);
-  --color-secondary-foreground:      var(--secondary-foreground);
-  --color-secondary:      var(--secondary);
-  --color-primary-foreground:      var(--primary-foreground);
-  --color-primary:      var(--primary);
-  --color-popover-foreground:      var(--popover-foreground);
-  --color-popover:      var(--popover);
-  --color-card-foreground:      var(--card-foreground);
-  --color-card:      var(--card);
-  --color-foreground:      var(--foreground);
-  --color-background:      var(--background);
-  --radius-sm:      calc(var(--radius) * 0.6);
-  --radius-md:      calc(var(--radius) * 0.8);
-  --radius-lg:      var(--radius);
-  --radius-xl:      calc(var(--radius) * 1.4);
-  --radius-2xl:      calc(var(--radius) * 1.8);
-  --radius-3xl:      calc(var(--radius) * 2.2);
-  --radius-4xl:      calc(var(--radius) * 2.6);
-}
-
-:root {
-  --background:      oklch(1 0 0);
-  --foreground:      oklch(0.145 0 0);
-  --card:      oklch(1 0 0);
-  --card-foreground:      oklch(0.145 0 0);
-  --popover:      oklch(1 0 0);
-  --popover-foreground:      oklch(0.145 0 0);
-  --primary:      oklch(0.205 0 0);
-  --primary-foreground:      oklch(0.985 0 0);
-  --secondary:      oklch(0.97 0 0);
-  --secondary-foreground:      oklch(0.205 0 0);
-  --muted:      oklch(0.97 0 0);
-  --muted-foreground:      oklch(0.556 0 0);
-  --accent:      oklch(0.97 0 0);
-  --accent-foreground:      oklch(0.205 0 0);
-  --destructive:      oklch(0.577 0.245 27.325);
-  --border:      oklch(0.922 0 0);
-  --input:      oklch(0.922 0 0);
-  --ring:      oklch(0.708 0 0);
-  --chart-1:      oklch(0.87 0 0);
-  --chart-2:      oklch(0.556 0 0);
-  --chart-3:      oklch(0.439 0 0);
-  --chart-4:      oklch(0.371 0 0);
-  --chart-5:      oklch(0.269 0 0);
-  --radius:      0.625rem;
-  --sidebar:      oklch(0.985 0 0);
-  --sidebar-foreground:      oklch(0.145 0 0);
-  --sidebar-primary:      oklch(0.205 0 0);
-  --sidebar-primary-foreground:      oklch(0.985 0 0);
-  --sidebar-accent:      oklch(0.97 0 0);
-  --sidebar-accent-foreground:      oklch(0.205 0 0);
-  --sidebar-border:      oklch(0.922 0 0);
-  --sidebar-ring:      oklch(0.708 0 0);
-}
-
-.dark {
-  --background:      oklch(0.145 0 0);
-  --foreground:      oklch(0.985 0 0);
-  --card:      oklch(0.205 0 0);
-  --card-foreground:      oklch(0.985 0 0);
-  --popover:      oklch(0.205 0 0);
-  --popover-foreground:      oklch(0.985 0 0);
-  --primary:      oklch(0.922 0 0);
-  --primary-foreground:      oklch(0.205 0 0);
-  --secondary:      oklch(0.269 0 0);
-  --secondary-foreground:      oklch(0.985 0 0);
-  --muted:      oklch(0.269 0 0);
-  --muted-foreground:      oklch(0.708 0 0);
-  --accent:      oklch(0.269 0 0);
-  --accent-foreground:      oklch(0.985 0 0);
-  --destructive:      oklch(0.704 0.191 22.216);
-  --border:      oklch(1 0 0 / 10%);
-  --input:      oklch(1 0 0 / 15%);
-  --ring:      oklch(0.556 0 0);
-  --chart-1:      oklch(0.87 0 0);
-  --chart-2:      oklch(0.556 0 0);
-  --chart-3:      oklch(0.439 0 0);
-  --chart-4:      oklch(0.371 0 0);
-  --chart-5:      oklch(0.269 0 0);
-  --sidebar:      oklch(0.205 0 0);
-  --sidebar-foreground:      oklch(0.985 0 0);
-  --sidebar-primary:      oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground:      oklch(0.985 0 0);
-  --sidebar-accent:      oklch(0.269 0 0);
-  --sidebar-accent-foreground:      oklch(0.985 0 0);
-  --sidebar-border:      oklch(1 0 0 / 10%);
-  --sidebar-ring:      oklch(0.556 0 0);
-}
-
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
-}
+::-webkit-scrollbar        { width: 4px; height: 4px; }
+::-webkit-scrollbar-track  { background: transparent; }
+::-webkit-scrollbar-thumb  { background: var(--color-border-mid); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
