@@ -1,17 +1,16 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
+import { useTransition, useState, useRef, useEffect } from "react";
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { DealType } from "@/lib/deal-api/types";
 
-const DEAL_TYPES: { value: DealType; label: string }[] = [
-  { value: "LIGHTNING_DEAL",  label: "⚡ Lightning" },
-  { value: "LIMITED_TIME",    label: "🕐 Limited Time" },
-  { value: "PRIME_EXCLUSIVE", label: "👑 Prime" },
-];
+// Figma: Deals – filter row
+// Left: "Category ▾" pill | "Deal Type ▾" pill
+// Right: "Sort by ▾" pill
 
 const CATEGORIES = [
+  { value: "",            label: "All Categories" },
   { value: "electronics", label: "Electronics" },
   { value: "computers",   label: "Computers" },
   { value: "home",        label: "Home" },
@@ -20,6 +19,24 @@ const CATEGORIES = [
   { value: "gaming",      label: "Gaming" },
   { value: "fitness",     label: "Fitness" },
   { value: "beauty",      label: "Beauty" },
+  { value: "automotive",  label: "Automotive" },
+  { value: "books",       label: "Books" },
+];
+
+const DEAL_TYPES = [
+  { value: "",                label: "All Types" },
+  { value: "LIGHTNING_DEAL",  label: "Lightning Deals" },
+  { value: "LIMITED_TIME",    label: "Limited Time" },
+  { value: "PRIME_EXCLUSIVE", label: "Prime Day" },
+];
+
+const SORT_OPTIONS = [
+  { value: "",            label: "Featured" },
+  { value: "discount",    label: "Highest Discount" },
+  { value: "price_asc",   label: "Price: Low to High" },
+  { value: "price_desc",  label: "Price: High to Low" },
+  { value: "rating",      label: "Highest Rated" },
+  { value: "newest",      label: "Newest" },
 ];
 
 export function DealFilters() {
@@ -27,87 +44,124 @@ export function DealFilters() {
   const params = useSearchParams();
   const [, startTransition] = useTransition();
 
-  const activeType     = params.get("type") ?? "";
   const activeCategory = params.get("category") ?? "";
+  const activeType     = params.get("type")     ?? "";
+  const activeSort     = params.get("sort")      ?? "";
 
   function setParam(key: string, value: string) {
     const next = new URLSearchParams(params.toString());
     if (value) next.set(key, value);
-    else next.delete(key);
+    else       next.delete(key);
     startTransition(() => router.replace(`/deals?${next.toString()}`));
   }
 
+  const categoryLabel = CATEGORIES.find((c) => c.value === activeCategory)?.label ?? "Category";
+  const typeLabel     = DEAL_TYPES.find((t)  => t.value === activeType)?.label     ?? "Deal Type";
+  const sortLabel     = SORT_OPTIONS.find((s) => s.value === activeSort)?.label    ?? "Sort by";
+
   return (
-    <div className="space-y-3">
-      {/* Deal type chips */}
-      <div
-        className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-none"
-        role="group"
-        aria-label="Filter by deal type"
-      >
-        <Chip
-          label="All"
-          active={!activeType}
-          onClick={() => setParam("type", "")}
+    <div className="flex items-center justify-between gap-3 py-3 border-b border-[#E7E8E9]">
+      {/* Left: filter pills */}
+      <div className="flex items-center gap-2">
+        <FilterDropdown
+          label={activeCategory ? categoryLabel : "Category"}
+          active={!!activeCategory}
+          options={CATEGORIES}
+          value={activeCategory}
+          onChange={(v) => setParam("category", v)}
         />
-        {DEAL_TYPES.map((t) => (
-          <Chip
-            key={t.value}
-            label={t.label}
-            active={activeType === t.value}
-            onClick={() => setParam("type", activeType === t.value ? "" : t.value)}
-          />
-        ))}
+        <FilterDropdown
+          label={activeType ? typeLabel : "Deal Type"}
+          active={!!activeType}
+          options={DEAL_TYPES}
+          value={activeType}
+          onChange={(v) => setParam("type", v)}
+        />
       </div>
 
-      {/* Category chips */}
-      <div
-        className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-none"
-        role="group"
-        aria-label="Filter by category"
-      >
-        <Chip
-          label="All Categories"
-          active={!activeCategory}
-          onClick={() => setParam("category", "")}
-        />
-        {CATEGORIES.map((c) => (
-          <Chip
-            key={c.value}
-            label={c.label}
-            active={activeCategory === c.value}
-            onClick={() =>
-              setParam("category", activeCategory === c.value ? "" : c.value)
-            }
-          />
-        ))}
-      </div>
+      {/* Right: sort */}
+      <FilterDropdown
+        label={activeSort ? sortLabel : "Sort by"}
+        active={!!activeSort}
+        options={SORT_OPTIONS}
+        value={activeSort}
+        onChange={(v) => setParam("sort", v)}
+        alignRight
+      />
     </div>
   );
 }
 
-function Chip({
+function FilterDropdown({
   label,
   active,
-  onClick,
+  options,
+  value,
+  onChange,
+  alignRight = false,
 }: {
   label: string;
   active: boolean;
-  onClick: () => void;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  alignRight?: boolean;
 }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "shrink-0 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors whitespace-nowrap",
-        active
-          ? "bg-crimson text-white border-crimson"
-          : "bg-surface text-body border-border hover:border-crimson hover:text-crimson"
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          "flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-sm font-medium transition-all whitespace-nowrap cursor-pointer",
+          active
+            ? "bg-[#FFF8EE] border-badge-bg text-navy"
+            : "bg-white border-[#E7E8E9] text-body hover:border-badge-bg"
+        )}
+      >
+        {label}
+        <ChevronDown
+          className={cn("w-3.5 h-3.5 transition-transform duration-150", open && "rotate-180")}
+        />
+      </button>
+
+      {open && (
+        <div
+          className={cn(
+            "absolute top-full mt-1.5 z-30 bg-white border border-[#E7E8E9] rounded-xl shadow-lg overflow-hidden min-w-45",
+            alignRight ? "right-0" : "left-0"
+          )}
+        >
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { onChange(opt.value); setOpen(false); }}
+              className={cn(
+                "w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer",
+                value === opt.value
+                  ? "bg-[#FFF8EE] text-badge-bg font-semibold"
+                  : "text-body hover:bg-[#F5F6F7]"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
       )}
-    >
-      {label}
-    </button>
+    </div>
   );
 }

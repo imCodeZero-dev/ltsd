@@ -1,344 +1,821 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import Image from "next/image";
-import { Bell, TrendingDown, Target, Star, Zap } from "lucide-react";
+import Link from "next/link";
+import { ChevronDown } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "LTSD — Hunting For The Best Deals? You're In The Right Spot.",
+  title: "LTSD — Hunt Deals Smarter. Save More.",
   description:
-    "We track prices, find the best deals, and tell you exactly when to buy.",
+    "Track prices, find the best deals, and get notified the moment a product hits your target price.",
 };
 
-// ─── Static data ────────────────────────────────────────────────────────────
+// ── Mock deal data (3 showcase deals) ─────────────────────────────────────────
 
-const TOP_DEALS = [
+const SHOWCASE_DEALS = [
   {
-    id: "1",
-    brand: "Sony",
-    title: "WH-1000XM5 Wireless Noise Cancelling Headphones",
-    price: "$298",
-    original: "$399",
-    image: "https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg",
-    rating: 4.6,
-    reviews: "11,644",
-  },
-  {
-    id: "2",
-    brand: "Apple",
-    title: "AirPods Pro (2nd Gen) Wireless Earbuds",
-    price: "$199",
-    original: "$249",
+    id: "s1",
+    brand: "SONY",
+    title: "Sony WH-1000XM5 Wireless Cancelling Headphones",
+    price: 298, original: 399, discount: 25,
     image: "https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg",
-    rating: 4.8,
-    reviews: "11,644",
-    note: "⭐ 11,644 Global best selling",
   },
   {
-    id: "3",
-    brand: "Logitech",
-    title: "MX Master 3S Wireless Performance Mouse",
-    price: "$89",
-    original: "$119",
+    id: "s2",
+    brand: "SONY",
+    title: "Apple AirPods Pro (2nd Gen) Wireless Earbuds",
+    price: 199, original: 250, discount: 20,
+    image: "https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg",
+  },
+  {
+    id: "s3",
+    brand: "SONY",
+    title: "Logitech MX Master 3S Wireless Performance Mouse",
+    price: 89, original: 129, discount: 31,
     image: "https://m.media-amazon.com/images/I/61ni3t1ryQL._AC_SL1500_.jpg",
-    rating: 4.6,
-    reviews: "8,291",
   },
 ];
 
-const CATEGORIES = [
-  { label: "Electronics", emoji: "📱" },
-  { label: "Fashion", emoji: "👗" },
-  { label: "Home", emoji: "🏠" },
-  { label: "Kitchen", emoji: "🍳" },
-  { label: "Fitness", emoji: "🏋️" },
-  { label: "Beauty", emoji: "💄" },
-  { label: "Gaming", emoji: "🎮" },
-  { label: "Toys", emoji: "🧸" },
-];
+// ── Badge pill (used in each section) ─────────────────────────────────────────
 
-const HOW_IT_WORKS = [
-  {
-    num: 1,
-    title: "Tell us what you're looking for",
-    desc: "Choose your preferred categories, brands, and deal types. Our system will personalise deals just for you.",
-  },
-  {
-    num: 2,
-    title: "We track prices for you",
-    desc: "Our system monitors product prices, comparing them to historical data, letting you know when a deal is actually worth it.",
-  },
-  {
-    num: 3,
-    title: "Get Alerts & Buy at the right time",
-    desc: "Don't get notified for things you don't want. Only when a deal matches what you're looking for will we inform you.",
-  },
-];
-
-// ─── Phone Mockup ────────────────────────────────────────────────────────────
-function PhoneMockup() {
-  return (
-    <div className="relative mx-auto w-[220px] sm:w-[260px] lg:w-[240px]">
-      {/* Phone shell */}
-      <div className="relative rounded-[40px] border-[8px] border-[#1A1A2E] bg-[#1A1A2E] shadow-[0_32px_64px_rgba(0,0,0,0.25)] overflow-hidden">
-        {/* Status bar */}
-        <div className="bg-[#000A1E] px-4 pt-2 pb-1 flex items-center justify-between">
-          <span className="text-white text-[8px] font-medium">9:41</span>
-          <div className="w-12 h-3 rounded-full bg-[#1A1A2E]" />
-          <div className="flex gap-1">
-            <div className="w-2 h-1.5 bg-white/60 rounded-sm" />
-            <div className="w-1.5 h-1.5 bg-white/60 rounded-full" />
-          </div>
-        </div>
-
-        {/* App content */}
-        <div
-          className="bg-white px-3 pb-4 space-y-2.5"
-          style={{ minHeight: 420 }}
-        >
-          {/* Orange top bar */}
-          <div
-            className="mx-[-12px] px-3 py-2 flex items-center gap-2"
-            style={{ background: "#FE9800" }}
-          >
-            <span className="text-white text-[9px] font-bold">
-              Top Deals for you today
-            </span>
-            <Zap className="w-3 h-3 text-white ml-auto" />
-          </div>
-
-          {/* Search bar */}
-          <div className="flex items-center gap-1.5 bg-[#F5F5F5] rounded-full px-2.5 py-1.5">
-            <div className="w-2.5 h-2.5 rounded-full border border-gray-400" />
-            <span className="text-[8px] text-gray-400 flex-1">
-              Search deals...
-            </span>
-          </div>
-
-          {/* Deal card 1 */}
-          <div className="bg-white border border-gray-100 rounded-xl p-2 shadow-sm">
-            <div className="flex gap-2 items-start">
-              <div className="w-11 h-11 bg-orange-50 rounded-lg flex items-center justify-center text-base shrink-0">
-                🎧
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span
-                    className="text-[7px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                    style={{ background: "#FE9800" }}
-                  >
-                    ⚡ Lightning
-                  </span>
-                </div>
-                <p className="text-[8px] font-semibold text-[#000A1E] leading-tight line-clamp-1">
-                  Sony WH-1000XM5
-                </p>
-                <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-[10px] font-bold text-[#000A1E]">$228</span>
-                  <span className="text-[7px] line-through text-gray-400">$399</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Deal card 2 */}
-          <div className="bg-white border border-gray-100 rounded-xl p-2 shadow-sm">
-            <div className="flex gap-2 items-start">
-              <div className="w-11 h-11 bg-blue-50 rounded-lg flex items-center justify-center text-base shrink-0">
-                🎵
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span
-                    className="text-[7px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                    style={{ background: "#FE9800" }}
-                  >
-                    Limited Time
-                  </span>
-                </div>
-                <p className="text-[8px] font-semibold text-[#000A1E] leading-tight line-clamp-1">
-                  AirPods Pro (2nd Gen)
-                </p>
-                <div className="flex items-baseline gap-1 mt-0.5">
-                  <span className="text-[10px] font-bold text-[#000A1E]">$189</span>
-                  <span className="text-[7px] line-through text-gray-400">$249</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Category bubbles */}
-          <div>
-            <p className="text-[8px] font-bold text-[#000A1E] mb-1.5">
-              Browse Categories
-            </p>
-            <div className="flex gap-1.5 overflow-hidden">
-              {["📱", "💻", "🏠", "🍳", "👗"].map((emoji, i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0"
-                  style={{ background: "#FFF3E0" }}
-                >
-                  {emoji}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Floating price badge */}
-      <div className="absolute -right-6 top-[38%] bg-white rounded-2xl shadow-xl px-3 py-2 border border-gray-100">
-        <p className="text-[11px] font-bold text-[#000A1E]">$298</p>
-        <p className="text-[9px] text-green-600 font-medium">↓ 43% off</p>
-      </div>
-    </div>
-  );
-}
-
-// ─── Announcement Bar ────────────────────────────────────────────────────────
-function AnnouncementBar() {
+function BadgePill({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
   return (
     <div
-      className="w-full py-2 px-4 text-center text-xs font-semibold text-white flex items-center justify-center gap-2"
-      style={{ background: "#FE9800" }}
+      className={`
+        inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium
+        ${dark ? "bg-[#1A1A1A] text-white/80" : "bg-white border border-[#E7E8E9] text-[#44474E]"}
+      `}
+      style={{ fontFamily: "var(--font-lato)" }}
     >
-      <Zap className="w-3.5 h-3.5 shrink-0" aria-hidden />
-      Track Prices. Save More. Never Miss Deals
-      <Zap className="w-3.5 h-3.5 shrink-0" aria-hidden />
+      {children}
     </div>
   );
 }
 
-// ─── Landing Nav ─────────────────────────────────────────────────────────────
-function LandingNav() {
+// ── Guest Header ───────────────────────────────────────────────────────────────
+
+function GuestHeader() {
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-[#E5E7EB]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-        {/* Logo */}
-        <Link
-          href="/"
-          className="font-bold text-xl tracking-tight"
-          style={{ color: "#000A1E" }}
-        >
-          LTSD
-        </Link>
-
-        {/* Desktop nav links */}
-        <nav className="hidden md:flex items-center gap-6">
-          {[
-            { label: "Home", href: "/" },
-            { label: "Deals", href: "/deals" },
-            { label: "Watchlist", href: "/watchlist" },
-          ].map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-sm font-medium text-[#44474E] hover:text-[#000A1E] transition-colors"
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-
-        {/* CTA buttons */}
-        <div className="flex items-center gap-2">
-          {/* Mobile: two buttons */}
+    <>
+      {/* Announcement bar — dark navy */}
+      <div
+        className="w-full py-2 px-6 flex items-center text-xs font-medium text-white"
+        style={{ background: "#000A1E", fontFamily: "var(--font-lato)" }}
+      >
+        <div className="flex-1 flex items-center justify-center gap-2">
+          <span>Smarter shopping starts here — track deals and save more</span>
           <Link
             href="/signup"
-            className="md:hidden px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-colors"
-            style={{ background: "#FE9800" }}
+            className="font-bold underline underline-offset-2 hover:no-underline shrink-0"
+          >
+            ShopNow
+          </Link>
+        </div>
+        <button
+          type="button"
+          className="hidden md:flex items-center gap-0.5 text-white/60 hover:text-white transition-colors shrink-0"
+          style={{ fontFamily: "var(--font-lato)" }}
+        >
+          English <ChevronDown className="w-3 h-3" />
+        </button>
+      </div>
+
+      {/* Main header */}
+      <header className="sticky top-0 z-40 bg-white border-b border-[#E7E8E9]">
+        <div className="max-w-350 mx-auto px-4 sm:px-6 h-14 flex items-center gap-6">
+          {/* Logo */}
+          <Link href="/" className="shrink-0 flex items-center gap-2">
+            <Image
+              src="/images/ltsd-logo.png"
+              alt="LTSD"
+              width={36}
+              height={36}
+              className="rounded-full"
+            />
+          </Link>
+
+          {/* Nav — centered */}
+          <nav className="hidden md:flex items-center gap-8 flex-1 justify-center">
+            {[
+              { label: "Home",      href: "/" },
+              { label: "Deals",     href: "/deals" },
+              { label: "Watchlist", href: "/signup" },
+            ].map(({ label, href }, i) => (
+              <Link
+                key={label}
+                href={href}
+                className="text-sm font-medium transition-colors"
+                style={{
+                  fontFamily: "var(--font-lato)",
+                  color: i === 0 ? "#000A1E" : "#44474E",
+                  fontWeight: i === 0 ? 700 : 500,
+                }}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Right: Log In + dark mode toggle */}
+          <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/login"
+              className="hidden sm:flex items-center px-4 py-1.5 rounded-lg border border-[#E7E8E9] text-sm font-semibold text-navy hover:border-navy transition-colors"
+              style={{ fontFamily: "var(--font-lato)" }}
+            >
+              Log In
+            </Link>
+            <div className="w-8 h-8 rounded-full bg-[#000A1E] flex items-center justify-center">
+              <svg viewBox="0 0 24 24" className="w-4 h-4 text-white fill-white" aria-hidden>
+                <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+      </header>
+    </>
+  );
+}
+
+// ── Hero Section ───────────────────────────────────────────────────────────────
+
+function HeroSection() {
+  return (
+    <section
+      className="relative overflow-hidden"
+      style={{
+        background: "radial-gradient(ellipse 100% 80% at 50% 100%, #FFE4A0 0%, #FFF9EE 40%, #FFFFFF 70%)",
+      }}
+    >
+      <div className="max-w-350 mx-auto px-4 sm:px-6 pt-16 pb-0 text-center">
+        {/* Badge */}
+        <div className="flex justify-center mb-6">
+          <BadgePill>
+            <span className="text-badge-bg">🔥</span>
+            Track Prices. Save More. Never Miss Deals.
+          </BadgePill>
+        </div>
+
+        {/* Heading */}
+        <h1
+          className="text-4xl md:text-5xl lg:text-[56px] font-extrabold text-navy leading-tight max-w-3xl mx-auto"
+          style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
+        >
+          Hunting For The Best Deals?<br />
+          You're In The Right Spot.
+        </h1>
+
+        {/* Subtitle */}
+        <p
+          className="mt-4 text-base text-body max-w-md mx-auto leading-relaxed"
+          style={{ fontFamily: "var(--font-lato)" }}
+        >
+          We track prices, find the best deals, and tell you exactly when to buy.
+        </p>
+
+        {/* CTAs */}
+        <div className="flex items-center justify-center gap-3 mt-8 flex-wrap">
+          <Link
+            href="/signup"
+            className="px-7 py-3.5 rounded-full text-sm font-bold text-white hover:opacity-90 transition-opacity"
+            style={{ background: "#FF5733", fontFamily: "var(--font-lato)" }}
           >
             Get Started Free
           </Link>
           <Link
             href="/deals"
-            className="md:hidden px-3 py-1.5 rounded-lg text-xs font-semibold border border-[#000A1E] text-[#000A1E] transition-colors"
+            className="px-7 py-3.5 rounded-full text-sm font-bold text-white hover:opacity-80 transition-opacity"
+            style={{ background: "#000A1E", fontFamily: "var(--font-lato)" }}
           >
             Explore Deals
           </Link>
+        </div>
 
-          {/* Desktop: login only */}
-          <Link
-            href="/login"
-            className="hidden md:inline-flex px-4 py-1.5 rounded-lg text-sm font-semibold border border-[#000A1E] text-[#000A1E] hover:bg-[#000A1E] hover:text-white transition-colors"
+        {/* Phone mockup + floating elements */}
+        <div className="relative mt-14 flex justify-center">
+          {/* Floating: deals bought badge */}
+          <div
+            className="absolute left-4 md:left-16 top-8 z-10 bg-white rounded-2xl shadow-lg px-3 py-2.5 text-left hidden sm:block"
+            style={{ minWidth: 200 }}
           >
-            Login
-          </Link>
+            <p
+              className="text-[10px] font-semibold uppercase tracking-wide text-body mb-1"
+              style={{ fontFamily: "var(--font-inter)" }}
+            >
+              Price Dropped
+            </p>
+            <p
+              className="text-xs font-bold text-navy mb-1"
+              style={{ fontFamily: "var(--font-lato)" }}
+            >
+              Gaming Ultra Promax Headphones
+            </p>
+            <div className="flex items-center gap-1.5">
+              <span className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white">
+                  <path d="M12 16l-6-6h12z"/>
+                </svg>
+              </span>
+              <span className="font-extrabold text-sm text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
+              <span className="text-xs line-through text-body">$399</span>
+            </div>
+          </div>
+
+          {/* Social proof bottom-left */}
+          <div className="absolute left-4 md:left-8 bottom-16 z-10 bg-white rounded-2xl shadow-md px-3 py-2 flex items-center gap-2 hidden sm:flex">
+            <span className="text-badge-bg text-base">🔥</span>
+            <p
+              className="text-xs font-bold text-navy"
+              style={{ fontFamily: "var(--font-lato)" }}
+            >
+              2,341 Deals Bought
+            </p>
+          </div>
+
+          {/* Trending badge bottom-right */}
+          <div className="absolute right-4 md:right-8 bottom-24 z-10 bg-white rounded-2xl shadow-md px-3 py-2 hidden sm:block">
+            <p
+              className="text-[9px] font-bold uppercase tracking-wide text-body"
+              style={{ fontFamily: "var(--font-inter)" }}
+            >
+              Trending Now
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white">
+                  <path d="M12 16l-6-6h12z"/>
+                </svg>
+              </span>
+              <span className="font-extrabold text-sm text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
+              <span className="text-xs line-through text-body">$399</span>
+            </div>
+          </div>
+
+          {/* Avatar + count right */}
+          <div className="absolute right-2 md:right-12 top-12 z-10 flex items-center gap-2 hidden md:flex">
+            <div className="flex -space-x-2">
+              {["#FF6B6B", "#4ECDC4", "#45B7D1"].map((color, i) => (
+                <div
+                  key={i}
+                  className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white"
+                  style={{ background: color }}
+                >
+                  {["A", "B", "C"][i]}
+                </div>
+              ))}
+            </div>
+            <span className="text-sm font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>10k+</span>
+          </div>
+
+          {/* Phone frame */}
+          <div
+            className="relative w-[300px] md:w-[340px] rounded-[40px] overflow-hidden shadow-2xl border-[10px] border-[#1A1A1A]"
+            style={{ aspectRatio: "9/19" }}
+          >
+            {/* Notch */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-[#1A1A1A] rounded-b-2xl z-10" />
+
+            {/* Phone screen */}
+            <div className="w-full h-full bg-bg overflow-hidden">
+              {/* Mini app header */}
+              <div className="bg-white px-3 pt-8 pb-2 flex items-center justify-between border-b border-[#E7E8E9]">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-body" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+                </svg>
+                <div className="flex-1 mx-3 h-7 rounded-full bg-bg border border-[#E7E8E9] flex items-center px-2.5 gap-1.5">
+                  <svg viewBox="0 0 24 24" className="w-3 h-3 text-body" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                  </svg>
+                  <span className="text-[10px] text-body" style={{ fontFamily: "var(--font-inter)" }}>Search categories...</span>
+                </div>
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-body" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+              </div>
+
+              {/* Mini hero banner */}
+              <div
+                className="mx-2 mt-2 rounded-xl p-3 relative overflow-hidden"
+                style={{ background: "linear-gradient(135deg, #FF9500 0%, #FFBE00 100%)" }}
+              >
+                <p className="text-[8px] font-bold text-white/80 uppercase tracking-wide" style={{ fontFamily: "var(--font-inter)" }}>
+                  Top Deals for you today
+                </p>
+                <p className="text-[7px] text-white/70 mt-0.5 leading-tight" style={{ fontFamily: "var(--font-inter)" }}>
+                  Handpicked deals based on your<br/>interest and recent activity
+                </p>
+                <div className="mt-2 bg-white rounded-md px-2 py-1 w-fit">
+                  <span className="text-[7px] font-bold" style={{ color: "#FF7043" }}>View Deals</span>
+                </div>
+                {/* Headphone image */}
+                <div className="absolute right-1 -bottom-1 w-14 h-14">
+                  <Image
+                    src="https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg"
+                    alt=""
+                    fill
+                    sizes="56px"
+                    className="object-contain"
+                  />
+                </div>
+              </div>
+
+              {/* Mini categories */}
+              <div className="px-3 mt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>Browse Categories</span>
+                  <span className="text-[8px] text-badge-bg font-semibold">See All</span>
+                </div>
+                <div className="flex gap-3 overflow-hidden">
+                  {["Electronic", "Fashion", "Shoes", "Furniture"].map((cat) => (
+                    <div key={cat} className="shrink-0 flex flex-col items-center gap-1">
+                      <div className="w-9 h-9 rounded-full bg-[#DBEAFE]" />
+                      <span className="text-[7px] text-navy font-medium" style={{ fontFamily: "var(--font-lato)" }}>{cat}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Mini deal of week */}
+              <div className="px-3 mt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[9px] font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>Deal Of Week</span>
+                  <span className="text-[8px] text-badge-bg font-semibold">See All</span>
+                </div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[0, 1].map((i) => (
+                    <div key={i} className="bg-white rounded-lg p-1.5 border border-[#E7E8E9]">
+                      <div className="w-full aspect-square bg-bg rounded mb-1" />
+                      <div className="h-1.5 bg-[#E7E8E9] rounded w-3/4 mb-1" />
+                      <div className="h-2 bg-[#000A1E] rounded w-1/2" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-    </header>
+    </section>
   );
 }
 
-// ─── Hero ─────────────────────────────────────────────────────────────────────
-function HeroSection() {
+// ── Deals Section ──────────────────────────────────────────────────────────────
+
+function DealsSection() {
   return (
-    <section
-      className="overflow-hidden"
-      style={{
-        background:
-          "linear-gradient(135deg, #FFF9F0 0%, #FFF3DC 45%, #FFE8C8 100%)",
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 lg:py-20 flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
-        {/* Text */}
-        <div className="flex-1 text-center lg:text-left space-y-5 max-w-xl mx-auto lg:mx-0">
-          <h1
-            className="text-4xl sm:text-5xl lg:text-[52px] font-extrabold leading-[1.1] tracking-tight"
-            style={{ color: "#000A1E" }}
-          >
-            Hunting For The Best Deals? You&apos;re In The Right Spot.
-          </h1>
-          <p className="text-base text-[#44474E] leading-relaxed">
-            We track prices, find the best deals, and tell you exactly when to
-            buy — so you never overpay again.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start">
-            <Link
-              href="/signup"
-              className="w-full sm:w-auto px-6 py-3 rounded-xl text-sm font-bold text-white text-center transition-opacity hover:opacity-90"
-              style={{ background: "#FE9800" }}
-            >
-              Get Started Free
+    <section className="bg-bg py-20">
+      <div className="max-w-350 mx-auto px-4 sm:px-6">
+        {/* Badge */}
+        <div className="flex justify-center mb-6">
+          <BadgePill>
+            <span className="text-badge-bg">🔥</span>
+            Our Best Deals
+          </BadgePill>
+        </div>
+
+        {/* Heading */}
+        <h2
+          className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-navy text-center leading-tight max-w-3xl mx-auto"
+          style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
+        >
+          Top Deals People Are Grabbing<br />
+          Right Now — Don't Miss Out
+        </h2>
+
+        {/* Subtitle */}
+        <p
+          className="mt-4 text-base text-body text-center max-w-md mx-auto"
+          style={{ fontFamily: "var(--font-lato)" }}
+        >
+          Live deals updated daily — prices change fast, don't miss your chance
+        </p>
+
+        {/* Deal cards */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {SHOWCASE_DEALS.map((deal) => (
+            <Link key={deal.id} href="/signup">
+              <article className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
+                {/* Product image */}
+                <div className="relative bg-bg w-full aspect-[4/3]">
+                  <Image
+                    src={deal.image}
+                    alt={deal.title}
+                    fill
+                    sizes="(max-width:768px) 90vw, 33vw"
+                    className="object-contain p-6"
+                  />
+                </div>
+
+                {/* Info */}
+                <div className="px-5 py-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span
+                      className="text-xs font-semibold uppercase tracking-widest text-body"
+                      style={{ fontFamily: "var(--font-inter)" }}
+                    >
+                      {deal.brand}
+                    </span>
+                    <span
+                      className="px-2.5 py-1 rounded text-[11px] font-bold text-white"
+                      style={{ background: "#FE9800" }}
+                    >
+                      {deal.discount}% Off
+                    </span>
+                  </div>
+                  <h3
+                    className="text-base font-bold text-navy leading-snug mb-3"
+                    style={{ fontFamily: "var(--font-lato)" }}
+                  >
+                    {deal.title}
+                  </h3>
+                  <div className="flex items-baseline gap-2">
+                    <span
+                      className="text-2xl font-extrabold text-navy"
+                      style={{ fontFamily: "var(--font-lato)" }}
+                    >
+                      ${deal.price}
+                    </span>
+                    <span className="text-sm line-through text-body">${deal.original}</span>
+                  </div>
+                </div>
+              </article>
             </Link>
-            <Link
-              href="/deals"
-              className="w-full sm:w-auto px-6 py-3 rounded-xl text-sm font-bold border border-[#000A1E] text-[#000A1E] text-center hover:bg-[#000A1E] hover:text-white transition-colors"
-            >
-              Explore Deals
-            </Link>
+          ))}
+        </div>
+
+        {/* More deals text */}
+        <p
+          className="text-center mt-10 text-sm text-body"
+          style={{ fontFamily: "var(--font-lato)" }}
+        >
+          <span className="font-extrabold text-navy">+1,200</span> more deals waiting
+        </p>
+      </div>
+    </section>
+  );
+}
+
+// ── Feature card UI mockups ────────────────────────────────────────────────────
+
+function AlertMockup() {
+  return (
+    <div className="relative h-44 flex flex-col items-center justify-center p-4">
+      <div className="w-8 h-8 rounded-full bg-badge-bg flex items-center justify-center mb-3">
+        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+          <path d="M12 16l-6-6h12z"/>
+        </svg>
+      </div>
+      <div className="bg-bg rounded-xl p-3 w-full shadow-sm border border-[#E7E8E9]">
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex-1">
+            <p className="text-[9px] font-semibold uppercase text-body" style={{ fontFamily: "var(--font-inter)" }}>Just Now</p>
+            <p className="text-xs font-bold text-navy mt-0.5" style={{ fontFamily: "var(--font-lato)" }}>
+              Price{" "}
+              <span className="text-badge-bg">Dropped 25%</span>
+            </p>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-sm font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
+              <span className="text-[10px] line-through text-body">$399</span>
+            </div>
+          </div>
+          <div className="relative w-10 h-10 rounded-lg bg-white border border-[#E7E8E9] overflow-hidden shrink-0">
+            <Image
+              src="https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg"
+              alt=""
+              fill
+              sizes="40px"
+              className="object-contain p-1"
+            />
           </div>
         </div>
+      </div>
+      <div className="w-8 h-8 rounded-full bg-badge-bg flex items-center justify-center mt-3">
+        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
 
-        {/* Phone mockup */}
-        <div className="shrink-0">
-          <PhoneMockup />
+function TrackingMockup() {
+  return (
+    <div className="relative h-44 flex flex-col items-center justify-center gap-2 p-4">
+      <div className="w-8 h-8 rounded-full bg-badge-bg flex items-center justify-center">
+        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+          <path d="M12 16l-6-6h12z"/>
+        </svg>
+      </div>
+      <div className="bg-bg rounded-xl p-3 w-full shadow-sm border border-[#E7E8E9] space-y-2">
+        <div className="bg-white rounded-lg p-2 border border-[#E7E8E9]">
+          <p className="text-[9px] font-semibold uppercase text-body" style={{ fontFamily: "var(--font-inter)" }}>Add to Watchlist</p>
+          <p className="text-[8px] text-body mt-0.5">We'll monitor the price and notify you of any drops.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-white border border-[#E7E8E9] flex items-center justify-center">
+            <div className="w-5 h-5 rounded-full bg-badge-bg/20" />
+          </div>
+          <div>
+            <p className="text-[8px] font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>Apple AirPods Pro</p>
+            <p className="text-[8px] text-body">$179 <span className="uppercase">current price</span></p>
+          </div>
+        </div>
+        <div className="flex items-baseline gap-1">
+          <p className="text-[9px] font-semibold uppercase text-body">Trending Now</p>
+          <span className="text-xs font-bold text-navy ml-auto">$298</span>
+          <span className="text-[9px] line-through text-body">$399</span>
         </div>
       </div>
+    </div>
+  );
+}
 
-      {/* Category circles */}
-      <div className="border-t border-[#FFD9A0]/60 bg-white/40 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
-          <div
-            className="flex gap-3 overflow-x-auto pb-1 scrollbar-none"
-            aria-label="Browse categories"
-          >
-            {CATEGORIES.map((cat) => (
-              <Link
-                key={cat.label}
-                href={`/deals?category=${cat.label.toLowerCase()}`}
-                className="flex flex-col items-center gap-1.5 shrink-0"
+function TargetMockup() {
+  return (
+    <div className="relative h-44 flex flex-col justify-center p-4 gap-2">
+      <div className="absolute top-4 right-4 bg-badge-bg text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+        🎯 TARGET HIT
+      </div>
+      <div className="bg-bg rounded-xl p-3 border border-[#E7E8E9] space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[9px] font-bold uppercase tracking-wide text-body" style={{ fontFamily: "var(--font-inter)" }}>Target Price</p>
+          <div className="w-8 h-4 rounded-full bg-badge-bg relative">
+            <div className="absolute right-0.5 top-0.5 w-3 h-3 rounded-full bg-white" />
+          </div>
+        </div>
+        <div className="h-1.5 rounded-full bg-[#E7E8E9]">
+          <div className="h-full rounded-full bg-badge-bg w-2/3" />
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-3.5 h-3.5 rounded border border-badge-bg bg-badge-bg flex items-center justify-center">
+            <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <span className="text-[9px] text-body">Notify me on any price drop</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <div className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
+          <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white">
+            <path d="M12 16l-6-6h12z"/>
+          </svg>
+        </div>
+        <span className="text-sm font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
+        <span className="text-xs line-through text-body">$399</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Features Section ───────────────────────────────────────────────────────────
+
+function FeaturesSection() {
+  const features = [
+    {
+      mockup: <AlertMockup />,
+      title: "Smart Deal Alerts",
+      desc: "We notify you the moment a real deal appears — no need to keep checking.",
+    },
+    {
+      mockup: <TrackingMockup />,
+      title: "Price Tracking & History",
+      desc: "See how prices move over time and know exactly when it's the right time to buy.",
+    },
+    {
+      mockup: <TargetMockup />,
+      title: "Set Your Target Price",
+      desc: "Decide what you want to pay — we'll tell you when it happens.",
+    },
+  ];
+
+  return (
+    <section className="bg-bg py-20">
+      <div className="max-w-350 mx-auto px-4 sm:px-6">
+        {/* Badge */}
+        <div className="flex justify-center mb-6">
+          <BadgePill>
+            <span className="text-badge-bg">🔥</span>
+            Our Best Features
+          </BadgePill>
+        </div>
+
+        {/* Heading */}
+        <h2
+          className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-navy text-center leading-tight max-w-3xl mx-auto"
+          style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
+        >
+          Tools That Help You Save More,<br />
+          Without The Effort
+        </h2>
+
+        {/* Subtitle */}
+        <p
+          className="mt-4 text-base text-body text-center max-w-md mx-auto"
+          style={{ fontFamily: "var(--font-lato)" }}
+        >
+          Track prices, discover real deals, and buy at the right time — all in one place.
+        </p>
+
+        {/* Feature cards */}
+        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+          {features.map(({ mockup, title, desc }) => (
+            <div
+              key={title}
+              className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E7E8E9] flex flex-col"
+            >
+              {/* Mockup area */}
+              <div className="bg-bg border-b border-[#E7E8E9]">
+                {mockup}
+              </div>
+
+              {/* Text */}
+              <div className="px-5 py-5">
+                <h3
+                  className="text-lg font-extrabold text-navy mb-2"
+                  style={{ fontFamily: "var(--font-lato)" }}
+                >
+                  {title}
+                </h3>
+                <p
+                  className="text-sm text-body leading-relaxed"
+                  style={{ fontFamily: "var(--font-lato)" }}
+                >
+                  {desc}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── How It Works Section ───────────────────────────────────────────────────────
+
+function HowItWorksSection() {
+  const steps = [
+    {
+      color: "#FE9800",
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+        </svg>
+      ),
+      title: "Tell us what you're looking for",
+      desc: "Choose your preferred categories, brands, and deal types. We use this to personalize deals just for you.",
+    },
+    {
+      color: "#7C3AED",
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
+          <path d="M3 3h18v18H3z" fillOpacity={0} stroke="white" strokeWidth={2}/><polyline points="3 9 12 2 21 9" fill="none" stroke="white" strokeWidth={2}/>
+        </svg>
+      ),
+      title: "We track prices for you",
+      desc: "Our system monitors price changes across products in real time. So you know when a deal is actually worth it.",
+    },
+    {
+      color: "#EC4899",
+      icon: (
+        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="white" strokeWidth={2}>
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      ),
+      title: "Get alerts & buy at the right time",
+      desc: "You'll be notified when prices drop or match your target. This helps you buy smarter and save every time.",
+    },
+  ];
+
+  return (
+    <section className="py-20" style={{ background: "#000000" }}>
+      <div className="max-w-350 mx-auto px-4 sm:px-6">
+        {/* Badge */}
+        <div className="flex justify-center mb-8">
+          <BadgePill dark>
+            <span className="text-badge-bg">🔥</span>
+            How it Works
+          </BadgePill>
+        </div>
+
+        {/* Heading */}
+        <h2
+          className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-white text-center leading-tight max-w-3xl mx-auto mb-14"
+          style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
+        >
+          Find Better Deals And Buy At The<br />
+          Right Time, Every Time
+        </h2>
+
+        {/* 2-col layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+          {/* Left: form mockup */}
+          <div className="bg-white rounded-3xl p-6 shadow-xl max-w-md mx-auto w-full">
+            {/* Product row */}
+            <div className="flex items-center gap-3 pb-4 border-b border-[#E7E8E9]">
+              <div className="relative w-12 h-12 rounded-xl bg-bg overflow-hidden border border-[#E7E8E9] shrink-0">
+                <Image
+                  src="https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg"
+                  alt=""
+                  fill
+                  sizes="48px"
+                  className="object-contain p-1"
+                />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
+                  Apple AirPods Pro (2nd Gen)
+                </p>
+                <p className="text-xs text-body uppercase tracking-wide" style={{ fontFamily: "var(--font-inter)" }}>
+                  $179 <span className="normal-case">Current Price</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Target price input */}
+            <div className="mt-4">
+              <p
+                className="text-xs font-semibold uppercase tracking-wide text-body mb-2"
+                style={{ fontFamily: "var(--font-inter)" }}
+              >
+                Target Price (USD)
+              </p>
+              <div className="flex items-center border border-[#E7E8E9] rounded-lg px-3 py-2.5">
+                <span className="text-body mr-2 text-sm">$</span>
+                <span className="text-base font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>150</span>
+              </div>
+              <p className="text-xs text-[#FF5733] mt-1.5 font-medium">🔥 You're aiming for a 16% drop</p>
+            </div>
+
+            {/* Min discount */}
+            <div className="mt-4">
+              <p
+                className="text-xs font-semibold uppercase tracking-wide text-body mb-2"
+                style={{ fontFamily: "var(--font-inter)" }}
+              >
+                Minimum Discount
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {["None", "10%", "20%", "30%+"].map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    className="px-4 py-1.5 rounded-lg border text-sm font-semibold transition-colors"
+                    style={{
+                      fontFamily: "var(--font-lato)",
+                      background: opt === "20%" ? "#FE9800" : "white",
+                      borderColor: opt === "20%" ? "#FE9800" : "#E7E8E9",
+                      color: opt === "20%" ? "white" : "#44474E",
+                    }}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Alert toggle */}
+            <div className="mt-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>Price alert</p>
+                <p className="text-xs text-body" style={{ fontFamily: "var(--font-inter)" }}>
+                  Notify me when price drops below my target
+                </p>
+              </div>
+              <div className="w-11 h-6 rounded-full bg-badge-bg relative shrink-0">
+                <div className="absolute right-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow" />
+              </div>
+            </div>
+          </div>
+
+          {/* Right: steps */}
+          <div className="flex flex-col gap-4">
+            {steps.map(({ color, icon, title, desc }) => (
+              <div
+                key={title}
+                className="flex items-start gap-4 bg-[#111111] rounded-2xl p-5"
               >
                 <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-sm border border-white hover:scale-105 transition-transform"
-                  style={{ background: "#FFF3E0" }}
+                  className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+                  style={{ background: color }}
                 >
-                  {cat.emoji}
+                  {icon}
                 </div>
-                <span className="text-[10px] font-medium text-[#44474E] text-center whitespace-nowrap">
-                  {cat.label}
-                </span>
-              </Link>
+                <div>
+                  <h3
+                    className="text-base font-bold text-white mb-1"
+                    style={{ fontFamily: "var(--font-lato)" }}
+                  >
+                    {title}
+                  </h3>
+                  <p
+                    className="text-sm text-white/60 leading-relaxed"
+                    style={{ fontFamily: "var(--font-lato)" }}
+                  >
+                    {desc}
+                  </p>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -347,360 +824,63 @@ function HeroSection() {
   );
 }
 
-// ─── Top Deals ────────────────────────────────────────────────────────────────
-function TopDealsSection() {
-  return (
-    <section className="py-14 lg:py-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Section label */}
-        <div className="text-center mb-10">
-          <p
-            className="text-xs font-bold uppercase tracking-widest mb-3"
-            style={{ color: "#FE9800" }}
-          >
-            Our Best Deals
-          </p>
-          <h2
-            className="text-3xl lg:text-4xl font-extrabold leading-tight max-w-xl mx-auto"
-            style={{ color: "#000A1E" }}
-          >
-            Top Deals People Are Grabbing Right Now — Don&apos;t Miss Out
-          </h2>
-          <p className="mt-3 text-sm text-[#74777F]">
-            Live deals updated daily — prices change fast, don&apos;t sleep on these.
-          </p>
-        </div>
+// ── CTA Section ────────────────────────────────────────────────────────────────
 
-        {/* Deal cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          {TOP_DEALS.map((deal) => (
-            <div
-              key={deal.id}
-              className="bg-white rounded-2xl border border-[#E7E8E9] overflow-hidden hover:shadow-lg transition-shadow"
-            >
-              {/* Product image */}
-              <div className="relative aspect-square bg-[#F8F9FA] p-4">
-                <Image
-                  src={deal.image}
-                  alt={deal.title}
-                  fill
-                  sizes="(max-width: 640px) 90vw, 33vw"
-                  className="object-contain p-2"
-                />
-                {/* NEW badge */}
+function CTASection() {
+  return (
+    <section className="py-20 bg-white">
+      <div className="max-w-350 mx-auto px-4 sm:px-6">
+        <div className="max-w-2xl mx-auto text-center">
+          {/* Avatar group + trusted */}
+          <div className="flex items-center justify-center gap-3 mb-8">
+            <div className="flex -space-x-2">
+              {["#FF6B6B", "#4ECDC4", "#45B7D1"].map((color, i) => (
                 <div
-                  className="absolute top-3 right-3 px-2 py-0.5 rounded text-[10px] font-bold text-white"
-                  style={{ background: "#FE9800" }}
+                  key={i}
+                  className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white"
+                  style={{ background: color }}
                 >
-                  NEW
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="p-4 space-y-2">
-                <p className="text-[11px] font-semibold uppercase tracking-wide text-[#74777F]">
-                  {deal.brand}
-                </p>
-                <p
-                  className="text-sm font-semibold leading-snug line-clamp-2"
-                  style={{ color: "#000A1E" }}
-                >
-                  {deal.title}
-                </p>
-                {deal.note && (
-                  <p className="text-[11px] text-[#74777F]">{deal.note}</p>
-                )}
-                <div className="flex items-center gap-1 text-[11px] text-[#74777F]">
-                  <Star className="w-3 h-3 fill-[#FE9800] text-[#FE9800]" aria-hidden />
-                  <span className="font-semibold text-[#000A1E]">{deal.rating}</span>
-                  <span>({deal.reviews} reviews)</span>
-                </div>
-                <div className="flex items-baseline gap-2 pt-1">
-                  <span className="text-xl font-extrabold" style={{ color: "#000A1E" }}>
-                    {deal.price}
-                  </span>
-                  <span className="text-sm line-through text-[#74777F]">
-                    {deal.original}
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Feature Cards (Tools) ────────────────────────────────────────────────────
-function ToolsSection() {
-  return (
-    <section className="py-14 lg:py-20 bg-[#F8F9FA]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-10">
-          <p
-            className="text-xs font-bold uppercase tracking-widest mb-3"
-            style={{ color: "#FE9800" }}
-          >
-            Our Best Features
-          </p>
-          <h2
-            className="text-3xl lg:text-4xl font-extrabold leading-tight max-w-xl mx-auto"
-            style={{ color: "#000A1E" }}
-          >
-            Tools That Help You Save More, Without The Effort
-          </h2>
-          <p className="mt-3 text-sm text-[#74777F]">
-            Track prices. Monitor real deals, and buy at the right time — all in
-            one place.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-          {/* Smart Deal Alerts */}
-          <div className="bg-white rounded-2xl border border-[#E7E8E9] p-5 space-y-4">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: "#FFF3E0" }}
-            >
-              <Bell className="w-5 h-5" style={{ color: "#FE9800" }} aria-hidden />
-            </div>
-            <div>
-              <p
-                className="text-[11px] font-semibold text-[#74777F] uppercase tracking-wide mb-1"
-                style={{ color: "#FE9800" }}
-              >
-                Price Dropped 25%
-              </p>
-              <h3 className="text-base font-bold mb-1" style={{ color: "#000A1E" }}>
-                Smart Deal Alerts
-              </h3>
-              <p className="text-sm text-[#74777F] leading-relaxed">
-                No need to keep shopping — we&apos;ll ping you the moment a deal
-                drops on your wishlist.
-              </p>
-            </div>
-            {/* Mini alert example */}
-            <div className="bg-[#F8F9FA] rounded-xl p-3 border border-[#E7E8E9]">
-              <div className="flex items-start gap-2">
-                <div
-                  className="w-8 h-8 rounded-lg flex items-center justify-center text-sm shrink-0"
-                  style={{ background: "#FFF3E0" }}
-                >
-                  🎵
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold text-[#000A1E] line-clamp-1">
-                    Apple AirPods Pro
-                  </p>
-                  <p className="text-[9px] text-[#74777F]">$798</p>
-                  <span
-                    className="inline-block text-[8px] font-bold px-1.5 py-0.5 rounded-full text-white mt-0.5"
-                    style={{ background: "#FE9800" }}
-                  >
-                    ⚡ Lightning Deal
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Price Tracking */}
-          <div className="bg-white rounded-2xl border border-[#E7E8E9] p-5 space-y-4">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: "#FFF3E0" }}
-            >
-              <TrendingDown className="w-5 h-5" style={{ color: "#FE9800" }} aria-hidden />
-            </div>
-            <div>
-              <p
-                className="text-[11px] font-semibold uppercase tracking-wide mb-1"
-                style={{ color: "#FE9800" }}
-              >
-                Add to Watchlist
-              </p>
-              <h3 className="text-base font-bold mb-1" style={{ color: "#000A1E" }}>
-                Price Tracking &amp; History
-              </h3>
-              <p className="text-sm text-[#74777F] leading-relaxed">
-                See whether a deal is genuinely good or just a manipulated
-                price. Track history over 30 and 90 days.
-              </p>
-            </div>
-            {/* Mini chart */}
-            <div className="bg-[#F8F9FA] rounded-xl p-3 border border-[#E7E8E9]">
-              <div className="flex items-end gap-1 h-12">
-                {[40, 70, 55, 85, 60, 90, 45, 75, 50, 65].map((h, i) => (
-                  <div
-                    key={i}
-                    className="flex-1 rounded-sm transition-all"
-                    style={{
-                      height: `${h}%`,
-                      background:
-                        i === 9 ? "#FE9800" : "#E7E8E9",
-                    }}
-                  />
-                ))}
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-[8px] text-[#74777F]">30 days</span>
-                <span className="text-[8px] font-bold" style={{ color: "#FE9800" }}>
-                  Now $89
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Target Price */}
-          <div className="bg-white rounded-2xl border border-[#E7E8E9] p-5 space-y-4">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center"
-              style={{ background: "#FFF3E0" }}
-            >
-              <Target className="w-5 h-5" style={{ color: "#FE9800" }} aria-hidden />
-            </div>
-            <div>
-              <h3 className="text-base font-bold mb-1" style={{ color: "#000A1E" }}>
-                Set Your Target Price
-              </h3>
-              <p className="text-sm text-[#74777F] leading-relaxed">
-                Tell us your target. We&apos;ll ping you the moment any deal hits
-                it — no guessing, no refreshing.
-              </p>
-            </div>
-            {/* Mini target input UI */}
-            <div className="bg-[#F8F9FA] rounded-xl p-3 border border-[#E7E8E9] space-y-2">
-              <p className="text-[9px] font-semibold text-[#000A1E]">TARGET PRICE</p>
-              <div className="flex items-center gap-1.5 bg-white rounded-lg border border-[#E7E8E9] px-2 py-1.5">
-                <span className="text-[9px] text-[#74777F]">$</span>
-                <span className="text-[9px] font-bold text-[#000A1E]">150.00</span>
-              </div>
-              <button
-                type="button"
-                className="w-full py-1.5 rounded-lg text-[9px] font-bold text-white"
-                style={{ background: "#FE9800" }}
-              >
-                Set Alert
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ─── Dark CTA Section ─────────────────────────────────────────────────────────
-function DarkSection() {
-  return (
-    <section className="py-14 lg:py-20" style={{ background: "#000A1E" }}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex flex-col lg:flex-row items-center gap-12">
-          {/* Left: mockup */}
-          <div className="flex-1 w-full max-w-sm mx-auto lg:mx-0">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center text-lg">
-                  🎵
-                </div>
-                <div>
-                  <p className="text-white text-xs font-semibold">
-                    Apple AirPods Pro (2nd Gen)
-                  </p>
-                  <p className="text-white/50 text-[10px]">Price drop alert</p>
-                </div>
-              </div>
-              <div className="flex items-baseline gap-3">
-                <span className="text-white text-2xl font-extrabold">$750</span>
-                <span className="text-white/40 text-sm line-through">$999</span>
-                <span
-                  className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded text-[#000A1E]"
-                  style={{ background: "#FE9800" }}
-                >
-                  -25%
-                </span>
-              </div>
-              {/* Mini bar chart */}
-              <div className="flex items-end gap-1 h-16 bg-white/5 rounded-xl p-2">
-                {[30, 50, 40, 80, 60, 100, 70, 90, 55, 75, 45, 85].map(
-                  (h, i) => (
-                    <div
-                      key={i}
-                      className="flex-1 rounded-sm"
-                      style={{
-                        height: `${h}%`,
-                        background:
-                          i === 5 ? "#FE9800" : "rgba(255,255,255,0.15)",
-                      }}
-                    />
-                  )
-                )}
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  className="flex-1 py-2 rounded-lg text-xs font-bold text-[#000A1E]"
-                  style={{ background: "#FE9800" }}
-                >
-                  OK
-                </button>
-                <button
-                  type="button"
-                  className="flex-1 py-2 rounded-lg text-xs font-bold text-white border border-white/20"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: feature list */}
-          <div className="flex-1 space-y-8">
-            <div className="text-center lg:text-left">
-              <h2 className="text-3xl lg:text-4xl font-extrabold text-white leading-tight">
-                Find Better Deals And Buy At The Right Time, Every Time
-              </h2>
-            </div>
-
-            <div className="space-y-6">
-              {HOW_IT_WORKS.map((step) => (
-                <div key={step.num} className="flex gap-4">
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0 mt-0.5"
-                    style={{ background: "#FE9800" }}
-                  >
-                    {step.num}
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold text-sm mb-1">
-                      {step.title}
-                    </p>
-                    <p className="text-white/50 text-sm leading-relaxed">
-                      {step.desc}
-                    </p>
-                  </div>
+                  {["A", "B", "C"][i]}
                 </div>
               ))}
             </div>
-
-            {/* Social proof */}
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2">
-                {["🧑🏽", "👩🏻", "👨🏿", "👩🏼"].map((avatar, i) => (
-                  <div
-                    key={i}
-                    className="w-7 h-7 rounded-full border-2 border-[#000A1E] bg-white/10 flex items-center justify-center text-sm"
-                  >
-                    {avatar}
-                  </div>
-                ))}
-              </div>
-              <p className="text-white/60 text-xs">
-                Powered by{" "}
-                <span className="text-white font-semibold">16,000+</span> users
-              </p>
+            <div className="bg-bg border border-[#E7E8E9] rounded-full px-4 py-1.5 text-sm font-medium text-navy" style={{ fontFamily: "var(--font-lato)" }}>
+              Trusted by 10,000+ users
             </div>
+          </div>
+
+          {/* Heading */}
+          <h2
+            className="text-4xl md:text-5xl font-extrabold text-navy leading-tight"
+            style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
+          >
+            Stop overpaying.
+          </h2>
+          <h2
+            className="text-4xl md:text-5xl font-extrabold leading-tight text-badge-bg"
+            style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
+          >
+            Start buying smarter — every time.
+          </h2>
+
+          {/* Subtitle */}
+          <p
+            className="mt-5 text-base text-body max-w-sm mx-auto leading-relaxed"
+            style={{ fontFamily: "var(--font-lato)" }}
+          >
+            Track prices, get real deals, and know exactly<br />
+            when to buy — all in one place.
+          </p>
+
+          {/* CTA button */}
+          <div className="mt-8">
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center px-10 py-4 rounded-xl text-base font-bold text-white hover:opacity-90 transition-opacity"
+              style={{ background: "#000A1E", fontFamily: "var(--font-lato)" }}
+            >
+              Start Saving Now
+            </Link>
           </div>
         </div>
       </div>
@@ -708,74 +888,73 @@ function DarkSection() {
   );
 }
 
-// ─── Bottom CTA ───────────────────────────────────────────────────────────────
-function BottomCta() {
-  return (
-    <section
-      className="py-16 lg:py-24"
-      style={{
-        background:
-          "linear-gradient(135deg, #FFF9F0 0%, #FFF3DC 45%, #FFE8C8 100%)",
-      }}
-    >
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center space-y-6">
-        <p
-          className="text-xs font-bold uppercase tracking-widest"
-          style={{ color: "#FE9800" }}
-        >
-          Stop Overpaying
-        </p>
-        <h2
-          className="text-4xl lg:text-5xl font-extrabold leading-tight"
-          style={{ color: "#000A1E" }}
-        >
-          Start buying smarter —{" "}
-          <span style={{ color: "#FE9800" }}>every time.</span>
-        </h2>
-        <p className="text-[#44474E] text-base leading-relaxed">
-          Track prices, find real deals, and get alerted exactly when to buy —
-          all for free.
-        </p>
-        <Link
-          href="/signup"
-          className="inline-block px-8 py-3.5 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
-          style={{ background: "#000A1E" }}
-        >
-          Start Saving Now
-        </Link>
-      </div>
-    </section>
-  );
-}
+// ── Footer ─────────────────────────────────────────────────────────────────────
 
-// ─── Footer ───────────────────────────────────────────────────────────────────
-function LandingFooter() {
+const FOOTER_COLS = [
+  {
+    heading: "Product",
+    links: [
+      { label: "Deals",       href: "/deals" },
+      { label: "Watchlist",   href: "/signup" },
+      { label: "Alerts",      href: "/signup" },
+      { label: "Preferences", href: "/signup" },
+    ],
+  },
+  {
+    heading: "Support",
+    links: [
+      { label: "FAQs",            href: "#" },
+      { label: "Report Issue",    href: "#" },
+    ],
+  },
+];
+
+const SOCIAL_SVGS = [
+  { label: "Facebook", d: "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" },
+  { label: "Twitter",  d: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L2.012 2.25h6.962l4.264 5.633L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" },
+  { label: "Instagram", d: "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069Zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0Zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324ZM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881Z" },
+  { label: "LinkedIn", d: "M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z M4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" },
+  { label: "YouTube", d: "M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z" },
+];
+
+function GuestFooter() {
   return (
-    <footer className="bg-white border-t border-[#E7E8E9] pt-10 pb-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex flex-col md:flex-row gap-10 mb-10">
+    <footer className="bg-white border-t border-[#E7E8E9]">
+      <div className="max-w-350 mx-auto px-6 py-12">
+        <div className="flex flex-col md:flex-row gap-10">
           {/* Brand */}
-          <div className="md:w-56 space-y-4 shrink-0">
-            <p className="font-bold text-xl" style={{ color: "#000A1E" }}>
-              LTSD
-            </p>
-            <p className="text-sm text-[#74777F] leading-relaxed">
-              Your personalized Amazon deal discovery platform. Never miss a
-              deal again.
-            </p>
+          <div className="md:w-56 shrink-0 space-y-4">
             <div className="flex items-center gap-3">
-              {([
-                { label: "Twitter / X", d: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L2.012 2.25h6.962l4.264 5.633L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" },
-                { label: "Instagram", d: "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069Zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0Zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324ZM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881Z" },
-                { label: "Facebook", d: "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" },
-                { label: "LinkedIn", d: "M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" },
-              ] as { label: string; d: string }[]).map(({ label, d }) => (
+              <Image
+                src="/images/ltsd-logo.png"
+                alt="LTSD"
+                width={44}
+                height={44}
+                className="rounded-full"
+              />
+              <span
+                className="text-xl font-extrabold text-navy"
+                style={{ fontFamily: "var(--font-lato)" }}
+              >
+                LTSD
+              </span>
+            </div>
+            <p
+              className="text-sm text-body leading-relaxed"
+              style={{ fontFamily: "var(--font-lato)" }}
+            >
+              Smart deal discovery powered by your preferences.
+            </p>
+            {/* Social icons */}
+            <div className="flex items-center gap-3 pt-1">
+              {SOCIAL_SVGS.map(({ label, d }) => (
                 <button
                   key={label}
+                  type="button"
                   aria-label={label}
-                  className="w-8 h-8 rounded-full border border-[#E7E8E9] flex items-center justify-center text-[#74777F] hover:border-[#FE9800] hover:text-[#FE9800] transition-colors"
+                  className="text-body hover:text-navy transition-colors"
                 >
-                  <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="currentColor" aria-hidden>
+                  <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="currentColor">
                     <path d={d} />
                   </svg>
                 </button>
@@ -783,61 +962,75 @@ function LandingFooter() {
             </div>
           </div>
 
-          {/* Links */}
+          {/* Link columns */}
           <div className="flex flex-1 gap-10 flex-wrap">
-            <div className="space-y-3">
-              <p className="text-sm font-bold text-[#000A1E]">Product</p>
-              {["Deals", "Watchlist", "Price Alerts", "Categories"].map((l) => (
-                <p key={l}>
-                  <Link
-                    href="/signup"
-                    className="text-sm text-[#74777F] hover:text-[#000A1E] transition-colors"
-                  >
-                    {l}
-                  </Link>
+            {FOOTER_COLS.map((col) => (
+              <div key={col.heading} className="space-y-3 min-w-[120px]">
+                <p
+                  className="text-sm font-bold text-navy"
+                  style={{ fontFamily: "var(--font-lato)" }}
+                >
+                  {col.heading}
                 </p>
-              ))}
-            </div>
-            <div className="space-y-3">
-              <p className="text-sm font-bold text-[#000A1E]">Support</p>
-              {["Help Center", "Contact Us", "Privacy Policy", "Terms"].map(
-                (l) => (
-                  <p key={l}>
+                {col.links.map((l) => (
+                  <p key={l.label}>
                     <Link
-                      href="/signup"
-                      className="text-sm text-[#74777F] hover:text-[#000A1E] transition-colors"
+                      href={l.href}
+                      className="text-sm text-body hover:text-navy transition-colors"
+                      style={{ fontFamily: "var(--font-lato)" }}
                     >
-                      {l}
+                      {l.label}
                     </Link>
                   </p>
-                )
-              )}
-            </div>
+                ))}
+              </div>
+            ))}
           </div>
         </div>
 
-        <div className="border-t border-[#E7E8E9] pt-6 text-center">
-          <p className="text-xs text-[#74777F]">
-            © {new Date().getFullYear()} LTSD. All rights reserved.
+        {/* Bottom bar */}
+        <div className="border-t border-[#E7E8E9] mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p
+            className="text-xs text-body"
+            style={{ fontFamily: "var(--font-lato)" }}
+          >
+            Copyright © {new Date().getFullYear()} LTSD. All Rights Reserved.
           </p>
+          <div className="flex items-center gap-2 text-xs">
+            <Link
+              href="#"
+              className="text-badge-bg hover:underline"
+              style={{ fontFamily: "var(--font-lato)" }}
+            >
+              Terms and Conditions
+            </Link>
+            <span className="text-body">|</span>
+            <Link
+              href="#"
+              className="text-badge-bg hover:underline"
+              style={{ fontFamily: "var(--font-lato)" }}
+            >
+              Privacy Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>
   );
 }
 
-// ─── Page ─────────────────────────────────────────────────────────────────────
-export default function LandingPage() {
+// ── Page ───────────────────────────────────────────────────────────────────────
+
+export default function GuestHomePage() {
   return (
-    <div className="min-h-screen bg-white">
-      <AnnouncementBar />
-      <LandingNav />
+    <div className="min-h-screen flex flex-col">
+      <GuestHeader />
       <HeroSection />
-      <TopDealsSection />
-      <ToolsSection />
-      <DarkSection />
-      <BottomCta />
-      <LandingFooter />
+      <DealsSection />
+      <FeaturesSection />
+      <HowItWorksSection />
+      <CTASection />
+      <GuestFooter />
     </div>
   );
 }

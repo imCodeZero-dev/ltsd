@@ -1,14 +1,14 @@
 import Link from "next/link";
-import { Search, Bell } from "lucide-react";
+import { Bell, Menu, ShoppingBag, ChevronDown } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { mainNav } from "@/config/nav";
+import { AnnouncementBar } from "./announcement-bar";
+import { SearchBar, MobileSearchBar } from "./search-bar";
+import { AppSubNav } from "./app-sub-nav";
 
 async function getUnreadCount(userId: string): Promise<number> {
   try {
-    return await db.notification.count({
-      where: { userId, isRead: false },
-    });
+    return await db.notification.count({ where: { userId, isRead: false } });
   } catch {
     return 0;
   }
@@ -20,68 +20,86 @@ export async function Header() {
     ? await getUnreadCount(session.user.id)
     : 0;
 
-  // Initials for avatar fallback
   const initials = session?.user?.name
-    ? session.user.name
-        .split(" ")
-        .map((w) => w[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase()
+    ? session.user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
     : "U";
 
   return (
-    <header className="hidden lg:flex sticky top-0 z-40 w-full bg-surface border-b border-border h-16 items-center px-6 gap-6">
-      {/* Logo */}
-      <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-        <span className="text-crimson font-bold text-xl tracking-tight">LTSD</span>
-      </Link>
+    <>
+      {/* Announcement bar */}
+      <AnnouncementBar />
 
-      {/* Desktop nav — skip Home and Profile (handled by avatar) */}
-      <nav className="flex items-center gap-1 ml-4">
-        {mainNav
-          .filter((item) => item.href !== "/settings/profile")
-          .map((item) => (
+      {/* Main header */}
+      <header className="sticky top-0 z-40 w-full bg-white border-b border-[#E7E8E9]">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
+
+          {/* Mobile: hamburger */}
+          <button
+            className="md:hidden p-1.5 text-[#44474E] hover:text-[#000A1E]"
+            aria-label="Open menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+
+          {/* Logo */}
+          <Link
+            href="/dashboard"
+            className="font-extrabold text-xl tracking-tight shrink-0"
+            style={{ color: "#C82750" }}
+          >
+            LTSD
+          </Link>
+
+          {/* Desktop search */}
+          <SearchBar />
+
+          {/* Right actions */}
+          <div className="ml-auto flex items-center gap-3">
+            {/* Notification bell */}
             <Link
-              key={item.href}
-              href={item.href}
-              className="px-3 py-2 rounded-md text-sm font-medium text-body hover:text-crimson hover:bg-bg transition-colors"
+              href="/notifications"
+              className="relative p-1.5 text-[#44474E] hover:text-[#000A1E] transition-colors"
+              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
             >
-              {item.label}
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full text-[9px] font-bold leading-4 text-center text-white tabular-nums"
+                  style={{ background: "#C82750" }}>
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
             </Link>
-          ))}
-      </nav>
 
-      {/* Right actions */}
-      <div className="ml-auto flex items-center gap-2">
-        <button
-          aria-label="Search"
-          className="p-2 rounded-md text-body hover:text-crimson hover:bg-bg transition-colors"
-        >
-          <Search className="w-5 h-5" />
-        </button>
+            {/* Account */}
+            <Link
+              href="/settings/profile"
+              className="hidden md:flex items-center gap-2 hover:opacity-80 transition-opacity"
+            >
+              <div
+                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                style={{ background: "#000A1E" }}
+              >
+                {initials}
+              </div>
+              <span className="text-sm font-medium text-[#2D2D2D] hidden lg:block">
+                Account
+              </span>
+              <ChevronDown className="w-3.5 h-3.5 text-[#74777F] hidden lg:block" />
+            </Link>
 
-        <Link
-          href="/notifications"
-          aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
-          className="relative p-2 rounded-md text-body hover:text-crimson hover:bg-bg transition-colors"
-        >
-          <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-crimson text-white text-[10px] font-bold leading-4 text-center tabular-nums">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
-        </Link>
+            {/* Mobile: bag icon */}
+            <button className="md:hidden p-1.5 text-[#44474E]" aria-label="Cart">
+              <ShoppingBag className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
 
-        <Link
-          href="/settings/profile"
-          className="w-8 h-8 rounded-full bg-crimson text-white flex items-center justify-center text-sm font-semibold"
-          aria-label="Profile"
-        >
-          {initials}
-        </Link>
-      </div>
-    </header>
+        {/* Mobile search bar */}
+        <MobileSearchBar />
+
+        {/* Desktop sub-nav */}
+        <AppSubNav />
+      </header>
+    </>
   );
 }
