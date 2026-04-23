@@ -14,7 +14,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
         }}
       />
 
-      {/* LTSD Logo — top-left, outside content column */}
+      {/* LTSD Logo — top-left */}
       <div className="absolute top-4 left-4 z-20">
         <Image
           src="/images/ltsd-logo.png"
@@ -26,8 +26,8 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
         />
       </div>
 
-      {/* Content — centered, max 480px */}
-      <div className="relative z-10 flex flex-col flex-1 w-full max-w-[480px] mx-auto px-4 pt-20 pb-8">
+      {/* Content — full width, each step controls its own max-width */}
+      <div className="relative z-10 flex flex-col flex-1 w-full px-4 sm:px-6 pt-20 pb-8">
         {children}
       </div>
     </div>

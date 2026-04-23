@@ -49,6 +49,18 @@ export const ResetPasswordSchema = z.object({
     .regex(/[0-9]/, "Must contain a number"),
 });
 
+export const OnboardingSchema = z.object({
+  categories:  z.array(z.string()).default([]),
+  dealTypes:   z.array(z.string()).default([]),
+  priceMin:    z.number().int().min(0).max(10000).default(0),
+  priceMax:    z.number().int().min(0).max(10000).default(1000),
+  minDiscount: z.number().int().min(0).max(100).default(0),
+  brands:      z.array(z.string()).default([]),
+  goals:       z.array(z.string()).default([]),
+});
+
+export type OnboardingInput = z.infer<typeof OnboardingSchema>;
+
 export type SignUpInput           = z.infer<typeof SignUpSchema>;
 export type LoginInput            = z.infer<typeof LoginSchema>;
 export type ProfileInput          = z.infer<typeof ProfileSchema>;

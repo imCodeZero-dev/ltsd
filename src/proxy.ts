@@ -23,8 +23,8 @@ export const proxy = auth((req) => {
   const onAuthPage      = AUTH_PATHS.some((p) => pathname.startsWith(p));
   const onProtectedPage = PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
 
-  // Logged-in user hit an auth page → send to dashboard
-  if (isLoggedIn && onAuthPage) {
+  // Logged-in user hit landing page or auth page → send to dashboard
+  if (isLoggedIn && (pathname === "/" || onAuthPage)) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 

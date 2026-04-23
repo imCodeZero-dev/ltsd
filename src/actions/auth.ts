@@ -27,7 +27,7 @@ export async function login(_prevState: ActionResult, formData: FormData): Promi
     await nextAuthSignIn("credentials", {
       email,
       password,
-      redirectTo: user?.onboardingCompleted ? "/dashboard" : "/onboarding/categories",
+      redirectTo: user?.onboardingCompleted ? "/dashboard" : "/onboarding",
     });
   } catch (e) {
     if (isRedirectError(e)) throw e;

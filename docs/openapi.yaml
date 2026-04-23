@@ -1,0 +1,869 @@
+openapi: 3.1.0
+
+info:
+  title: LTSD — Limited Time Super Deals API
+  version: 1.0.0
+  description: |
+    REST API for LTSD — a deal-discovery and price-alert platform.
+
+    **Base URL:** `https://your-domain.com`
+
+    **Authentication:**
+    - Most user endpoints require a valid session cookie set by NextAuth (`/api/auth`).
+    - Admin endpoints additionally require `role = ADMIN`.
+    - Cron endpoints require `Authorization: Bearer <CRON_SECRET>` header.
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+  - url: https://your-domain.com
+    description: Production
+
+tags:
+  - name: Auth
+    description: NextAuth session management
+  - name: Onboarding
+    description: Save user onboarding preferences
+  - name: Deals
+    description: Browse and search deals
+  - name: Watchlist
+    description: Manage personal watchlist
+  - name: Notifications
+    description: In-app notification management
+  - name: Push
+    description: Web push subscription
+  - name: Admin
+    description: Admin-only operations (requires ADMIN role)
+  - name: Cron
+    description: Internal scheduled jobs (requires CRON_SECRET)
+
+# ─── Reusable schemas ──────────────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: next-auth.session-token
+      description: Set automatically by NextAuth after login
+    cronSecret:
+      type: http
+      scheme: bearer
+      description: Value of CRON_SECRET env var
+
+  schemas:
+
+    # ── Enums ──────────────────────────────────────────────────────────────────
+
+    DealType:
+      type: string
+      enum: [PRICE_DROP, LIGHTNING_DEAL, COUPON, DEAL_OF_DAY, PRIME_EXCLUSIVE]
+
+    NotificationType:
+      type: string
+      enum: [PRICE_DROP, TARGET_PRICE_HIT, DEAL_EXPIRING, DEAL_EXPIRED, SYSTEM]
+
+    AlertChannel:
+      type: string
+      enum: [EMAIL, PUSH, IN_APP]
+
+    UserRole:
+      type: string
+      enum: [USER, ADMIN]
+
+    # ── Core objects ────────────────────────────────────────────────────────────
+
+    Category:
+      type: object
+      properties:
+        id:                 { type: string }
+        name:               { type: string }
+        slug:               { type: string }
+        iconUrl:            { type: string, nullable: true }
+        amazonBrowseNodeId: { type: string, nullable: true }
+
+    PriceHistory:
+      type: object
+      properties:
+        id:         { type: string }
+        dealId:     { type: string }
+        price:      { type: number }
+        source:     { type: string, example: amazon }
+        recordedAt: { type: string, format: date-time }
+
+    Deal:
+      type: object
+      properties:
+        id:               { type: string }
+        asin:             { type: string }
+        title:            { type: string }
+        slug:             { type: string }
+        brand:            { type: string, nullable: true }
+        imageUrl:         { type: string, nullable: true }
+        affiliateUrl:     { type: string }
+        currentPrice:     { type: number }
+        originalPrice:    { type: number, nullable: true }
+        discountPercent:  { type: integer, nullable: true }
+        rating:           { type: number, nullable: true }
+        reviewCount:      { type: integer, nullable: true }
+        isFeatured:       { type: boolean }
+        isFeaturedDayDeal: { type: boolean }
+        isActive:         { type: boolean }
+        claimedCount:     { type: integer }
+        totalSlots:       { type: integer, nullable: true }
+        dealType:         { $ref: '#/components/schemas/DealType' }
+        expiresAt:        { type: string, format: date-time, nullable: true }
+        lastSyncedAt:     { type: string, format: date-time }
+        createdAt:        { type: string, format: date-time }
+        updatedAt:        { type: string, format: date-time }
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              category: { $ref: '#/components/schemas/Category' }
+        priceHistory:
+          type: array
+          items: { $ref: '#/components/schemas/PriceHistory' }
+
+    WatchlistItem:
+      type: object
+      properties:
+        id:          { type: string }
+        userId:      { type: string }
+        dealId:      { type: string }
+        targetPrice: { type: number, nullable: true }
+        note:        { type: string, nullable: true }
+        createdAt:   { type: string, format: date-time }
+        deal:        { $ref: '#/components/schemas/Deal' }
+
+    Notification:
+      type: object
+      properties:
+        id:        { type: string }
+        userId:    { type: string }
+        dealId:    { type: string, nullable: true }
+        type:      { $ref: '#/components/schemas/NotificationType' }
+        title:     { type: string }
+        body:      { type: string }
+        isRead:    { type: boolean }
+        createdAt: { type: string, format: date-time }
+
+    User:
+      type: object
+      properties:
+        id:                  { type: string }
+        name:                { type: string, nullable: true }
+        email:               { type: string, format: email }
+        role:                { $ref: '#/components/schemas/UserRole' }
+        onboardingCompleted: { type: boolean }
+        createdAt:           { type: string, format: date-time }
+        image:               { type: string, nullable: true }
+
+    AdminStats:
+      type: object
+      properties:
+        activeDeals:    { type: integer }
+        totalUsers:     { type: integer }
+        alertsSent:     { type: integer }
+        watchlistItems: { type: integer }
+
+    # ── Request bodies ─────────────────────────────────────────────────────────
+
+    OnboardingBody:
+      type: object
+      properties:
+        categories:
+          type: array
+          items: { type: string }
+          description: Category slugs (e.g. "electronics", "beauty")
+        dealTypes:
+          type: array
+          items: { type: string, enum: [lightning, limited, prime] }
+          description: Frontend deal type IDs mapped to Prisma DealType enums on the server
+        priceMin:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          default: 0
+        priceMax:
+          type: integer
+          minimum: 0
+          maximum: 10000
+          default: 1000
+        minDiscount:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 0
+          description: Minimum discount percentage (0 = no filter)
+        brands:
+          type: array
+          items: { type: string }
+          description: Brand name strings (e.g. ["Apple", "Nike"])
+        goals:
+          type: array
+          items: { type: string }
+          description: Goal strings from the onboarding goals list
+
+    WatchlistAddBody:
+      type: object
+      required: [dealId]
+      properties:
+        dealId:
+          type: string
+          description: CUID of the deal to add
+        targetPrice:
+          type: number
+          description: Optional price alert threshold
+
+    WatchlistPatchBody:
+      type: object
+      properties:
+        targetPrice:
+          type: number
+          nullable: true
+          description: New target price; send null to clear
+
+    PushSubscribeBody:
+      type: object
+      required: [endpoint, keys]
+      properties:
+        endpoint:
+          type: string
+          description: Push endpoint URL from browser PushSubscription
+        keys:
+          type: object
+          required: [p256dh, auth]
+          properties:
+            p256dh: { type: string }
+            auth:   { type: string }
+
+    PushUnsubscribeBody:
+      type: object
+      required: [endpoint]
+      properties:
+        endpoint: { type: string }
+
+    # ── Standard responses ────────────────────────────────────────────────────
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:   { type: string }
+        status:  { type: integer }
+
+    OkResponse:
+      type: object
+      properties:
+        data: {}
+        meta: {}
+
+# ─── Paths ─────────────────────────────────────────────────────────────────────
+
+paths:
+
+  # ══════════════════════════ ONBOARDING ══════════════════════════
+
+  /api/onboarding:
+    post:
+      tags: [Onboarding]
+      summary: Save all onboarding preferences
+      description: |
+        Saves the user's selected categories, deal type preferences, price range,
+        minimum discount, brand preferences, and goals in a single transaction.
+        Also sets `onboardingCompleted = true` on the user record.
+        Call this when the user clicks "Continue" on Step 3 (Goals) or "Skip for now".
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OnboardingBody' }
+            example:
+              categories: [electronics, beauty, fitness]
+              dealTypes: [lightning, limited]
+              priceMin: 50
+              priceMax: 500
+              minDiscount: 20
+              brands: [Apple, Nike]
+              goals:
+                - Save money on everyday essentials
+                - Find the biggest discounts possible
+      responses:
+        '200':
+          description: Preferences saved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      ok: { type: boolean, example: true }
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '401':
+          description: Not authenticated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+  # ══════════════════════════ DEALS ══════════════════════════
+
+  /api/deals:
+    get:
+      tags: [Deals]
+      summary: List active deals
+      description: |
+        Returns a paginated list of active deals. No authentication required —
+        public endpoint. Results are filtered and sorted by query params.
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+          description: Page number (20 items per page)
+        - name: category
+          in: query
+          schema: { type: string }
+          description: Filter by category slug (e.g. "electronics")
+        - name: type
+          in: query
+          schema: { $ref: '#/components/schemas/DealType' }
+          description: Filter by deal type
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [discount, rating, newest]
+            default: discount
+          description: Sort order
+        - name: q
+          in: query
+          schema: { type: string }
+          description: Full-text search on deal title (case-insensitive)
+      responses:
+        '200':
+          description: Paginated deal list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Deal' }
+                  meta:
+                    type: object
+                    properties:
+                      page:    { type: integer }
+                      hasMore: { type: boolean }
+        '500':
+          description: Server error
+    post:
+      tags: [Admin]
+      summary: Create a deal (Admin)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Deal fields matching Prisma Deal model
+      responses:
+        '201':
+          description: Deal created
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not admin
+
+  /api/deals/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: Deal CUID
+    get:
+      tags: [Deals]
+      summary: Get single deal
+      description: Returns full deal data including categories and last 90 price history points.
+      responses:
+        '200':
+          description: Deal detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/Deal' }
+        '404':
+          description: Deal not found
+        '500':
+          description: Server error
+    put:
+      tags: [Admin]
+      summary: Update a deal (Admin)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Partial deal fields to update
+      responses:
+        '200':
+          description: Deal updated
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not admin
+    delete:
+      tags: [Admin]
+      summary: Soft-delete a deal (Admin)
+      description: Sets `isActive = false`. Does not remove from DB.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Deal deactivated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      deleted: { type: string }
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not admin
+
+  # ══════════════════════════ WATCHLIST ══════════════════════════
+
+  /api/watchlist:
+    get:
+      tags: [Watchlist]
+      summary: Get user's watchlist
+      description: Returns all watchlist items for the authenticated user, each including the deal and its last 2 price history points.
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Watchlist items
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/WatchlistItem' }
+        '401':
+          description: Not authenticated
+        '500':
+          description: Server error
+    post:
+      tags: [Watchlist]
+      summary: Add or update watchlist item
+      description: Upserts a watchlist entry for the given dealId. If it already exists, updates the targetPrice.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WatchlistAddBody' }
+            example:
+              dealId: cma1b2c3d4e5f6g7h8i9j0k
+              targetPrice: 49.99
+      responses:
+        '201':
+          description: Watchlist item created or updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/WatchlistItem' }
+        '400':
+          description: Invalid input
+        '401':
+          description: Not authenticated
+        '500':
+          description: Server error
+
+  /api/watchlist/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: WatchlistItem CUID
+    patch:
+      tags: [Watchlist]
+      summary: Update target price
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WatchlistPatchBody' }
+            example:
+              targetPrice: 39.99
+      responses:
+        '200':
+          description: Item updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/WatchlistItem' }
+        '400':
+          description: Invalid targetPrice
+        '401':
+          description: Not authenticated
+        '500':
+          description: Server error
+    delete:
+      tags: [Watchlist]
+      summary: Remove watchlist item
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Item removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      deleted: { type: string }
+        '401':
+          description: Not authenticated
+        '500':
+          description: Server error
+
+  # ══════════════════════════ NOTIFICATIONS ══════════════════════════
+
+  /api/notifications:
+    get:
+      tags: [Notifications]
+      summary: List user notifications
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: unread
+          in: query
+          schema: { type: boolean }
+          description: If true, returns only unread notifications
+      responses:
+        '200':
+          description: Notification list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Notification' }
+                  meta:
+                    type: object
+                    properties:
+                      page:    { type: integer }
+                      total:   { type: integer }
+                      hasMore: { type: boolean }
+        '401':
+          description: Not authenticated
+        '500':
+          description: Server error
+
+  /api/notifications/{id}/read:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema: { type: string }
+        description: Notification CUID
+    patch:
+      tags: [Notifications]
+      summary: Mark notification as read
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Notification marked read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id:     { type: string }
+                      isRead: { type: boolean, example: true }
+        '401':
+          description: Not authenticated
+        '500':
+          description: Server error
+
+  /api/notifications/read-all:
+    patch:
+      tags: [Notifications]
+      summary: Mark all notifications as read
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: All notifications marked read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      updated: { type: integer, description: Number of notifications updated }
+        '401':
+          description: Not authenticated
+        '500':
+          description: Server error
+
+  # ══════════════════════════ PUSH ══════════════════════════
+
+  /api/push/subscribe:
+    post:
+      tags: [Push]
+      summary: Register web push subscription
+      description: Stores the browser's PushSubscription (endpoint + keys) for this user. Uses upsert on endpoint.
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PushSubscribeBody' }
+      responses:
+        '200':
+          description: Subscription saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      subscribed: { type: boolean, example: true }
+        '400':
+          description: Missing endpoint or keys
+        '401':
+          description: Not authenticated
+        '500':
+          description: Server error
+    delete:
+      tags: [Push]
+      summary: Unregister push subscription
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PushUnsubscribeBody' }
+      responses:
+        '200':
+          description: Subscription removed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      unsubscribed: { type: boolean, example: true }
+        '401':
+          description: Not authenticated
+        '500':
+          description: Server error
+
+  # ══════════════════════════ ADMIN ══════════════════════════
+
+  /api/admin/deals:
+    get:
+      tags: [Admin]
+      summary: List all deals (Admin)
+      description: Returns all deals including inactive ones, paginated.
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: All deals
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not admin
+
+  /api/admin/users:
+    get:
+      tags: [Admin]
+      summary: List all users (Admin)
+      security:
+        - sessionCookie: []
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+      responses:
+        '200':
+          description: Paginated user list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+                  meta:
+                    type: object
+                    properties:
+                      page:    { type: integer }
+                      total:   { type: integer }
+                      hasMore: { type: boolean }
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not admin
+
+  /api/admin/stats:
+    get:
+      tags: [Admin]
+      summary: Dashboard stats (Admin)
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Aggregated platform stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: '#/components/schemas/AdminStats' }
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not admin
+
+  /api/admin/alerts:
+    get:
+      tags: [Admin]
+      summary: Alert history log (Admin)
+      security:
+        - sessionCookie: []
+      responses:
+        '200':
+          description: Alert history entries
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not admin
+
+  /api/admin/actions/deal-of-day:
+    post:
+      tags: [Admin]
+      summary: Set Deal of the Day (Admin)
+      security:
+        - sessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [dealId]
+              properties:
+                dealId:
+                  type: string
+                  description: CUID of the deal to feature
+      responses:
+        '200':
+          description: Deal of the Day updated
+        '401':
+          description: Not authenticated
+        '403':
+          description: Not admin
+
+  # ══════════════════════════ CRON ══════════════════════════
+
+  /api/cron/deal-sync:
+    post:
+      tags: [Cron]
+      summary: Sync deals from provider
+      description: Triggered by Vercel Cron or external scheduler. Fetches and upserts deals from the Amazon/Keepa abstraction layer.
+      security:
+        - cronSecret: []
+      responses:
+        '200':
+          description: Sync completed
+        '401':
+          description: Missing or invalid CRON_SECRET
+
+  /api/cron/price-check:
+    post:
+      tags: [Cron]
+      summary: Run price checks on watchlist items
+      security:
+        - cronSecret: []
+      responses:
+        '200':
+          description: Price check completed
+        '401':
+          description: Missing or invalid CRON_SECRET
+
+  /api/cron/alert-engine:
+    post:
+      tags: [Cron]
+      summary: Fire alerts for triggered conditions
+      description: Checks all watchlist items against current prices and sends email/push/in-app alerts where conditions are met. Records results in AlertHistory.
+      security:
+        - cronSecret: []
+      responses:
+        '200':
+          description: Alert engine run completed
+        '401':
+          description: Missing or invalid CRON_SECRET
