@@ -91,7 +91,7 @@ function formatUSD(cents: number) {
   }).format(cents / 100);
 }
 
-function useTick(expiresAt: Date | undefined) {
+function useTick(expiresAt: Date | null | undefined) {
   const [parts, setParts] = useState<{ h: string; m: string; s: string } | null>(null);
   useEffect(() => {
     if (!expiresAt) return;
