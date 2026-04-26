@@ -15,7 +15,7 @@ export function AppSubNav() {
 
   return (
     <nav className="hidden md:flex border-t border-[#E7E8E9] bg-white">
-      <div className="max-w-[1400px] mx-auto px-6 flex items-center justify-center gap-8 h-10">
+      <div className="max-w-350 mx-auto px-6 flex items-center justify-center gap-8 h-10">
         {NAV.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + "/");
           return (

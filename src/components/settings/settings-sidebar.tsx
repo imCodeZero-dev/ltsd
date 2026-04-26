@@ -3,24 +3,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Tag, Bell, Settings, AlertTriangle, X, LogOut } from "lucide-react";
+import { User, Settings, HelpCircle, LogOut, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-const NAV = [
-  { label: "Dashboard",  href: "/admin/dashboard", icon: LayoutDashboard },
-  { label: "Users",      href: "/admin/users",     icon: Users },
-  { label: "Deals",      href: "/admin/deals",     icon: Tag },
-  { label: "Alert Logs", href: "/admin/alerts",    icon: Bell },
-  { label: "Settings",   href: "/settings",        icon: Settings },
+const NAV_ITEMS = [
+  { label: "Profile",        href: "/settings/profile",       icon: User },
+  { label: "Settings",       href: "/settings/notifications", icon: Settings },
+  { label: "Help & Support", href: "/settings/help",          icon: HelpCircle },
 ];
 
-export function AdminSidebar() {
+export function SettingsSidebar() {
   const pathname = usePathname();
   const [promoDismissed, setPromoDismissed] = useState(false);
 
   return (
-    <div className="flex flex-col h-full w-full">
+    <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-[#E7E8E9]">
         <Image src="/images/ltsd-logo.png" alt="LTSD" width={40} height={40} className="rounded-full" />
@@ -43,11 +41,11 @@ export function AdminSidebar() {
 
       {/* Nav */}
       <nav className="flex-1 px-3 space-y-0.5">
-        {NAV.map(({ label, href, icon: Icon }) => {
-          const active = pathname === href || (pathname.startsWith("/admin") && href !== "/settings" && pathname.startsWith(href));
+        {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
+          const active = pathname === href || (href !== "/settings" && pathname.startsWith(href));
           return (
             <Link
-              key={href + label}
+              key={href}
               href={href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
@@ -78,8 +76,8 @@ export function AdminSidebar() {
             <div>
               <p className="text-xs font-semibold text-navy leading-snug">Enjoy unlimited access to our app with only a small price monthly.</p>
               <div className="flex items-center gap-3 mt-2">
-                <button onClick={() => setPromoDismissed(true)} className="text-[11px] font-semibold text-body hover:text-navy transition-colors">Dismiss</button>
-                <button className="text-[11px] font-bold text-navy underline hover:opacity-80 transition-opacity">Go Pro</button>
+                <button type="button" className="text-[11px] font-semibold text-body hover:text-navy transition-colors">Dismiss</button>
+                <button type="button" className="text-[11px] font-bold text-navy underline hover:opacity-80 transition-opacity">Go Pro</button>
               </div>
             </div>
           </div>
@@ -89,7 +87,7 @@ export function AdminSidebar() {
       {/* User footer */}
       <div className="px-4 pb-5 border-t border-[#E7E8E9] pt-4 flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-[#E7E8E9] flex items-center justify-center shrink-0 overflow-hidden">
-          <span className="text-sm font-bold text-body">A</span>
+          <User className="w-4.5 h-4.5 text-body" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-navy leading-none">Azunyan U. Wu</p>

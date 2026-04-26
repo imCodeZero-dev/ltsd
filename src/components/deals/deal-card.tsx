@@ -34,7 +34,7 @@ function fmtCountdown(expiresAt: Date): string {
 }
 
 export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
-  // Countdown is computed client-side only to avoid SSR/hydration mismatch
+  // Client-side only to avoid SSR/hydration mismatch
   const [countdown, setCountdown] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,7 +54,7 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
     >
       {/* ── Image area ─────────────────────────────── */}
       <div className="relative bg-bg">
-        {/* Action icons — top right, floating */}
+        {/* Action icons — top right */}
         <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1">
           <button
             aria-label="Share deal"
@@ -67,35 +67,38 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
         </div>
 
         {/* Product image */}
-        <Link href={`/deals/${deal.id}`} className="block relative mx-auto w-full aspect-square px-4 py-4">
+        <Link href={`/deals/${deal.id}`} className="block relative w-full aspect-4/3">
           <Image
             src={deal.imageUrl}
             alt={deal.title}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-contain p-2"
+            className="object-contain p-3"
             loading="lazy"
           />
+          {/* View Deal overlay button — always visible per Figma */}
+          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-md bg-white border border-[#E7E8E9] text-[10px] font-semibold text-navy shadow-sm pointer-events-none">
+            ⊙ View Deal
+          </span>
         </Link>
       </div>
 
       {/* ── Info area ──────────────────────────────── */}
-      <div className="px-3 pt-3 pb-3 flex flex-col gap-1.5 flex-1">
-
-        {/* Brand + discount badge on same row */}
-        <div className="flex items-center justify-between gap-1">
+      <div className="px-3 pt-2.5 pb-3 flex flex-col gap-1.5 flex-1">
+        {/* Brand + discount badge on same line */}
+        <div className="flex items-center justify-between">
           <p
-            className="text-[10px] font-semibold uppercase tracking-widest text-[#74777F] truncate"
+            className="text-[10px] font-semibold uppercase tracking-widest text-[#74777F]"
             style={{ fontFamily: "var(--font-inter)" }}
           >
             {deal.brand}
           </p>
           {deal.discountPercent > 0 && (
             <span
-              className="shrink-0 px-2 py-0.5 rounded text-[10px] font-bold text-white leading-none"
+              className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white leading-none shrink-0"
               style={{ background: "#FE9800" }}
             >
-              {deal.discountPercent}% Off
+              {deal.discountPercent}% OFF
             </span>
           )}
         </div>
@@ -126,9 +129,9 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
         )}
 
         {/* Price row */}
-        <div className="flex items-baseline gap-1.5 flex-wrap">
+        <div className="flex items-baseline gap-1.5 flex-wrap mt-auto">
           <span
-            className="text-base font-extrabold text-navy"
+            className="text-sm font-extrabold text-navy"
             style={{ fontFamily: "var(--font-lato)" }}
           >
             {formatUSD(deal.currentPrice)}

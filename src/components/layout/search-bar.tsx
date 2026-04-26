@@ -17,14 +17,14 @@ export function SearchBar() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex-1 max-w-xl hidden md:flex items-center gap-2 bg-[#F5F6F7] rounded-full px-4 py-2.5 border border-[#E7E8E9] focus-within:border-[#FE9800] transition-colors"
+      className="w-full max-w-125 hidden md:flex items-center gap-2 bg-[#F5F6F7] rounded-full px-4 py-2.5 border border-[#E7E8E9] focus-within:border-badge-bg transition-colors"
     >
       <Search className="w-4 h-4 text-[#74777F] shrink-0" aria-hidden />
       <input
         ref={inputRef}
         type="search"
         placeholder="What are you looking for?"
-        className="flex-1 bg-transparent text-sm text-[#2D2D2D] placeholder:text-[#74777F] outline-none"
+        className="flex-1 bg-transparent text-sm text-carbon placeholder:text-[#74777F] outline-none"
       />
     </form>
   );
@@ -49,7 +49,7 @@ export function MobileSearchBar() {
         ref={inputRef}
         type="search"
         placeholder="Search categories..."
-        className="flex-1 bg-transparent text-sm text-[#2D2D2D] placeholder:text-[#74777F] outline-none"
+        className="flex-1 bg-transparent text-sm text-carbon placeholder:text-[#74777F] outline-none"
       />
       <button type="submit" aria-label="Search">
         <Search className="w-4 h-4 text-[#74777F]" aria-hidden />

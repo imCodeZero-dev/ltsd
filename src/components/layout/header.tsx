@@ -1,10 +1,12 @@
+import Image from "next/image";
 import Link from "next/link";
-import { Bell, Menu, ShoppingBag, ChevronDown } from "lucide-react";
+import { ChevronDown, User } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AnnouncementBar } from "./announcement-bar";
 import { SearchBar, MobileSearchBar } from "./search-bar";
-import { AppSubNav } from "./app-sub-nav";
+import { HeaderNav } from "./header-nav";
+import { NotificationsBell } from "@/components/notifications/notifications-bell";
 
 async function getUnreadCount(userId: string): Promise<number> {
   try {
@@ -20,85 +22,81 @@ export async function Header() {
     ? await getUnreadCount(session.user.id)
     : 0;
 
-  const initials = session?.user?.name
-    ? session.user.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
-    : "U";
-
   return (
     <>
-      {/* Announcement bar */}
       <AnnouncementBar />
 
-      {/* Main header */}
       <header className="sticky top-0 z-40 w-full bg-white border-b border-[#E7E8E9]">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
+        {/* ── Desktop nav row ── */}
+        <div className="max-w-350 mx-auto px-6 h-16 hidden md:grid items-center"
+          style={{ gridTemplateColumns: "auto 1fr auto", gap: "24px" }}>
 
-          {/* Mobile: hamburger */}
-          <button
-            className="md:hidden p-1.5 text-[#44474E] hover:text-[#000A1E]"
-            aria-label="Open menu"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          {/* Logo */}
-          <Link
-            href="/dashboard"
-            className="font-extrabold text-xl tracking-tight shrink-0"
-            style={{ color: "#C82750" }}
-          >
-            LTSD
-          </Link>
-
-          {/* Desktop search */}
-          <SearchBar />
-
-          {/* Right actions */}
-          <div className="ml-auto flex items-center gap-3">
-            {/* Notification bell */}
-            <Link
-              href="/notifications"
-              className="relative p-1.5 text-[#44474E] hover:text-[#000A1E] transition-colors"
-              aria-label={`Notifications${unreadCount > 0 ? ` (${unreadCount} unread)` : ""}`}
-            >
-              <Bell className="w-5 h-5" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 rounded-full text-[9px] font-bold leading-4 text-center text-white tabular-nums"
-                  style={{ background: "#C82750" }}>
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
+          {/* LEFT: logo + nav */}
+          <div className="flex items-center gap-7">
+            <Link href="/dashboard" aria-label="LTSD Home" className="shrink-0">
+              <Image
+                src="/images/ltsd-logo.png"
+                alt="LTSD"
+                width={44}
+                height={44}
+                className="rounded-full"
+                priority
+              />
             </Link>
+            <HeaderNav />
+          </div>
+
+          {/* CENTER: search */}
+          <div className="flex items-center justify-center">
+            <SearchBar />
+          </div>
+
+          {/* RIGHT: bell + account */}
+          <div className="flex items-center gap-4 justify-end">
+            {/* Bell with notifications dropdown */}
+            <NotificationsBell initialUnreadCount={unreadCount} />
 
             {/* Account */}
             <Link
               href="/settings/profile"
-              className="hidden md:flex items-center gap-2 hover:opacity-80 transition-opacity"
+              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                style={{ background: "#000A1E" }}
-              >
-                {initials}
+              <div className="w-8 h-8 rounded-full border border-[#E7E8E9] flex items-center justify-center text-body shrink-0">
+                <User className="w-4 h-4" />
               </div>
-              <span className="text-sm font-medium text-[#2D2D2D] hidden lg:block">
+              <span className="text-sm font-medium text-navy">
                 Account
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#74777F] hidden lg:block" />
+              <ChevronDown className="w-3.5 h-3.5 text-[#74777F]" />
             </Link>
-
-            {/* Mobile: bag icon */}
-            <button className="md:hidden p-1.5 text-[#44474E]" aria-label="Cart">
-              <ShoppingBag className="w-5 h-5" />
-            </button>
           </div>
         </div>
 
-        {/* Mobile search bar */}
-        <MobileSearchBar />
+        {/* ── Mobile row ── */}
+        <div className="md:hidden px-4 h-14 flex items-center gap-3">
+          <Link href="/dashboard" aria-label="LTSD Home" className="shrink-0">
+            <Image
+              src="/images/ltsd-logo.png"
+              alt="LTSD"
+              width={36}
+              height={36}
+              className="rounded-full"
+            />
+          </Link>
 
-        {/* Desktop sub-nav */}
-        <AppSubNav />
+          <div className="flex-1" />
+
+          <div className="p-1.5">
+            <NotificationsBell initialUnreadCount={unreadCount} />
+          </div>
+
+          <Link href="/settings/profile" className="p-1.5 text-body">
+            <User className="w-5 h-5" />
+          </Link>
+        </div>
+
+        {/* Mobile search */}
+        <MobileSearchBar />
       </header>
     </>
   );

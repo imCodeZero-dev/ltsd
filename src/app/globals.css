@@ -52,6 +52,11 @@
   --color-success:      #1A6932;
   --color-success-bg:   #C8F0D4;
 
+  /* Deal-specific */
+  --color-hot:          #FF5733;   /* "selling fast" label */
+  --color-claimed:      #FF4444;   /* availability bar */
+  --color-best-price:   #22A45D;   /* "best price" green */
+
   /* Shadows */
   --shadow-card:        0 1px 4px 0 rgba(0, 0, 0, 0.08);
   --shadow-modal:       0 8px 24px 0 rgba(0, 0, 0, 0.12);
@@ -180,7 +185,7 @@
     text-size-adjust: 100%;
     height: 100%;
     scrollbar-gutter: stable;
-    @apply font-sans;
+    font-family: var(--font-inter);
   }
 
   body {
@@ -244,7 +249,12 @@
 /* ─────────────────────────────────────────────
    Scrollbar styling (WebKit)
    ───────────────────────────────────────────── */
-::-webkit-scrollbar        { width: 4px; height: 4px; }
+/* Vertical scrollbars: thin, styled. Horizontal: always hidden (height:0). */
+::-webkit-scrollbar        { width: 4px; height: 0; }
 ::-webkit-scrollbar-track  { background: transparent; }
 ::-webkit-scrollbar-thumb  { background: var(--color-border-mid); border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+
+/* scrollbar-none utility: fully hides scrollbar on all browsers */
+.scrollbar-none                    { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar { display: none; }

@@ -56,7 +56,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${inter.variable} ${lato.variable} ${dmSans.variable} h-full`}>
-      <body className="min-h-full antialiased">
+      <body className="min-h-full antialiased overflow-x-hidden">
         {children}
         <Toaster position="top-center" richColors closeButton />
       </body>
