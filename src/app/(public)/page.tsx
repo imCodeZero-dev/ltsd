@@ -21,14 +21,14 @@ const SHOWCASE_DEALS = [
   },
   {
     id: "s2",
-    brand: "SONY",
+    brand: "APPLE",
     title: "Apple AirPods Pro (2nd Gen) Wireless Earbuds",
     price: 199, original: 250, discount: 20,
     image: "https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg",
   },
   {
     id: "s3",
-    brand: "SONY",
+    brand: "LOGITECH",
     title: "Logitech MX Master 3S Wireless Performance Mouse",
     price: 89, original: 129, discount: 31,
     image: "https://m.media-amazon.com/images/I/61ni3t1ryQL._AC_SL1500_.jpg",
@@ -115,7 +115,7 @@ function GuestHeader() {
             ))}
           </nav>
 
-          {/* Right: Log In + dark mode toggle */}
+          {/* Right: Log In */}
           <div className="ml-auto flex items-center gap-3">
             <Link
               href="/login"
@@ -124,11 +124,6 @@ function GuestHeader() {
             >
               Log In
             </Link>
-            <div className="w-8 h-8 rounded-full bg-[#000A1E] flex items-center justify-center">
-              <svg viewBox="0 0 24 24" className="w-4 h-4 text-white fill-white" aria-hidden>
-                <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z" />
-              </svg>
-            </div>
           </div>
         </div>
       </header>
@@ -177,7 +172,7 @@ function HeroSection() {
           <Link
             href="/signup"
             className="px-7 py-3.5 rounded-full text-sm font-bold text-white hover:opacity-90 transition-opacity"
-            style={{ background: "#FF5733", fontFamily: "var(--font-lato)" }}
+            style={{ background: "#FF7C56", fontFamily: "var(--font-lato)" }}
           >
             Get Started Free
           </Link>
