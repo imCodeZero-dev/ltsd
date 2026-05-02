@@ -5,7 +5,125 @@ import { cn } from "@/lib/utils";
 import {
   ChevronDown, ChevronRight, Play, Loader2, CheckCircle2,
   XCircle, Zap, Package, Tag, Star, ExternalLink, FolderTree,
+  Database, RefreshCw, CloudDownload,
 } from "lucide-react";
+
+// ── Keepa endpoint definitions ────────────────────────────────────────────────
+const KEEPA_ENDPOINTS = [
+  {
+    id:      "keepa-search",
+    method:  "GET",
+    path:    "/api/test-keepa?endpoint=search",
+    label:   "Search Products",
+    badge:   "Search",
+    color:   "#22A45D",
+    desc:    "Search products by keyword. Returns ASINs then fetches full metadata.",
+    usedFor: ["Deals listing page", "Dashboard grid", "Search results"],
+    params: [
+      { key: "q", label: "Keyword", default: "headphones", type: "text" as const },
+    ],
+    buildUrl: (p: Record<string, string>) => `/api/test-keepa?endpoint=search&q=${encodeURIComponent(p.q)}`,
+    fields: {
+      "asin":          "Product ID",
+      "title":         "Product title",
+      "brand":         "Brand name",
+      "imageUrl":      "Product image URL (Amazon CDN)",
+      "currentPrice":  "Current price in cents",
+      "originalPrice": "List price in cents",
+      "discountPercent": "Calculated discount %",
+      "rating":        "Star rating (0–5)",
+      "reviewCount":   "Number of reviews",
+      "affiliateUrl":  "Amazon link with associate tag",
+    },
+  },
+  {
+    id:      "keepa-metadata",
+    method:  "GET",
+    path:    "/api/test-keepa?endpoint=metadata",
+    label:   "Product Metadata",
+    badge:   "Fetch",
+    color:   "#FE9800",
+    desc:    "Fetch full metadata for a single ASIN including price, rating, images.",
+    usedFor: ["Deal detail page", "Watchlist item refresh"],
+    params: [
+      { key: "asin", label: "ASIN", default: "B0CHWRXH8B", type: "text" as const },
+    ],
+    buildUrl: (p: Record<string, string>) => `/api/test-keepa?endpoint=metadata&asin=${encodeURIComponent(p.asin)}`,
+    fields: {
+      "asin":          "Product ID",
+      "title":         "Product title",
+      "currentPrice":  "Current price in cents",
+      "originalPrice": "List price in cents",
+      "imageUrl":      "Product image",
+      "rating":        "Star rating",
+      "reviewCount":   "Review count",
+    },
+  },
+  {
+    id:      "keepa-prices",
+    method:  "GET",
+    path:    "/api/test-keepa?endpoint=prices",
+    label:   "Batch Prices",
+    badge:   "Prices",
+    color:   "#7B61FF",
+    desc:    "Fetch current prices for up to 10 ASINs at once. Powers the watchlist price refresh.",
+    usedFor: ["Watchlist price refresh", "Cron price-check job", "Alert engine"],
+    params: [
+      { key: "asins", label: "ASINs (comma separated)", default: "B0CHWRXH8B,B09JQMJHXY", type: "text" as const },
+    ],
+    buildUrl: (p: Record<string, string>) => `/api/test-keepa?endpoint=prices&asins=${encodeURIComponent(p.asins)}`,
+    fields: {
+      "asin":          "Product ID",
+      "currentPrice":  "Latest price in cents",
+      "originalPrice": "List price in cents",
+      "timestamp":     "Time of price fetch",
+    },
+  },
+  {
+    id:      "keepa-deals",
+    method:  "GET",
+    path:    "/api/test-keepa?endpoint=deals",
+    label:   "Deals by Category",
+    badge:   "Deals",
+    color:   "#FF5733",
+    desc:    "Fetch active deals from Keepa for a given category. Powers the deals feed.",
+    usedFor: ["Deals feed", "Category deal pages", "Deal sync cron"],
+    params: [
+      { key: "category", label: "Category", default: "Electronics", type: "select" as const,
+        options: ["Electronics","Home & Kitchen","Clothing","Sports & Outdoors","Health & Personal Care","Office Products","Books"] },
+    ],
+    buildUrl: (p: Record<string, string>) => `/api/test-keepa?endpoint=deals&category=${encodeURIComponent(p.category)}`,
+    fields: {
+      "asin":          "Product ID",
+      "title":         "Product title",
+      "dealType":      "LIGHTNING_DEAL | LIMITED_TIME | PRIME_EXCLUSIVE",
+      "currentPrice":  "Deal price in cents",
+      "discountPercent": "Discount %",
+      "expiresAt":     "Deal expiry time (Keepa provides this, Amazon PA API does not)",
+    },
+  },
+  {
+    id:      "keepa-raw-product",
+    method:  "GET",
+    path:    "/api/test-keepa?endpoint=raw-product",
+    label:   "Raw Product Debug",
+    badge:   "Debug",
+    color:   "#44474E",
+    desc:    "Raw Keepa API response for a single ASIN — shows exact field names and price CSV structure.",
+    usedFor: ["Debugging", "Verifying field mappings"],
+    params: [
+      { key: "asin", label: "ASIN", default: "B0CHWRXH8B", type: "text" as const },
+    ],
+    buildUrl: (p: Record<string, string>) => `/api/test-keepa?endpoint=raw-product&asin=${encodeURIComponent(p.asin)}`,
+    fields: {
+      "csv_0_last5":   "Last 5 Amazon price values (÷10 = cents)",
+      "csv_1_last5":   "Last 5 list price values (÷10 = cents)",
+      "imagesCSV":     "Raw image ID string",
+      "categoryTree":  "Category hierarchy",
+      "stats":         "Avg rating + review count",
+    },
+  },
+];
 
 // ── Endpoint definitions ──────────────────────────────────────────────────────
 const ENDPOINTS = [
@@ -128,6 +246,46 @@ interface BrowseNode {
   Ancestor?: { BrowseNodeId?: string; DisplayName?: string };
   Children?: Array<{ BrowseNodeId?: string; DisplayName?: string }>;
   IsRoot?: boolean;
+}
+
+interface KeepaItem {
+  asin?: string;
+  title?: string;
+  brand?: string;
+  category?: string;
+  imageUrl?: string;
+  currentPrice?: number;
+  originalPrice?: number;
+  discountPercent?: number;
+  dealType?: string;
+  rating?: number;
+  reviewCount?: number;
+  affiliateUrl?: string;
+}
+
+interface KeepaPriceResult {
+  asin?: string;
+  currentPrice?: number;
+  originalPrice?: number;
+  timestamp?: string;
+}
+
+// ── Extract Keepa items from response ─────────────────────────────────────────
+function extractKeepaItems(endpointId: string, response: unknown): KeepaItem[] {
+  const r = response as Record<string, unknown>;
+  if (endpointId === "keepa-search" || endpointId === "keepa-deals") {
+    return (r.results as KeepaItem[]) ?? [];
+  }
+  if (endpointId === "keepa-metadata") {
+    const result = r.result as KeepaItem;
+    return result && result.asin ? [result] : [];
+  }
+  return [];
+}
+
+function extractKeepaPrices(response: unknown): KeepaPriceResult[] {
+  const r = response as Record<string, unknown>;
+  return (r.results as KeepaPriceResult[]) ?? [];
 }
 
 // ── Extract items from response ───────────────────────────────────────────────
@@ -280,6 +438,136 @@ function NodeCard({ node }: { node: BrowseNode }) {
   );
 }
 
+// ── Keepa product card ────────────────────────────────────────────────────────
+function KeepaProductCard({ item, color }: { item: KeepaItem; color: string }) {
+  const price    = item.currentPrice ? `$${(item.currentPrice / 100).toFixed(2)}` : null;
+  const original = item.originalPrice && item.originalPrice !== item.currentPrice
+    ? `$${(item.originalPrice / 100).toFixed(2)}` : null;
+  const discount = item.discountPercent ?? 0;
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#E7E8E9] overflow-hidden flex flex-col hover:shadow-md transition-shadow">
+      {/* Image */}
+      <div className="bg-[#F5F6F7] flex items-center justify-center h-40 relative">
+        {item.imageUrl && item.imageUrl !== "/placeholder-product.png"
+          ? <img src={item.imageUrl} alt={item.title} className="object-contain h-full w-full p-4" />
+          : <Package className="w-12 h-12 text-[#C4C6CE]" />
+        }
+        {discount > 0 && (
+          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] font-bold text-white bg-hot">
+            -{discount}%
+          </span>
+        )}
+        {item.dealType && item.dealType !== "LIMITED_TIME" && (
+          <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-bold text-white bg-[#FF9900]">
+            {item.dealType.replace("_", " ")}
+          </span>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="p-3 flex flex-col gap-2 flex-1">
+        {/* Category + Brand */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {item.category && (
+            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide text-white"
+              style={{ background: color }}>
+              {item.category}
+            </span>
+          )}
+          {item.brand && <span className="text-[10px] text-body">{item.brand}</span>}
+        </div>
+
+        {/* Title */}
+        <p className="text-xs font-semibold text-navy leading-snug line-clamp-2 flex-1">
+          {item.title ?? "Unknown"}
+        </p>
+
+        {/* ASIN */}
+        <div className="flex items-center gap-1">
+          <Tag className="w-3 h-3 text-body shrink-0" />
+          <code className="text-[10px] text-body font-mono">{item.asin}</code>
+        </div>
+
+        {/* Rating */}
+        {(item.rating ?? 0) > 0 && (
+          <div className="flex items-center gap-1">
+            <Star className="w-3 h-3 text-badge-bg fill-badge-bg shrink-0" />
+            <span className="text-[10px] text-navy font-semibold">{item.rating?.toFixed(1)}</span>
+            {(item.reviewCount ?? 0) > 0 && (
+              <span className="text-[10px] text-body">({item.reviewCount?.toLocaleString()})</span>
+            )}
+          </div>
+        )}
+
+        {/* Price */}
+        <div className="flex items-baseline gap-2 flex-wrap">
+          {price
+            ? <>
+                <span className="text-sm font-extrabold text-navy">{price}</span>
+                {original && <span className="text-[10px] text-body line-through">{original}</span>}
+              </>
+            : <span className="text-[10px] text-body italic">No price data</span>
+          }
+        </div>
+
+        {/* Link */}
+        {item.affiliateUrl && (
+          <a
+            href={item.affiliateUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 text-[10px] font-semibold mt-auto pt-1 border-t border-[#E7E8E9]"
+            style={{ color }}
+          >
+            <ExternalLink className="w-3 h-3" /> View on Amazon
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Keepa prices table ────────────────────────────────────────────────────────
+function KeepaPricesTable({ prices, color }: { prices: KeepaPriceResult[]; color: string }) {
+  if (prices.length === 0) return (
+    <EmptyState message="No price results returned." />
+  );
+  return (
+    <div>
+      <SectionLabel count={prices.length} label="prices returned" />
+      <div className="rounded-xl border border-[#E7E8E9] overflow-hidden">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-[#F5F6F7] border-b border-[#E7E8E9]">
+              <th className="text-left px-3 py-2 font-bold text-navy">ASIN</th>
+              <th className="text-right px-3 py-2 font-bold text-navy">Current</th>
+              <th className="text-right px-3 py-2 font-bold text-navy">Original</th>
+              <th className="text-right px-3 py-2 font-bold text-navy">Fetched</th>
+            </tr>
+          </thead>
+          <tbody>
+            {prices.map((p, i) => (
+              <tr key={p.asin ?? i} className="border-b border-[#E7E8E9] last:border-0 hover:bg-[#F5F6F7]">
+                <td className="px-3 py-2 font-mono" style={{ color }}>{p.asin}</td>
+                <td className="px-3 py-2 text-right font-bold text-navy">
+                  {p.currentPrice ? `$${(p.currentPrice / 100).toFixed(2)}` : "—"}
+                </td>
+                <td className="px-3 py-2 text-right text-body">
+                  {p.originalPrice ? `$${(p.originalPrice / 100).toFixed(2)}` : "—"}
+                </td>
+                <td className="px-3 py-2 text-right text-body text-[10px]">
+                  {p.timestamp ? new Date(p.timestamp).toLocaleTimeString() : "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ── Result preview (cards grid) ───────────────────────────────────────────────
 function ResultPreview({ endpointId, color, result }: {
   endpointId: string;
@@ -287,6 +575,27 @@ function ResultPreview({ endpointId, color, result }: {
   result: CallResult;
 }) {
   if (result.status !== "done" || !result.data) return null;
+
+  // ── Keepa endpoints ───────────────────────────────────────────────────────
+  if (endpointId.startsWith("keepa-")) {
+    if (endpointId === "keepa-prices") {
+      return <KeepaPricesTable prices={extractKeepaPrices(result.data)} color={color} />;
+    }
+    const items = extractKeepaItems(endpointId, result.data);
+    if (items.length === 0) return (
+      <EmptyState message="No items in response. The API may have returned an error — check the JSON below." />
+    );
+    return (
+      <div>
+        <SectionLabel count={items.length} label="products returned" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {items.map((item, i) => (
+            <KeepaProductCard key={item.asin ?? i} item={item} color={color} />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (endpointId === "browsenodes") {
     const nodes = extractNodes(result.data);
@@ -424,7 +733,15 @@ function JsonNode({ data, depth = 0 }: { data: unknown; depth?: number }) {
 }
 
 // ── Endpoint card ─────────────────────────────────────────────────────────────
-function EndpointCard({ ep }: { ep: typeof ENDPOINTS[number] }) {
+type AnyEndpoint = {
+  id: string; method: string; path: string; label: string; badge: string;
+  color: string; desc: string; usedFor: string[];
+  params: { key: string; label: string; default: string; type: "text" | "select"; options?: string[] }[];
+  buildUrl: (p: Record<string, string>) => string;
+  fields: Record<string, string>;
+};
+
+function EndpointCard({ ep }: { ep: AnyEndpoint }) {
   const [params, setParams]     = useState<Record<string, string>>(
     Object.fromEntries(ep.params.map(p => [p.key, p.default]))
   );
@@ -595,6 +912,165 @@ function EndpointCard({ ep }: { ep: typeof ENDPOINTS[number] }) {
   );
 }
 
+// ── DB Sync panel ────────────────────────────────────────────────────────────
+interface SyncStatus {
+  totalDeals: number;
+  activeDeals: number;
+  categories: number;
+  priceHistoryRows: number;
+  lastSyncedAt: string | null;
+}
+
+function SyncPanel() {
+  const [status, setStatus] = useState<SyncStatus | null>(null);
+  const [loading, setLoading] = useState<string | null>(null);
+  const [result, setResult] = useState<{ action: string; data: unknown } | null>(null);
+
+  async function fetchStatus() {
+    try {
+      const res = await fetch("/api/test-keepa/sync");
+      const data = await res.json();
+      setStatus(data);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function runSync(action: string, body: Record<string, unknown>) {
+    setLoading(action);
+    setResult(null);
+    try {
+      const res = await fetch("/api/test-keepa/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, ...body }),
+      });
+      const data = await res.json();
+      setResult({ action, data });
+      fetchStatus();
+    } catch (err) {
+      setResult({ action, data: { error: String(err) } });
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  // Fetch status on first render
+  if (status === null) fetchStatus();
+
+  const syncButtons = [
+    {
+      label: "Seed (3 categories × 10)",
+      action: "seed",
+      body: { limit: 10 },
+      color: "#22A45D",
+      desc: "Populates DB with deals from Electronics, Home & Kitchen, Sports. ~3 Keepa API calls.",
+    },
+    {
+      label: "Sync Electronics",
+      action: "category",
+      body: { category: "Electronics", limit: 10 },
+      color: "#7B61FF",
+      desc: "Fetch 10 deals from Electronics category.",
+    },
+    {
+      label: "Search → Sync \"headphones\"",
+      action: "search",
+      body: { query: "headphones", limit: 5 },
+      color: "#FE9800",
+      desc: "Search Keepa for headphones, sync results to DB.",
+    },
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl border border-[#E7E8E9] overflow-hidden shadow-sm">
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-[#E7E8E9]"
+        style={{ borderLeftColor: "#0066FF", borderLeftWidth: 4 }}>
+        <Database className="w-5 h-5 text-[#0066FF]" />
+        <div className="flex-1">
+          <span className="text-sm font-bold text-navy">Keepa → DB Sync</span>
+          <p className="text-xs text-body mt-0.5">
+            Pull deals from Keepa into Prisma/Neon DB. Pages read from DB — zero API calls at render time.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={fetchStatus}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-[#0066FF] border border-[#0066FF] hover:bg-[#0066FF]/5 transition-colors"
+        >
+          <RefreshCw className="w-3 h-3" /> Refresh Status
+        </button>
+      </div>
+
+      <div className="px-5 py-4 space-y-4">
+        {/* DB Status */}
+        {status && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-xl border border-[#E7E8E9] p-3 text-center">
+              <p className="text-lg font-extrabold text-navy">{status.totalDeals}</p>
+              <p className="text-[10px] text-body font-semibold uppercase tracking-wide">Total Deals</p>
+            </div>
+            <div className="rounded-xl border border-[#E7E8E9] p-3 text-center">
+              <p className="text-lg font-extrabold text-best-price">{status.activeDeals}</p>
+              <p className="text-[10px] text-body font-semibold uppercase tracking-wide">Active</p>
+            </div>
+            <div className="rounded-xl border border-[#E7E8E9] p-3 text-center">
+              <p className="text-lg font-extrabold text-[#7B61FF]">{status.categories}</p>
+              <p className="text-[10px] text-body font-semibold uppercase tracking-wide">Categories</p>
+            </div>
+            <div className="rounded-xl border border-[#E7E8E9] p-3 text-center">
+              <p className="text-lg font-extrabold text-badge-bg">{status.priceHistoryRows}</p>
+              <p className="text-[10px] text-body font-semibold uppercase tracking-wide">Price History</p>
+            </div>
+          </div>
+        )}
+
+        {status?.lastSyncedAt && (
+          <p className="text-[10px] text-body">
+            Last synced: <strong className="text-navy">{new Date(status.lastSyncedAt).toLocaleString()}</strong>
+          </p>
+        )}
+
+        {/* Sync actions */}
+        <div className="space-y-2">
+          {syncButtons.map((btn) => (
+            <div key={btn.action + btn.label} className="flex items-center gap-3 p-3 rounded-xl border border-[#E7E8E9] hover:bg-[#F5F6F7] transition-colors">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-navy">{btn.label}</p>
+                <p className="text-[10px] text-body">{btn.desc}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => runSync(btn.action, btn.body)}
+                disabled={loading !== null}
+                className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                style={{ background: btn.color }}
+              >
+                {loading === btn.action
+                  ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Syncing…</>
+                  : <><CloudDownload className="w-3.5 h-3.5" /> Sync</>
+                }
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Result */}
+        {result && (
+          <div className="p-3 rounded-xl bg-[#F5F6F7] border border-[#E7E8E9]">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-body mb-2">
+              Sync result — {result.action}
+            </p>
+            <pre className="text-[10px] font-mono text-navy overflow-auto max-h-48 leading-relaxed">
+              {JSON.stringify(result.data, null, 2)}
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function TestApiPage() {
   const [allKey, setAllKey] = useState(0);
@@ -628,8 +1104,9 @@ export default function TestApiPage() {
         <div className="mt-4 flex items-start gap-2 p-3 rounded-xl bg-[#FFF8EE] border border-badge-bg">
           <span className="text-sm">⚠️</span>
           <div className="text-xs text-body">
-            <strong className="text-navy">Rate limit:</strong> ~1 req/sec · ~8,640 req/day (PA API starter).
-            Prices + ratings are locked until your associate account gets <strong className="text-navy">3 qualifying sales</strong>.
+            <strong className="text-navy">Amazon PA API:</strong> ~1 req/sec · ~8,640 req/day.
+            Prices are locked until your associate account has <strong className="text-navy">10 qualifying sales in the last 30 days</strong>.
+            PA API is being <strong className="text-red-600">deprecated May 15, 2026</strong> — migrate to Creators API.
           </div>
         </div>
 
@@ -647,10 +1124,33 @@ export default function TestApiPage() {
         </div>
       </div>
 
-      {/* Endpoint cards */}
-      <div key={allKey} className="space-y-4">
-        {ENDPOINTS.map(ep => <EndpointCard key={ep.id} ep={ep} />)}
+      {/* Amazon PA API endpoint cards */}
+      <div className="flex items-center gap-2 mt-2">
+        <div className="w-2 h-2 rounded-full bg-[#FF9900]" />
+        <h2 className="text-sm font-bold text-navy">Amazon PA API v5</h2>
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-600">Deprecated May 15 2026</span>
       </div>
+      <div key={allKey} className="space-y-4">
+        {(ENDPOINTS as unknown as AnyEndpoint[]).map(ep => <EndpointCard key={ep.id} ep={ep} />)}
+      </div>
+
+      {/* Keepa API endpoint cards */}
+      <div className="flex items-center gap-2 mt-6">
+        <div className="w-2 h-2 rounded-full bg-[#22A45D]" />
+        <h2 className="text-sm font-bold text-navy">Keepa API</h2>
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-green-100 text-green-700">Active — price history included</span>
+      </div>
+      <div className="space-y-4">
+        {(KEEPA_ENDPOINTS as unknown as AnyEndpoint[]).map(ep => <EndpointCard key={ep.id} ep={ep} />)}
+      </div>
+
+      {/* DB Sync Panel */}
+      <div className="flex items-center gap-2 mt-6">
+        <div className="w-2 h-2 rounded-full bg-[#0066FF]" />
+        <h2 className="text-sm font-bold text-navy">Keepa → DB Sync</h2>
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-700">Cache Layer</span>
+      </div>
+      <SyncPanel />
 
       <p className="text-center text-xs text-body">Dev-only page — remove before production deploy.</p>
     </div>

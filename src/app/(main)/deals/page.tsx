@@ -3,12 +3,16 @@ import { Suspense } from "react";
 import { DealFilters } from "@/components/deals/deal-filters";
 import { DealGrid } from "@/components/deals/deal-grid";
 import { DealGridSkeleton } from "@/components/deals/deal-card-skeleton";
+import { db } from "@/lib/db";
+import { mapDeals, type RawDeal } from "@/lib/deal-mapper";
 import type { DealItem } from "@/lib/deal-api/types";
 
 export const metadata: Metadata = { title: "Deal Feed — LTSD" };
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
-// ── Image constants ────────────────────────────────────────────────────────────
+const PAGE_SIZE = 20;
+
+// ── Image constants (mock fallback) ───────────────────────────────────────────
 const IMG = {
   headphones: "https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg",
   serum:      "https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg",
@@ -35,10 +39,51 @@ const MOCK_DEALS: DealItem[] = Array.from({ length: 16 }, (_, i) => ({
   isFeaturedDayDeal: i === 0,
 }));
 
-async function getDeals(filters: { type?: string; category?: string; q?: string; sort?: string }): Promise<DealItem[]> {
-  // TODO: query via getDealApi() once provider is configured
-  void filters;
-  return MOCK_DEALS;
+async function getDeals(filters: {
+  type?: string;
+  category?: string;
+  q?: string;
+  sort?: string;
+}): Promise<{ deals: DealItem[]; total: number }> {
+  try {
+    const where = {
+      isActive: true,
+      ...(filters.category && {
+        categories: { some: { category: { slug: filters.category } } },
+      }),
+      ...(filters.type && { dealType: filters.type as never }),
+      ...(filters.q && {
+        title: { contains: filters.q, mode: "insensitive" as const },
+      }),
+    };
+
+    const [rows, total] = await Promise.all([
+      db.deal.findMany({
+        where,
+        orderBy:
+          filters.sort === "rating"
+            ? { rating: "desc" }
+            : filters.sort === "newest"
+              ? { createdAt: "desc" }
+              : { discountPercent: "desc" },
+        take: PAGE_SIZE,
+        include: {
+          categories: {
+            include: { category: { select: { name: true } } },
+          },
+        },
+      }),
+      db.deal.count({ where }),
+    ]);
+
+    if (rows.length > 0) {
+      return { deals: mapDeals(rows as RawDeal[]), total };
+    }
+    return { deals: [], total: 0 };
+  } catch (e) {
+    console.error("[Deals] DB query failed:", e);
+  }
+  return { deals: MOCK_DEALS, total: MOCK_DEALS.length };
 }
 
 interface DealsPageProps {
@@ -52,8 +97,7 @@ interface DealsPageProps {
 
 export default async function DealsPage({ searchParams }: DealsPageProps) {
   const filters = await searchParams;
-  const deals = await getDeals(filters);
-  const total = 200;
+  const { deals, total } = await getDeals(filters);
 
   return (
     <div className="max-w-350 mx-auto px-4 md:px-6 py-6 space-y-5">

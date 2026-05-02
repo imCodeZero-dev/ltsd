@@ -1,39 +1,79 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ArrowUpRight, Layers } from "lucide-react";
+import { db } from "@/lib/db";
 
 export const metadata: Metadata = {
   title: "LTSD — Hunt Deals Smarter. Save More.",
   description:
     "Track prices, find the best deals, and get notified the moment a product hits your target price.",
 };
+export const revalidate = 300;
 
-// ── Mock deal data (3 showcase deals) ─────────────────────────────────────────
+// ── Showcase deal shape (simple — just what the landing cards need) ───────────
 
-const SHOWCASE_DEALS = [
+interface ShowcaseDeal {
+  id: string;
+  brand: string;
+  title: string;
+  price: number;   // dollars
+  original: number; // dollars
+  discount: number;
+  image: string;
+}
+
+const MOCK_SHOWCASE: ShowcaseDeal[] = [
   {
-    id: "s1",
-    brand: "SONY",
+    id: "s1", brand: "SONY",
     title: "Sony WH-1000XM5 Wireless Cancelling Headphones",
     price: 298, original: 399, discount: 25,
     image: "https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg",
   },
   {
-    id: "s2",
-    brand: "APPLE",
+    id: "s2", brand: "Apple",
     title: "Apple AirPods Pro (2nd Gen) Wireless Earbuds",
     price: 199, original: 250, discount: 20,
     image: "https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg",
   },
   {
-    id: "s3",
-    brand: "LOGITECH",
+    id: "s3", brand: "Logitech",
     title: "Logitech MX Master 3S Wireless Performance Mouse",
     price: 89, original: 129, discount: 31,
     image: "https://m.media-amazon.com/images/I/61ni3t1ryQL._AC_SL1500_.jpg",
   },
 ];
+
+async function getShowcaseDeals(): Promise<ShowcaseDeal[]> {
+  try {
+    const rows = await db.deal.findMany({
+      where: { isActive: true, discountPercent: { gt: 0 } },
+      orderBy: { discountPercent: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        brand: true,
+        title: true,
+        currentPrice: true,
+        originalPrice: true,
+        discountPercent: true,
+        imageUrl: true,
+      },
+    });
+    if (rows.length > 0) {
+      return rows.map((r) => ({
+        id: r.id,
+        brand: r.brand ?? "Brand",
+        title: r.title,
+        price: Math.round(r.currentPrice),
+        original: Math.round(r.originalPrice ?? r.currentPrice),
+        discount: r.discountPercent ?? 0,
+        image: r.imageUrl ?? "/placeholder-product.png",
+      }));
+    }
+  } catch { /* DB not seeded */ }
+  return MOCK_SHOWCASE;
+}
 
 // ── Badge pill (used in each section) ─────────────────────────────────────────
 
@@ -119,10 +159,13 @@ function GuestHeader() {
           <div className="ml-auto flex items-center gap-3">
             <Link
               href="/login"
-              className="hidden sm:flex items-center px-4 py-1.5 rounded-lg border border-[#E7E8E9] text-sm font-semibold text-navy hover:border-navy transition-colors"
+              className="hidden sm:flex items-center gap-2 px-4 py-1.5 rounded-lg border border-[#E7E8E9] text-sm font-semibold text-navy hover:border-navy transition-colors"
               style={{ fontFamily: "var(--font-lato)" }}
             >
               Log In
+              <span className="w-5 h-5 rounded-md bg-[#000A1E] flex items-center justify-center shrink-0">
+                <ArrowUpRight className="w-3 h-3 text-white" />
+              </span>
             </Link>
           </div>
         </div>
@@ -172,7 +215,7 @@ function HeroSection() {
           <Link
             href="/signup"
             className="px-7 py-3.5 rounded-full text-sm font-bold text-white hover:opacity-90 transition-opacity"
-            style={{ background: "#FF7C56", fontFamily: "var(--font-lato)" }}
+            style={{ background: "linear-gradient(90deg, #FF4D00 0%, #FF9A00 100%)", fontFamily: "var(--font-lato)" }}
           >
             Get Started Free
           </Link>
@@ -187,74 +230,59 @@ function HeroSection() {
 
         {/* Phone mockup + floating elements */}
         <div className="relative mt-14 flex justify-center">
-          {/* Floating: deals bought badge */}
-          <div
-            className="absolute left-4 md:left-16 top-8 z-10 bg-white rounded-2xl shadow-lg px-3 py-2.5 text-left hidden sm:block"
-            style={{ minWidth: 200 }}
-          >
-            <p
-              className="text-[10px] font-semibold uppercase tracking-wide text-body mb-1"
-              style={{ fontFamily: "var(--font-inter)" }}
-            >
-              Price Dropped
-            </p>
-            <p
-              className="text-xs font-bold text-navy mb-1"
-              style={{ fontFamily: "var(--font-lato)" }}
-            >
-              Gaming Ultra Promax Headphones
-            </p>
-            <div className="flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white">
-                  <path d="M12 16l-6-6h12z"/>
-                </svg>
-              </span>
-              <span className="font-extrabold text-sm text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
-              <span className="text-xs line-through text-body">$399</span>
-            </div>
-          </div>
 
-          {/* Social proof bottom-left */}
-          <div className="absolute left-4 md:left-8 bottom-16 z-10 bg-white rounded-2xl shadow-md px-3 py-2 flex items-center gap-2 hidden sm:flex">
+          {/* Floating: 2,341 Deals Bought — TOP LEFT */}
+          <div className="absolute left-4 md:left-10 top-4 z-10 bg-white rounded-2xl shadow-md px-3 py-2 flex items-center gap-2 hidden sm:flex">
             <span className="text-badge-bg text-base">🔥</span>
-            <p
-              className="text-xs font-bold text-navy"
-              style={{ fontFamily: "var(--font-lato)" }}
-            >
+            <p className="text-xs font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
               2,341 Deals Bought
             </p>
           </div>
 
-          {/* Trending badge bottom-right */}
-          <div className="absolute right-4 md:right-8 bottom-24 z-10 bg-white rounded-2xl shadow-md px-3 py-2 hidden sm:block">
-            <p
-              className="text-[9px] font-bold uppercase tracking-wide text-body"
-              style={{ fontFamily: "var(--font-inter)" }}
-            >
-              Trending Now
+          {/* Floating: PRICE DROPPED — LEFT MIDDLE */}
+          <div
+            className="absolute left-0 md:left-4 top-36 md:top-40 z-10 bg-white rounded-2xl shadow-lg px-3 py-2.5 text-left hidden sm:block"
+            style={{ minWidth: 190 }}
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-body mb-1" style={{ fontFamily: "var(--font-inter)" }}>
+              Price Dropped
             </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
+            <p className="text-xs font-bold text-navy mb-1" style={{ fontFamily: "var(--font-lato)" }}>
+              Gaming Ultra Promax Headphones
+            </p>
+            <div className="flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white">
-                  <path d="M12 16l-6-6h12z"/>
-                </svg>
+                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white"><path d="M12 16l-6-6h12z"/></svg>
               </span>
               <span className="font-extrabold text-sm text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
               <span className="text-xs line-through text-body">$399</span>
             </div>
           </div>
 
-          {/* Avatar + count right */}
-          <div className="absolute right-2 md:right-12 top-12 z-10 flex items-center gap-2 hidden md:flex">
+          {/* Floating: TRENDING NOW — TOP RIGHT */}
+          <div className="absolute right-4 md:right-8 top-10 z-10 bg-white rounded-2xl shadow-md px-3 py-2 hidden sm:block">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-body" style={{ fontFamily: "var(--font-inter)" }}>
+              Trending Now
+            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              <span className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white"><path d="M12 16l-6-6h12z"/></svg>
+              </span>
+              <span className="font-extrabold text-sm text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
+              <span className="text-xs line-through text-body">$399</span>
+            </div>
+          </div>
+
+          {/* Avatar + count — MIDDLE RIGHT */}
+          <div className="absolute right-2 md:right-8 top-60 md:top-72 z-10 flex items-center gap-2 hidden md:flex">
             <div className="flex -space-x-2">
-              {["#FF6B6B", "#4ECDC4", "#45B7D1"].map((color, i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white"
-                  style={{ background: color }}
-                >
-                  {["A", "B", "C"][i]}
+              {[
+                "https://i.pravatar.cc/72?img=32",
+                "https://i.pravatar.cc/72?img=44",
+                "https://i.pravatar.cc/72?img=68",
+              ].map((src, i) => (
+                <div key={i} className="relative w-8 h-8 rounded-full border-2 border-white overflow-hidden">
+                  <Image src={src} alt="" fill sizes="32px" className="object-cover" />
                 </div>
               ))}
             </div>
@@ -266,25 +294,53 @@ function HeroSection() {
             className="relative w-[300px] md:w-[340px] rounded-[40px] overflow-hidden shadow-2xl border-[10px] border-[#1A1A1A]"
             style={{ aspectRatio: "9/19" }}
           >
-            {/* Notch */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-6 bg-[#1A1A1A] rounded-b-2xl z-10" />
+            {/* Dynamic Island */}
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[88px] h-[25px] bg-[#1A1A1A] rounded-full z-10" />
 
             {/* Phone screen */}
             <div className="w-full h-full bg-bg overflow-hidden">
-              {/* Mini app header */}
-              <div className="bg-white px-3 pt-8 pb-2 flex items-center justify-between border-b border-[#E7E8E9]">
+              {/* Status bar */}
+              <div className="bg-white px-4 pt-7 pb-0.5 flex items-center justify-between">
+                <span className="text-[9px] font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>9:41</span>
+                <div className="flex items-center gap-1">
+                  {/* Signal bars */}
+                  <div className="flex items-end gap-px h-2.5">
+                    {[40, 60, 80, 100].map((pct, i) => (
+                      <div key={i} className="w-[3px] rounded-sm bg-[#000A1E]" style={{ height: `${pct}%` }} />
+                    ))}
+                  </div>
+                  {/* Wifi */}
+                  <svg viewBox="0 0 20 14" className="w-3 h-2.5" fill="none">
+                    <path d="M10 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm0-4A5.5 5.5 0 0 1 13.9 8L12.5 9.4A3.5 3.5 0 0 0 10 8a3.5 3.5 0 0 0-2.5 1.4L6.1 8A5.5 5.5 0 0 1 10 6.5zm0-4a9.5 9.5 0 0 1 6.7 2.8l-1.4 1.4A7.5 7.5 0 0 0 10 4.5a7.5 7.5 0 0 0-5.3 2.2L3.3 5.3A9.5 9.5 0 0 1 10 2.5z" fill="#000A1E"/>
+                  </svg>
+                  {/* Battery */}
+                  <div className="flex items-center">
+                    <div className="w-4 h-2 rounded-sm border border-[#000A1E] p-px">
+                      <div className="h-full w-3/4 bg-[#000A1E] rounded-[1px]" />
+                    </div>
+                    <div className="w-0.5 h-1 bg-[#000A1E] rounded-r-full" />
+                  </div>
+                </div>
+              </div>
+
+              {/* App nav bar — hamburger + bag */}
+              <div className="bg-white px-3 pt-1 pb-2 flex items-center justify-between">
                 <svg viewBox="0 0 24 24" className="w-5 h-5 text-body" fill="none" stroke="currentColor" strokeWidth={1.5}>
                   <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
-                <div className="flex-1 mx-3 h-7 rounded-full bg-bg border border-[#E7E8E9] flex items-center px-2.5 gap-1.5">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-body" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+                </svg>
+              </div>
+
+              {/* Search bar */}
+              <div className="bg-white px-3 pb-2 border-b border-[#E7E8E9]">
+                <div className="h-7 rounded-full bg-bg border border-[#E7E8E9] flex items-center px-2.5 gap-1.5">
                   <svg viewBox="0 0 24 24" className="w-3 h-3 text-body" fill="none" stroke="currentColor" strokeWidth={2}>
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                   </svg>
                   <span className="text-[10px] text-body" style={{ fontFamily: "var(--font-inter)" }}>Search categories...</span>
                 </div>
-                <svg viewBox="0 0 24 24" className="w-5 h-5 text-body" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-                </svg>
               </div>
 
               {/* Mini hero banner */}
@@ -301,10 +357,10 @@ function HeroSection() {
                 <div className="mt-2 bg-white rounded-md px-2 py-1 w-fit">
                   <span className="text-[7px] font-bold" style={{ color: "#FF7043" }}>View Deals</span>
                 </div>
-                {/* Headphone image */}
+                {/* AirPods image */}
                 <div className="absolute right-1 -bottom-1 w-14 h-14">
                   <Image
-                    src="https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg"
+                    src="https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg"
                     alt=""
                     fill
                     sizes="56px"
@@ -355,7 +411,7 @@ function HeroSection() {
 
 // ── Deals Section ──────────────────────────────────────────────────────────────
 
-function DealsSection() {
+function DealsSection({ deals }: { deals: ShowcaseDeal[] }) {
   return (
     <section className="bg-bg py-20">
       <div className="max-w-350 mx-auto px-4 sm:px-6">
@@ -386,7 +442,7 @@ function DealsSection() {
 
         {/* Deal cards */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          {SHOWCASE_DEALS.map((deal) => (
+          {deals.map((deal) => (
             <Link key={deal.id} href="/signup">
               <article className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
                 {/* Product image */}
@@ -506,8 +562,10 @@ function TrackingMockup() {
           <p className="text-[8px] text-body mt-0.5">We'll monitor the price and notify you of any drops.</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-white border border-[#E7E8E9] flex items-center justify-center">
-            <div className="w-5 h-5 rounded-full bg-badge-bg/20" />
+          <div className="w-8 h-8 rounded-lg bg-badge-bg flex items-center justify-center shrink-0">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
           </div>
           <div>
             <p className="text-[8px] font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>Apple AirPods Pro</p>
@@ -589,7 +647,7 @@ function FeaturesSection() {
         {/* Badge */}
         <div className="flex justify-center mb-6">
           <BadgePill>
-            <span className="text-badge-bg">🔥</span>
+            <Layers className="w-3.5 h-3.5 text-badge-bg" />
             Our Best Features
           </BadgePill>
         </div>
@@ -653,8 +711,13 @@ function HowItWorksSection() {
     {
       color: "#FE9800",
       icon: (
-        <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
-          <circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/>
+        <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="white" strokeWidth={2}>
+          <circle cx="12" cy="12" r="9"/>
+          <circle cx="12" cy="12" r="3"/>
+          <line x1="12" y1="2" x2="12" y2="5"/>
+          <line x1="12" y1="19" x2="12" y2="22"/>
+          <line x1="2" y1="12" x2="5" y2="12"/>
+          <line x1="19" y1="12" x2="22" y2="12"/>
         </svg>
       ),
       title: "Tell us what you're looking for",
@@ -664,7 +727,8 @@ function HowItWorksSection() {
       color: "#7C3AED",
       icon: (
         <svg viewBox="0 0 24 24" className="w-5 h-5 fill-white">
-          <path d="M3 3h18v18H3z" fillOpacity={0} stroke="white" strokeWidth={2}/><polyline points="3 9 12 2 21 9" fill="none" stroke="white" strokeWidth={2}/>
+          <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+          <circle cx="7" cy="7" r="1.5" fill="#7C3AED"/>
         </svg>
       ),
       title: "We track prices for you",
@@ -688,7 +752,7 @@ function HowItWorksSection() {
         {/* Badge */}
         <div className="flex justify-center mb-8">
           <BadgePill dark>
-            <span className="text-badge-bg">🔥</span>
+            <Layers className="w-3.5 h-3.5 text-badge-bg" />
             How it Works
           </BadgePill>
         </div>
@@ -705,7 +769,8 @@ function HowItWorksSection() {
         {/* 2-col layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           {/* Left: form mockup */}
-          <div className="bg-white rounded-3xl p-6 shadow-xl max-w-md mx-auto w-full">
+          <div className="bg-[#111111] rounded-3xl p-3 max-w-md mx-auto w-full shadow-xl">
+          <div className="bg-white rounded-2xl p-6">
             {/* Product row */}
             <div className="flex items-center gap-3 pb-4 border-b border-[#E7E8E9]">
               <div className="relative w-12 h-12 rounded-xl bg-bg overflow-hidden border border-[#E7E8E9] shrink-0">
@@ -782,6 +847,7 @@ function HowItWorksSection() {
               </div>
             </div>
           </div>
+          </div>
 
           {/* Right: steps */}
           <div className="flex flex-col gap-4">
@@ -829,13 +895,13 @@ function CTASection() {
           {/* Avatar group + trusted */}
           <div className="flex items-center justify-center gap-3 mb-8">
             <div className="flex -space-x-2">
-              {["#FF6B6B", "#4ECDC4", "#45B7D1"].map((color, i) => (
-                <div
-                  key={i}
-                  className="w-9 h-9 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white"
-                  style={{ background: color }}
-                >
-                  {["A", "B", "C"][i]}
+              {[
+                "https://i.pravatar.cc/72?img=32",
+                "https://i.pravatar.cc/72?img=44",
+                "https://i.pravatar.cc/72?img=68",
+              ].map((src, i) => (
+                <div key={i} className="relative w-9 h-9 rounded-full border-2 border-white overflow-hidden">
+                  <Image src={src} alt="" fill sizes="36px" className="object-cover" />
                 </div>
               ))}
             </div>
@@ -914,7 +980,7 @@ const SOCIAL_SVGS = [
 
 function GuestFooter() {
   return (
-    <footer className="bg-white border-t border-[#E7E8E9]">
+    <footer className="bg-bg border-t border-[#E7E8E9]">
       <div className="max-w-350 mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row gap-10">
           {/* Brand */}
@@ -959,27 +1025,40 @@ function GuestFooter() {
 
           {/* Link columns */}
           <div className="flex flex-1 gap-10 flex-wrap">
-            {FOOTER_COLS.map((col) => (
-              <div key={col.heading} className="space-y-3 min-w-[120px]">
-                <p
-                  className="text-sm font-bold text-navy"
-                  style={{ fontFamily: "var(--font-lato)" }}
-                >
-                  {col.heading}
+            {/* Product */}
+            <div className="space-y-4 min-w-[120px]">
+              <p className="text-sm font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
+                Product
+              </p>
+              {[
+                { label: "Deals",       href: "/deals" },
+                { label: "Watchlist",   href: "/signup" },
+                { label: "Alerts",      href: "/signup" },
+                { label: "Preferences", href: "/signup" },
+              ].map((l) => (
+                <p key={l.label}>
+                  <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity" style={{ fontFamily: "var(--font-lato)" }}>
+                    {l.label}
+                  </Link>
                 </p>
-                {col.links.map((l) => (
-                  <p key={l.label}>
-                    <Link
-                      href={l.href}
-                      className="text-sm text-body hover:text-navy transition-colors"
-                      style={{ fontFamily: "var(--font-lato)" }}
-                    >
-                      {l.label}
-                    </Link>
-                  </p>
-                ))}
-              </div>
-            ))}
+              ))}
+            </div>
+            {/* Support */}
+            <div className="space-y-4 min-w-[120px]">
+              <p className="text-sm font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
+                Support
+              </p>
+              {[
+                { label: "FAQs",         href: "#" },
+                { label: "Report Issue", href: "#" },
+              ].map((l) => (
+                <p key={l.label}>
+                  <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity" style={{ fontFamily: "var(--font-lato)" }}>
+                    {l.label}
+                  </Link>
+                </p>
+              ))}
+            </div>
           </div>
         </div>
 
@@ -989,24 +1068,14 @@ function GuestFooter() {
             className="text-xs text-body"
             style={{ fontFamily: "var(--font-lato)" }}
           >
-            Copyright © {new Date().getFullYear()} LTSD. All Rights Reserved.
+            Copyright © {new Date().getFullYear()} LTSD.
           </p>
-          <div className="flex items-center gap-2 text-xs">
-            <Link
-              href="#"
-              className="text-badge-bg hover:underline"
-              style={{ fontFamily: "var(--font-lato)" }}
-            >
-              Terms and Conditions
-            </Link>
+          <div className="flex items-center gap-2 text-xs" style={{ fontFamily: "var(--font-lato)" }}>
+            <span className="text-body">All Rights Reserved</span>
             <span className="text-body">|</span>
-            <Link
-              href="#"
-              className="text-badge-bg hover:underline"
-              style={{ fontFamily: "var(--font-lato)" }}
-            >
-              Privacy Policy
-            </Link>
+            <Link href="#" className="text-badge-bg hover:underline">Terms and Conditions</Link>
+            <span className="text-body">|</span>
+            <Link href="#" className="text-badge-bg hover:underline">Privacy Policy</Link>
           </div>
         </div>
       </div>
@@ -1016,12 +1085,14 @@ function GuestFooter() {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-export default function GuestHomePage() {
+export default async function GuestHomePage() {
+  const showcaseDeals = await getShowcaseDeals();
+
   return (
     <div className="min-h-screen flex flex-col">
       <GuestHeader />
       <HeroSection />
-      <DealsSection />
+      <DealsSection deals={showcaseDeals} />
       <FeaturesSection />
       <HowItWorksSection />
       <CTASection />

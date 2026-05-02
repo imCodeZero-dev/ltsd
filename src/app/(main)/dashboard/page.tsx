@@ -10,7 +10,7 @@ import { HeroCarousel } from "@/components/dashboard/hero-carousel";
 import type { DealItem } from "@/lib/deal-api/types";
 
 export const metadata: Metadata = { title: "Dashboard — LTSD" };
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 // ── Image constants ────────────────────────────────────────────────────────────
 const IMG = {
@@ -425,8 +425,10 @@ export default async function DashboardPage() {
         categories: { include: { category: { select: { name: true } } } },
       },
     });
-    if (rows.length > 0) deals = mapDeals(rows as RawDeal[]);
-  } catch { /* DB not seeded */ }
+    deals = mapDeals(rows as RawDeal[]);
+  } catch (e) {
+    console.error("[Dashboard] DB query failed:", e);
+  }
 
   const displayDeals = deals.length > 0 ? deals : MOCK_DEALS;
 
