@@ -67,7 +67,7 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
         </div>
 
         {/* Product image */}
-        <Link href={`/deals/${deal.id}`} className="block relative w-full aspect-4/3">
+        <Link href={`/deals/${deal.slug ?? deal.id}`} className="block relative w-full aspect-4/3">
           <Image
             src={deal.imageUrl}
             alt={deal.title}
@@ -88,10 +88,10 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
         {/* Brand + discount badge on same line */}
         <div className="flex items-center justify-between">
           <p
-            className="text-[10px] font-semibold uppercase tracking-widest text-[#74777F]"
+            className="text-[10px] font-semibold uppercase tracking-widest text-[#74777F] truncate"
             style={{ fontFamily: "var(--font-inter)" }}
           >
-            {deal.brand}
+            {deal.brand || "\u00A0"}
           </p>
           {deal.discountPercent > 0 && (
             <span
@@ -104,7 +104,7 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
         </div>
 
         {/* Title */}
-        <Link href={`/deals/${deal.id}`}>
+        <Link href={`/deals/${deal.slug ?? deal.id}`}>
           <h3
             className="text-xs font-semibold text-navy line-clamp-2 leading-snug hover:text-badge-bg transition-colors"
             style={{ fontFamily: "var(--font-lato)" }}
@@ -143,8 +143,8 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
           )}
         </div>
 
-        {/* Claimed progress */}
-        {deal.totalCount > 0 && (
+        {/* Claimed progress — only for lightning deals */}
+        {deal.dealType === "LIGHTNING_DEAL" && deal.totalCount > 0 && (
           <ClaimProgress claimed={deal.claimedCount} total={deal.totalCount} />
         )}
       </div>

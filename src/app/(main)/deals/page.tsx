@@ -12,32 +12,14 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 20;
 
-// ── Image constants (mock fallback) ───────────────────────────────────────────
-const IMG = {
-  headphones: "https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg",
-  serum:      "https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg",
-  candle:     "https://m.media-amazon.com/images/I/61ni3t1ryQL._AC_SL1500_.jpg",
-  laptop:     "https://m.media-amazon.com/images/I/71f5Eu5lJSL._AC_SL1500_.jpg",
-};
-
-const MOCK_DEALS: DealItem[] = Array.from({ length: 16 }, (_, i) => ({
-  id: `d${i + 1}`,
-  title: "Apple AirPods Pro (2nd Gen) Wireless Earbuds",
-  brand: "SONY",
-  category: "Electronics",
-  imageUrl: [IMG.serum, IMG.candle, IMG.headphones, IMG.laptop][i % 4],
-  currentPrice: 29800,
-  originalPrice: 39900,
-  discountPercent: 15,
-  dealType: "LIGHTNING_DEAL" as const,
-  expiresAt: new Date(Date.now() + 7 * 3_600_000 + 10 * 60_000),
-  claimedCount: 176,
-  totalCount: 200,
-  rating: 4.9,
-  reviewCount: 2104,
-  affiliateUrl: "#",
-  isFeaturedDayDeal: i === 0,
-}));
+// Only values that exist in the Prisma DealType enum
+const VALID_DEAL_TYPES = new Set([
+  "PRICE_DROP",
+  "LIGHTNING_DEAL",
+  "COUPON",
+  "DEAL_OF_DAY",
+  "PRIME_EXCLUSIVE",
+]);
 
 async function getDeals(filters: {
   type?: string;
@@ -51,7 +33,7 @@ async function getDeals(filters: {
       ...(filters.category && {
         categories: { some: { category: { slug: filters.category } } },
       }),
-      ...(filters.type && { dealType: filters.type as never }),
+      ...(filters.type && VALID_DEAL_TYPES.has(filters.type) && { dealType: filters.type as never }),
       ...(filters.q && {
         title: { contains: filters.q, mode: "insensitive" as const },
       }),
@@ -83,7 +65,7 @@ async function getDeals(filters: {
   } catch (e) {
     console.error("[Deals] DB query failed:", e);
   }
-  return { deals: MOCK_DEALS, total: MOCK_DEALS.length };
+  return { deals: [], total: 0 };
 }
 
 interface DealsPageProps {

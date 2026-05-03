@@ -23,27 +23,6 @@ interface ShowcaseDeal {
   image: string;
 }
 
-const MOCK_SHOWCASE: ShowcaseDeal[] = [
-  {
-    id: "s1", brand: "SONY",
-    title: "Sony WH-1000XM5 Wireless Cancelling Headphones",
-    price: 298, original: 399, discount: 25,
-    image: "https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg",
-  },
-  {
-    id: "s2", brand: "Apple",
-    title: "Apple AirPods Pro (2nd Gen) Wireless Earbuds",
-    price: 199, original: 250, discount: 20,
-    image: "https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg",
-  },
-  {
-    id: "s3", brand: "Logitech",
-    title: "Logitech MX Master 3S Wireless Performance Mouse",
-    price: 89, original: 129, discount: 31,
-    image: "https://m.media-amazon.com/images/I/61ni3t1ryQL._AC_SL1500_.jpg",
-  },
-];
-
 async function getShowcaseDeals(): Promise<ShowcaseDeal[]> {
   try {
     const rows = await db.deal.findMany({
@@ -60,19 +39,17 @@ async function getShowcaseDeals(): Promise<ShowcaseDeal[]> {
         imageUrl: true,
       },
     });
-    if (rows.length > 0) {
-      return rows.map((r) => ({
-        id: r.id,
-        brand: r.brand ?? "Brand",
-        title: r.title,
-        price: Math.round(r.currentPrice),
-        original: Math.round(r.originalPrice ?? r.currentPrice),
-        discount: r.discountPercent ?? 0,
-        image: r.imageUrl ?? "/placeholder-product.png",
-      }));
-    }
+    return rows.map((r) => ({
+      id: r.id,
+      brand: r.brand ?? "Brand",
+      title: r.title,
+      price: Math.round(r.currentPrice),
+      original: Math.round(r.originalPrice ?? r.currentPrice),
+      discount: r.discountPercent ?? 0,
+      image: r.imageUrl ?? "/placeholder-product.png",
+    }));
   } catch { /* DB not seeded */ }
-  return MOCK_SHOWCASE;
+  return [];
 }
 
 // ── Badge pill (used in each section) ─────────────────────────────────────────
@@ -412,6 +389,7 @@ function HeroSection() {
 // ── Deals Section ──────────────────────────────────────────────────────────────
 
 function DealsSection({ deals }: { deals: ShowcaseDeal[] }) {
+  if (!deals.length) return null;
   return (
     <section className="bg-bg py-20">
       <div className="max-w-350 mx-auto px-4 sm:px-6">

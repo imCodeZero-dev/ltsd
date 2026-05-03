@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bookmark } from "lucide-react";
+import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useWatchlist } from "@/hooks/use-watchlist";
 import { WatchlistModal } from "./watchlist-modal";
@@ -52,7 +52,7 @@ export function WatchlistButton({ dealId, watchlistItemId, deal, className, size
           className
         )}
       >
-        <Bookmark className={cn(size === "lg" ? "w-5 h-5" : "w-3 h-3", isWatched && "fill-badge-bg")} aria-hidden />
+        <Heart className={cn(size === "lg" ? "w-5 h-5" : "w-3.5 h-3.5", isWatched && "fill-badge-bg")} aria-hidden />
       </button>
 
       {deal && (

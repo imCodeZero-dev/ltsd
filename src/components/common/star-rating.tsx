@@ -4,9 +4,11 @@ interface StarRatingProps {
   score: number;       // 0–5
   reviewCount?: number;
   size?: "sm" | "md";
+  hideScore?: boolean;
+  showPlus?: boolean;  // append "+" after review count, e.g. "112,000+"
 }
 
-export function StarRating({ score, reviewCount, size = "sm" }: StarRatingProps) {
+export function StarRating({ score, reviewCount, size = "sm", hideScore = false, showPlus = false }: StarRatingProps) {
   const iconSize = size === "sm" ? "w-3.5 h-3.5" : "w-4 h-4";
 
   return (
@@ -31,12 +33,19 @@ export function StarRating({ score, reviewCount, size = "sm" }: StarRatingProps)
           );
         })}
       </div>
-      <span className="text-xs text-muted-foreground">
-        {score.toFixed(1)}
-        {reviewCount !== undefined && (
-          <> ({reviewCount.toLocaleString()})</>
-        )}
-      </span>
+      {!hideScore && (
+        <span className="text-xs text-muted-foreground">
+          {score.toFixed(1)}
+          {reviewCount !== undefined && (
+            <> ({reviewCount.toLocaleString()}{showPlus ? "+" : ""} reviews)</>
+          )}
+        </span>
+      )}
+      {hideScore && reviewCount !== undefined && (
+        <span className="text-xs text-muted-foreground">
+          ({reviewCount.toLocaleString()}{showPlus ? "+" : ""})
+        </span>
+      )}
     </div>
   );
 }

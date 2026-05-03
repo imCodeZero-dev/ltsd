@@ -8,6 +8,7 @@ export interface WatchlistSnapshotItem {
   dealId: string;
   deal: {
     id: string;
+    slug: string | null;
     title: string;
     imageUrl: string | null;
     currentPrice: number;   // dollars
@@ -33,7 +34,7 @@ export function WatchlistSnapshot({ items }: WatchlistSnapshotProps) {
             className="flex items-center gap-3 bg-surface rounded-xl border border-border p-3"
           >
             <Link
-              href={`/deals/${item.deal.id}`}
+              href={`/deals/${item.deal.slug ?? item.deal.id}`}
               className="relative w-14 h-14 shrink-0 rounded-lg overflow-hidden bg-bg"
               tabIndex={-1}
             >
@@ -47,7 +48,7 @@ export function WatchlistSnapshot({ items }: WatchlistSnapshotProps) {
             </Link>
 
             <div className="flex-1 min-w-0">
-              <Link href={`/deals/${item.deal.id}`}>
+              <Link href={`/deals/${item.deal.slug ?? item.deal.id}`}>
                 <p className="text-sm font-medium text-carbon line-clamp-1 hover:text-crimson transition-colors">
                   {item.deal.title}
                 </p>

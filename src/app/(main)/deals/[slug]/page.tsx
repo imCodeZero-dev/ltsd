@@ -3,53 +3,10 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { mapDeal, mapDeals, type RawDeal } from "@/lib/deal-mapper";
 import { DealDetailContent } from "./deal-detail-content";
-import type { DealItem } from "@/lib/deal-api/types";
+import type { DealItem, PriceStats } from "@/lib/deal-api/types";
+import { syncProductWithHistory } from "@/lib/deal-api/sync";
 
-export const revalidate = 300;
-
-// ── Mock fallback ─────────────────────────────────────────────────────────────
-const MOCK_DEAL: DealItem = {
-  id: "airpods-pro-2",
-  title: "Apple AirPods Pro (2nd Gen) Wireless Earbuds",
-  brand: "Apple",
-  category: "Electronics",
-  imageUrl: "https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg",
-  currentPrice: 17900,
-  originalPrice: 24900,
-  discountPercent: 28,
-  dealType: "LIGHTNING_DEAL",
-  expiresAt: new Date(Date.now() + 11 * 3_600_000 + 2 * 60_000),
-  claimedCount: 176,
-  totalCount: 200,
-  rating: 4.8,
-  reviewCount: 112000,
-  affiliateUrl: "#",
-  isFeaturedDayDeal: true,
-};
-
-const MOCK_SIMILAR: DealItem[] = Array.from({ length: 4 }, (_, i) => ({
-  id: `sim-${i}`,
-  title: "Apple AirPods Pro (2nd Gen) Wireless Earbuds",
-  brand: "SONY",
-  category: "Electronics",
-  imageUrl: [
-    "https://m.media-amazon.com/images/I/61SUj2aKoEL._AC_SL1500_.jpg",
-    "https://m.media-amazon.com/images/I/71f5Eu5lJSL._AC_SL1500_.jpg",
-    "https://m.media-amazon.com/images/I/61ni3t1ryQL._AC_SL1500_.jpg",
-    "https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg",
-  ][i % 4],
-  currentPrice: 29800,
-  originalPrice: 39900,
-  discountPercent: 15,
-  dealType: "LIGHTNING_DEAL" as const,
-  expiresAt: new Date(Date.now() + 7 * 3_600_000),
-  claimedCount: 176,
-  totalCount: 200,
-  rating: 4.9,
-  reviewCount: 2104,
-  affiliateUrl: "#",
-  isFeaturedDayDeal: false,
-}));
+export const dynamic = "force-dynamic";
 
 // ── Dynamic metadata ──────────────────────────────────────────────────────────
 export async function generateMetadata({
@@ -78,24 +35,63 @@ export default async function DealDetailPage({
 
   let deal: DealItem | null = null;
   let similarDeals: DealItem[] = [];
+  let priceHistory: { price: number; recordedAt: string }[] = [];
+  let priceStats: PriceStats | null = null;
 
-  try {
-    const row = await db.deal.findUnique({
-      where: { slug },
+  const sixMonthsAgo = new Date(Date.now() - 6 * 30 * 24 * 60 * 60 * 1000);
+
+  // Helper: run the full DB query for a deal row
+  async function fetchDealRow(where: { slug?: string; asin?: string; id?: string }) {
+    return db.deal.findUnique({
+      where: where as Parameters<typeof db.deal.findUnique>[0]["where"],
       include: {
         categories: { include: { category: { select: { name: true } } } },
+        priceHistory: {
+          where: { recordedAt: { gte: sixMonthsAgo } },
+          orderBy: { recordedAt: "asc" },
+          select: { price: true, recordedAt: true },
+        },
       },
     });
+  }
+
+  // Helper: hydrate deal/priceHistory/priceStats from a found row
+  function hydrateFromRow(row: Awaited<ReturnType<typeof fetchDealRow>>) {
+    if (!row) return;
+    deal = mapDeal(row as RawDeal);
+    const meta = row.metadata as Record<string, unknown> | null;
+    if (meta?.priceStats) priceStats = meta.priceStats as PriceStats;
+    if (meta?.description && typeof meta.description === "string") deal.description = meta.description;
+    if (meta?.images && Array.isArray(meta.images)) deal.images = meta.images as string[];
+    priceHistory = row.priceHistory.map((h) => ({
+      price: h.price,
+      recordedAt: h.recordedAt.toISOString(),
+    }));
+  }
+
+  try {
+    let row = await fetchDealRow({ slug });
 
     if (row) {
-      deal = mapDeal(row as RawDeal);
+      hydrateFromRow(row);
+
+      // If no price history, trigger on-demand Keepa sync then re-fetch
+      if (priceHistory.length === 0 && row.asin) {
+        try {
+          await syncProductWithHistory(row.asin);
+          row = await fetchDealRow({ slug });
+          hydrateFromRow(row);
+        } catch (e) {
+          console.error("[DealDetail] On-demand sync failed:", e);
+        }
+      }
 
       // Fetch similar deals from the same category
-      const categoryName = row.categories?.[0]?.category?.name;
+      const categoryName = row?.categories?.[0]?.category?.name;
       const similarRows = await db.deal.findMany({
         where: {
           isActive: true,
-          id: { not: row.id },
+          id: { not: row!.id },
           ...(categoryName && {
             categories: { some: { category: { name: categoryName } } },
           }),
@@ -111,36 +107,35 @@ export default async function DealDetailPage({
         similarDeals = mapDeals(similarRows as RawDeal[]);
       }
     }
-  } catch { /* DB not seeded */ }
+  } catch (e) { console.error("[DealDetail] DB query failed:", e); }
 
-  // If no DB row found, try ASIN-based lookup or use mock
+  // Fallback 2: try ASIN-based lookup (slug ends with the ASIN)
   if (!deal) {
-    // Try looking up by ASIN (slug may contain ASIN at the end)
     try {
       const asinMatch = slug.match(/([A-Z0-9]{10})$/i);
       if (asinMatch) {
-        const row = await db.deal.findUnique({
-          where: { asin: asinMatch[1].toUpperCase() },
-          include: {
-            categories: { include: { category: { select: { name: true } } } },
-          },
-        });
-        if (row) {
-          deal = mapDeal(row as RawDeal);
-        }
+        const row = await fetchDealRow({ asin: asinMatch[1].toUpperCase() });
+        if (row) hydrateFromRow(row);
       }
     } catch { /* ignore */ }
   }
 
-  // Final fallback to mock data
+  // Fallback 3: treat slug as a raw deal ID (for notification links)
   if (!deal) {
-    deal = MOCK_DEAL;
-    similarDeals = MOCK_SIMILAR;
+    try {
+      const row = await fetchDealRow({ id: slug });
+      if (row) hydrateFromRow(row);
+    } catch { /* ignore */ }
   }
 
-  if (similarDeals.length === 0) {
-    similarDeals = MOCK_SIMILAR;
-  }
+  if (!deal) notFound();
 
-  return <DealDetailContent deal={deal} similarDeals={similarDeals} />;
+  return (
+    <DealDetailContent
+      deal={deal}
+      similarDeals={similarDeals}
+      priceHistory={priceHistory}
+      priceStats={priceStats}
+    />
+  );
 }

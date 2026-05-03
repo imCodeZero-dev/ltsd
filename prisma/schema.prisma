@@ -146,6 +146,7 @@ model Deal {
   isActive            Boolean   @default(true)
   claimedCount        Int       @default(0)
   totalSlots          Int?
+  monthlySold         Int?
   dealType            DealType  @default(PRICE_DROP)
   expiresAt           DateTime?
   lastSyncedAt        DateTime  @default(now())

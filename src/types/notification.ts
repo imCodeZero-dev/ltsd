@@ -11,6 +11,7 @@ export interface AppNotification {
   title: string;
   body: string;
   dealId: string | null;
+  dealSlug: string | null;
   read: boolean;
   createdAt: Date;
 }

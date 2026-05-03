@@ -15,7 +15,9 @@ type PrismaDealType =
 function mapDealType(prismaType: PrismaDealType): DealType {
   if (prismaType === "LIGHTNING_DEAL") return "LIGHTNING_DEAL";
   if (prismaType === "PRIME_EXCLUSIVE") return "PRIME_EXCLUSIVE";
-  return "LIMITED_TIME";
+  if (prismaType === "COUPON") return "COUPON";
+  if (prismaType === "DEAL_OF_DAY") return "DEAL_OF_DAY";
+  return "PRICE_DROP";
 }
 
 // Minimal shape returned by db.deal.findMany — only what we need
@@ -36,6 +38,7 @@ export interface RawDeal {
   expiresAt: Date | null;
   claimedCount: number;
   totalSlots: number | null;
+  monthlySold?: number | null;
   isFeaturedDayDeal: boolean;
   categories?: { category: { name: string } }[];
 }
@@ -47,8 +50,9 @@ export function mapDeal(raw: RawDeal): DealItem {
   return {
     id: raw.id,
     asin: raw.asin,
+    slug: raw.slug,
     title: raw.title,
-    brand: raw.brand ?? "Unknown",
+    brand: raw.brand ?? "",
     category,
     imageUrl: raw.imageUrl ?? "/placeholder-product.png",
     currentPrice: Math.round(raw.currentPrice * 100),    // dollars → cents
@@ -62,6 +66,7 @@ export function mapDeal(raw: RawDeal): DealItem {
     reviewCount: raw.reviewCount ?? 0,
     affiliateUrl: raw.affiliateUrl,
     isFeaturedDayDeal: raw.isFeaturedDayDeal,
+    monthlySold: raw.monthlySold ?? undefined,
   };
 }
 

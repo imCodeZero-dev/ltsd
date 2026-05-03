@@ -18,7 +18,7 @@ export function WatchlistItem({ item }: WatchlistItemProps) {
   return (
     <article className="flex gap-3 bg-surface rounded-xl border border-border p-3">
       {/* Image */}
-      <Link href={`/deals/${deal.id}`} className="relative w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-bg" tabIndex={-1}>
+      <Link href={`/deals/${deal.slug ?? deal.id}`} className="relative w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-bg" tabIndex={-1}>
         <Image
           src={deal.imageUrl}
           alt={deal.title}
@@ -30,7 +30,7 @@ export function WatchlistItem({ item }: WatchlistItemProps) {
 
       {/* Info */}
       <div className="flex-1 min-w-0 space-y-1.5">
-        <Link href={`/deals/${deal.id}`}>
+        <Link href={`/deals/${deal.slug ?? deal.id}`}>
           <h3 className="text-sm font-medium text-carbon line-clamp-2 leading-snug hover:text-crimson transition-colors">
             {deal.title}
           </h3>

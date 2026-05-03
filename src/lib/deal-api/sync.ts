@@ -1,29 +1,32 @@
 /**
  * Keepa → DB sync service
  *
- * Fetches deal data from Keepa API and upserts into Prisma DB.
- * Pages read from DB — never from Keepa directly.
+ * All pages read from DB — never from Keepa directly at request time.
+ * Keepa is called only from cron jobs or one-time detail page on-demand sync.
+ *
+ * Token budget: 20/min = 28,800/day
+ * Schedule:
+ *   Every 4h  → syncLightningDeals()     500 tokens × 6 = 3,000/day
+ *   Every 6h  → syncCategory() × 3       ~165 tokens × 4 = 660/day
+ *   Once/day  → syncBestSellers() × 3    ~270 tokens/day
  */
 
 import { db } from "@/lib/db";
 import { getDealApi } from "./index";
-import type { DealItem } from "./types";
-import type { DealType as PrismaDealType } from "@prisma/client";
+import type { DealItem, PriceStats } from "./types";
+import type { KeepaLightningDeal } from "./providers/keepa";
+import type { DealType as PrismaDealType, Prisma } from "@prisma/client";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/** Convert DealItem.dealType → Prisma DealType enum */
 function mapDealType(dt: string): PrismaDealType {
   switch (dt) {
-    case "LIGHTNING_DEAL": return "LIGHTNING_DEAL";
+    case "LIGHTNING_DEAL":  return "LIGHTNING_DEAL";
     case "PRIME_EXCLUSIVE": return "PRIME_EXCLUSIVE";
-    case "LIMITED_TIME":
-    default:
-      return "PRICE_DROP";
+    default:                return "PRICE_DROP";
   }
 }
 
-/** Generate URL-friendly slug from title */
 function slugify(title: string, asin: string): string {
   const base = title
     .toLowerCase()
@@ -33,61 +36,91 @@ function slugify(title: string, asin: string): string {
   return `${base}-${asin.toLowerCase()}`;
 }
 
-/** Cents → dollars (Deal model stores Float dollars) */
+/** Cents → dollars (DB stores Float dollars) */
 function centsToDollars(cents: number): number {
   return Math.round(cents) / 100;
 }
 
-// ── Upsert a single DealItem into the DB ─────────────────────────────────────
+// ── Upsert a single DealItem ──────────────────────────────────────────────────
 
-async function upsertDeal(item: DealItem, categoryName?: string): Promise<string> {
+async function upsertDeal(
+  item: DealItem,
+  categoryName?: string,
+  extra?: {
+    priceStats?: PriceStats | null;
+    historyPoints?: { date: Date; priceCents: number }[];
+  }
+): Promise<string> {
   const slug = slugify(item.title, item.asin ?? item.id);
 
+  // Build metadata JSON: store priceStats, description, images, monthlySold
+  const metadataPayload: Record<string, unknown> = {};
+  if (item.description)         metadataPayload.description = item.description;
+  if (extra?.priceStats)        metadataPayload.priceStats  = extra.priceStats;
+  if (item.images?.length)      metadataPayload.images      = item.images;
+  if (item.monthlySold != null) metadataPayload.monthlySold = item.monthlySold;
+
+  const metadataValue = Object.keys(metadataPayload).length
+    ? (metadataPayload as Prisma.InputJsonValue)
+    : undefined;
+
   const data = {
-    title: item.title,
+    title:             item.title,
     slug,
-    brand: item.brand || null,
-    imageUrl: item.imageUrl || null,
-    affiliateUrl: item.affiliateUrl,
-    currentPrice: centsToDollars(item.currentPrice),
-    originalPrice: item.originalPrice > 0 ? centsToDollars(item.originalPrice) : null,
-    discountPercent: item.discountPercent > 0 ? item.discountPercent : null,
-    rating: item.rating > 0 ? item.rating : null,
-    reviewCount: Math.max(0, item.reviewCount),
+    brand:             item.brand || null,
+    imageUrl:          item.imageUrl || null,
+    affiliateUrl:      item.affiliateUrl,
+    currentPrice:      centsToDollars(item.currentPrice),
+    originalPrice:     item.originalPrice > 0 ? centsToDollars(item.originalPrice) : null,
+    discountPercent:   item.discountPercent > 0 ? item.discountPercent : null,
+    rating:            item.rating > 0 ? item.rating : null,
+    reviewCount:       Math.max(0, item.reviewCount),
+    monthlySold:       item.monthlySold ?? null,
     isFeaturedDayDeal: item.isFeaturedDayDeal,
-    dealType: mapDealType(item.dealType),
-    expiresAt: item.expiresAt,
-    isActive: true,
-    lastSyncedAt: new Date(),
+    dealType:          mapDealType(item.dealType),
+    expiresAt:         item.expiresAt,
+    claimedCount:      item.claimedCount,
+    totalSlots:        item.totalCount > 0 ? item.totalCount : null,
+    isActive:          item.dealState !== "EXPIRED" && item.dealState !== "SUPPRESSED",
+    lastSyncedAt:      new Date(),
+    ...(metadataValue !== undefined && { metadata: metadataValue }),
   };
 
   const deal = await db.deal.upsert({
-    where: { asin: item.asin ?? item.id },
-    create: {
-      asin: item.asin ?? item.id,
-      ...data,
-    },
+    where:  { asin: item.asin ?? item.id },
+    create: { asin: item.asin ?? item.id, ...data },
     update: data,
   });
 
-  // Link to category if provided
+  // Link to category
   if (categoryName) {
+    const catSlug = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const category = await db.category.upsert({
-      where: { slug: categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-") },
-      create: {
-        name: categoryName,
-        slug: categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-      },
+      where:  { slug: catSlug },
+      create: { name: categoryName, slug: catSlug },
       update: {},
     });
-
     await db.dealCategory.upsert({
-      where: {
-        dealId_categoryId: { dealId: deal.id, categoryId: category.id },
-      },
+      where:  { dealId_categoryId: { dealId: deal.id, categoryId: category.id } },
       create: { dealId: deal.id, categoryId: category.id },
       update: {},
     });
+  }
+
+  // Write price history only when deal has none yet (avoids duplicates)
+  if (extra?.historyPoints?.length) {
+    const existingCount = await db.priceHistory.count({ where: { dealId: deal.id } });
+    if (existingCount === 0) {
+      await db.priceHistory.createMany({
+        data: extra.historyPoints.map((p) => ({
+          dealId:     deal.id,
+          price:      p.priceCents / 100,
+          source:     "keepa-history",
+          recordedAt: p.date,
+        })),
+        skipDuplicates: true,
+      });
+    }
   }
 
   return deal.id;
@@ -96,8 +129,38 @@ async function upsertDeal(item: DealItem, categoryName?: string): Promise<string
 // ── Public sync functions ────────────────────────────────────────────────────
 
 /**
- * Sync deals for a category from Keepa → DB.
- * Returns count of upserted deals.
+ * Sync lightning deals from Keepa → DB.
+ * Cost: 500 tokens for the full list.
+ * Populates real: percentClaimed → claimedCount, rating, totalReviews, endTime.
+ * Recommended schedule: every 4 hours.
+ */
+export async function syncLightningDeals(): Promise<{ synced: number; errors: string[] }> {
+  const { KeepaProvider, mapLightningDeal } = await import("./providers/keepa");
+  const provider = new KeepaProvider();
+
+  const deals = await provider.getLightningDeals("AVAILABLE");
+
+  const errors: string[] = [];
+  let synced = 0;
+
+  for (const d of deals) {
+    try {
+      const item = mapLightningDeal(d);
+      if (!item) continue;
+      await upsertDeal(item);
+      synced++;
+    } catch (err) {
+      errors.push(`${d.asin}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  return { synced, errors };
+}
+
+/**
+ * Sync deals for a category using /deal + /product endpoints.
+ * Cost: 5 (deal) + ~limit tokens (product batch).
+ * Recommended schedule: every 6 hours.
  */
 export async function syncCategory(
   category: string,
@@ -121,8 +184,67 @@ export async function syncCategory(
 }
 
 /**
- * Search products by keyword and sync results to DB.
- * Returns count of upserted deals.
+ * Sync best sellers for a category.
+ * Cost: 50 (bestsellers) + up to limit tokens (product batch).
+ * Recommended schedule: once per day.
+ */
+export async function syncBestSellers(
+  categoryId: number,
+  categoryName: string,
+  limit = 60
+): Promise<{ synced: number; errors: string[] }> {
+  const { KeepaProvider } = await import("./providers/keepa");
+  const provider = new KeepaProvider();
+  const api = await getDealApi();
+
+  const allAsins = await provider.getBestSellerAsins(categoryId, 0);
+  const asins = allAsins.slice(0, limit);
+  if (!asins.length) return { synced: 0, errors: [] };
+
+  // Batch fetch product data (up to 100 per call)
+  const errors: string[] = [];
+  let synced = 0;
+
+  for (let i = 0; i < asins.length; i += 100) {
+    const batch = asins.slice(i, i + 100);
+    try {
+      const prices = await api.getItemPrices(batch);
+      for (const p of prices) {
+        if (p.currentPrice <= 0) continue;
+        const item: DealItem = {
+          id:                p.asin,
+          asin:              p.asin,
+          title:             p.asin,
+          brand:             "",
+          category:          categoryName,
+          imageUrl:          `https://m.media-amazon.com/images/P/${p.asin}.01.LZZZZZZZ.jpg`,
+          currentPrice:      p.currentPrice,
+          originalPrice:     p.originalPrice,
+          discountPercent:   p.originalPrice > p.currentPrice
+            ? Math.round(((p.originalPrice - p.currentPrice) / p.originalPrice) * 100)
+            : 0,
+          dealType:          "LIMITED_TIME",
+          expiresAt:         null,
+          claimedCount:      0,
+          totalCount:        0,
+          rating:            0,
+          reviewCount:       0,
+          affiliateUrl:      `https://www.amazon.com/dp/${p.asin}`,
+          isFeaturedDayDeal: false,
+        };
+        await upsertDeal(item, categoryName);
+        synced++;
+      }
+    } catch (err) {
+      errors.push(`batch ${i}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  return { synced, errors };
+}
+
+/**
+ * Search products by keyword and sync to DB.
  */
 export async function syncSearch(
   query: string,
@@ -146,43 +268,8 @@ export async function syncSearch(
 }
 
 /**
- * Sync a single product by ASIN.
- * Returns the DB deal ID or null on failure.
- */
-export async function syncProduct(asin: string): Promise<string | null> {
-  const api = await getDealApi();
-  const metadata = await api.getItemMetadata(asin);
-
-  if (!metadata.title) return null;
-
-  // Build a full DealItem from partial metadata
-  const item: DealItem = {
-    id: asin,
-    asin,
-    title: metadata.title,
-    brand: metadata.brand ?? "",
-    category: metadata.category ?? "General",
-    imageUrl: metadata.imageUrl ?? "",
-    currentPrice: metadata.currentPrice ?? 0,
-    originalPrice: metadata.originalPrice ?? 0,
-    discountPercent: metadata.discountPercent ?? 0,
-    dealType: metadata.dealType ?? "LIMITED_TIME",
-    expiresAt: metadata.expiresAt ?? null,
-    claimedCount: metadata.claimedCount ?? 0,
-    totalCount: metadata.totalCount ?? 0,
-    rating: metadata.rating ?? 0,
-    reviewCount: metadata.reviewCount ?? 0,
-    affiliateUrl: metadata.affiliateUrl ?? `https://www.amazon.com/dp/${asin}`,
-    isFeaturedDayDeal: metadata.isFeaturedDayDeal ?? false,
-  };
-
-  return upsertDeal(item, item.category);
-}
-
-/**
- * Refresh prices for a list of ASINs.
- * Updates Deal.currentPrice and inserts PriceHistory rows.
- * Returns count of updated deals.
+ * Refresh prices for a batch of ASINs (max 100 per call).
+ * Adds a PriceHistory row and updates currentPrice in Deal table.
  */
 export async function syncPrices(
   asins: string[]
@@ -197,12 +284,9 @@ export async function syncPrices(
   for (const p of prices) {
     try {
       const deal = await db.deal.findUnique({ where: { asin: p.asin } });
-      if (!deal) {
-        errors.push(`${p.asin}: not found in DB`);
-        continue;
-      }
+      if (!deal) { errors.push(`${p.asin}: not in DB`); continue; }
 
-      const currentDollars = centsToDollars(p.currentPrice);
+      const currentDollars  = centsToDollars(p.currentPrice);
       const originalDollars = p.originalPrice > 0 ? centsToDollars(p.originalPrice) : null;
       const discount = originalDollars && originalDollars > currentDollars
         ? Math.round(((originalDollars - currentDollars) / originalDollars) * 100)
@@ -211,19 +295,15 @@ export async function syncPrices(
       await db.deal.update({
         where: { asin: p.asin },
         data: {
-          currentPrice: currentDollars,
-          originalPrice: originalDollars ?? deal.originalPrice,
+          currentPrice:    currentDollars,
+          originalPrice:   originalDollars ?? deal.originalPrice,
           discountPercent: discount ?? deal.discountPercent,
-          lastSyncedAt: new Date(),
+          lastSyncedAt:    new Date(),
         },
       });
 
       await db.priceHistory.create({
-        data: {
-          dealId: deal.id,
-          price: currentDollars,
-          source: "keepa",
-        },
+        data: { dealId: deal.id, price: currentDollars, source: "keepa" },
       });
 
       updated++;
@@ -236,24 +316,23 @@ export async function syncPrices(
 }
 
 /**
- * Deactivate deals with no valid price (price <= 0).
- * Call manually via POST /api/deals/sync { action: "cleanup" }.
- * NOT run automatically — only when explicitly triggered.
+ * Full product sync for a single ASIN with price history.
+ * Used on detail page first visit when priceHistory is empty.
+ * Cost: 1-2 tokens.
  */
-export async function cleanupInvalidDeals(): Promise<number> {
-  const result = await db.deal.updateMany({
-    where: {
-      isActive: true,
-      currentPrice: { lte: 0 },
-    },
-    data: { isActive: false },
-  });
-  return result.count;
+export async function syncProductWithHistory(asin: string): Promise<string | null> {
+  const { KeepaProvider } = await import("./providers/keepa");
+  const provider = new KeepaProvider();
+
+  const { item, historyPoints, priceStats } = await provider.getFullProductData(asin);
+  if (!item) return null;
+
+  return upsertDeal(item, item.category, { priceStats, historyPoints });
 }
 
 /**
  * Bulk seed: sync multiple categories at once.
- * Use sparingly — each category = 2 Keepa API calls.
+ * Use for initial DB population.
  */
 export async function seedDeals(
   categories: string[] = ["Electronics", "Home & Kitchen", "Sports & Outdoors"],
@@ -269,4 +348,15 @@ export async function seedDeals(
   }
 
   return { total, errors: allErrors };
+}
+
+/**
+ * Deactivate deals with no valid price.
+ */
+export async function cleanupInvalidDeals(): Promise<number> {
+  const result = await db.deal.updateMany({
+    where: { isActive: true, currentPrice: { lte: 0 } },
+    data:  { isActive: false },
+  });
+  return result.count;
 }

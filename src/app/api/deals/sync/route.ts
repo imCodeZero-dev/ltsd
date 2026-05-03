@@ -3,7 +3,7 @@ import { requireAdminOrThrow } from "@/lib/auth-guard";
 import {
   syncCategory,
   syncSearch,
-  syncProduct,
+  syncProductWithHistory,
   syncPrices,
   seedDeals,
   cleanupInvalidDeals,
@@ -52,7 +52,7 @@ export async function POST(req: Request): Promise<Response> {
       case "product": {
         const asin = body.asin as string;
         if (!asin) return err("asin is required", 400);
-        const dealId = await syncProduct(asin);
+        const dealId = await syncProductWithHistory(asin);
         if (!dealId) return err("Product not found or no data returned", 404);
         return ok({ dealId }, { action: "product", asin });
       }

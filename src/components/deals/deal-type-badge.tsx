@@ -12,10 +12,25 @@ const config: Record<DealType, {
     icon: Zap,
     className: "bg-yellow text-navy-btn",
   },
+  PRICE_DROP: {
+    label: "Price Drop",
+    icon: Clock,
+    className: "bg-orange text-white",
+  },
   LIMITED_TIME: {
     label: "Limited Time",
     icon: Clock,
     className: "bg-orange text-white",
+  },
+  COUPON: {
+    label: "Coupon",
+    icon: Clock,
+    className: "bg-green-500 text-white",
+  },
+  DEAL_OF_DAY: {
+    label: "Deal of Day",
+    icon: Zap,
+    className: "bg-badge-bg text-white",
   },
   PRIME_EXCLUSIVE: {
     label: "Prime",

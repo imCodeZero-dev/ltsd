@@ -29,7 +29,7 @@ export function DealOfDayBanner({ deal }: DealOfDayBannerProps) {
 
   return (
     <Link
-      href={`/deals/${deal.id}`}
+      href={`/deals/${deal.slug ?? deal.id}`}
       className="rounded-2xl bg-gradient-to-r from-navy to-navy-btn p-5 flex items-center gap-4 hover:opacity-95 transition-opacity"
     >
       {/* Product image */}

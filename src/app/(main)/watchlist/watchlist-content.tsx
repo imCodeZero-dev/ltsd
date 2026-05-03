@@ -193,7 +193,7 @@ function MatchedDealCard({ deal }: { deal: DealItem }) {
             <Heart className="w-3 h-3 text-body" />
           </button>
         </div>
-        <Link href={`/deals/${deal.id}`} className="absolute bottom-2 inset-x-2">
+        <Link href={`/deals/${deal.slug ?? deal.id}`} className="absolute bottom-2 inset-x-2">
           <span className="block w-full text-center text-[10px] font-semibold bg-white border border-[#E7E8E9] rounded py-1 text-navy hover:bg-[#F5F6F7] transition-colors">
             View Deal
           </span>

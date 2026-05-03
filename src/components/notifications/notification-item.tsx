@@ -53,8 +53,8 @@ export function NotificationItem({ notification }: NotificationItemProps) {
     </div>
   );
 
-  if (notification.dealId) {
-    return <Link href={`/deals/${notification.dealId}`}>{inner}</Link>;
+  if (notification.dealSlug ?? notification.dealId) {
+    return <Link href={`/deals/${notification.dealSlug ?? notification.dealId}`}>{inner}</Link>;
   }
   return <div>{inner}</div>;
 }

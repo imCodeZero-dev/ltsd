@@ -26,7 +26,7 @@ const CATEGORIES = [
 const DEAL_TYPES = [
   { value: "",                label: "All Types" },
   { value: "LIGHTNING_DEAL",  label: "Lightning Deals" },
-  { value: "LIMITED_TIME",    label: "Limited Time" },
+  { value: "PRICE_DROP",      label: "Price Drops" },
   { value: "PRIME_EXCLUSIVE", label: "Prime Day" },
 ];
 

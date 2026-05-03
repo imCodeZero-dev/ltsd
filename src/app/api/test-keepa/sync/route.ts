@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import {
   syncCategory,
   syncSearch,
-  syncProduct,
+  syncProductWithHistory,
   syncPrices,
   seedDeals,
 } from "@/lib/deal-api/sync";
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       case "product": {
         const asin = body.asin as string;
         if (!asin) return NextResponse.json({ error: "asin required" }, { status: 400 });
-        const dealId = await syncProduct(asin);
+        const dealId = await syncProductWithHistory(asin);
         return NextResponse.json({ action: "product", asin, dealId });
       }
 
