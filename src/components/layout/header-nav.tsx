@@ -27,7 +27,6 @@ export function HeaderNav() {
                 ? "font-semibold text-navy border-badge-bg"
                 : "font-medium text-body border-transparent hover:text-navy hover:border-badge-bg/40"
             )}
-            style={{ fontFamily: "var(--font-inter)" }}
           >
             {label}
           </Link>

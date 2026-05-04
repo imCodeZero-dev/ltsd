@@ -17,14 +17,14 @@ export function SearchBar() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="w-full max-w-125 hidden md:flex items-center gap-2 bg-[#F5F6F7] rounded-full px-4 py-2.5 border border-[#E7E8E9] focus-within:border-badge-bg transition-colors"
+      className="w-full max-w-125 hidden md:flex items-center gap-2 bg-surface-hover rounded-full px-4 py-2.5 border border-border focus-within:border-badge-bg transition-colors"
     >
-      <Search className="w-4 h-4 text-[#74777F] shrink-0" aria-hidden />
+      <Search className="w-4 h-4 text-subtle shrink-0" aria-hidden />
       <input
         ref={inputRef}
         type="search"
         placeholder="What are you looking for?"
-        className="flex-1 bg-transparent text-sm text-carbon placeholder:text-[#74777F] outline-none"
+        className="flex-1 bg-transparent text-sm text-carbon placeholder:text-subtle outline-none"
       />
     </form>
   );
@@ -43,16 +43,16 @@ export function MobileSearchBar() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="md:hidden flex items-center gap-2 bg-[#F5F6F7] rounded-full px-4 py-2.5 border border-[#E7E8E9] mx-4 mt-2 mb-1"
+      className="md:hidden flex items-center gap-2 bg-surface-hover rounded-full px-4 py-2.5 border border-border mx-4 mt-2 mb-1"
     >
       <input
         ref={inputRef}
         type="search"
         placeholder="Search categories..."
-        className="flex-1 bg-transparent text-sm text-carbon placeholder:text-[#74777F] outline-none"
+        className="flex-1 bg-transparent text-sm text-carbon placeholder:text-subtle outline-none"
       />
       <button type="submit" aria-label="Search">
-        <Search className="w-4 h-4 text-[#74777F]" aria-hidden />
+        <Search className="w-4 h-4 text-subtle" aria-hidden />
       </button>
     </form>
   );

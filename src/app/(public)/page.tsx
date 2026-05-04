@@ -56,13 +56,9 @@ async function getShowcaseDeals(): Promise<ShowcaseDeal[]> {
 
 function BadgePill({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
   return (
-    <div
-      className={`
-        inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium
-        ${dark ? "bg-[#1A1A1A] text-white/80" : "bg-white border border-[#E7E8E9] text-[#44474E]"}
-      `}
-      style={{ fontFamily: "var(--font-lato)" }}
-    >
+    <div className={`inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium font-lato ${
+      dark ? "bg-[#1A1A1A] text-white/80" : "bg-surface border border-border text-body"
+    }`}>
       {children}
     </div>
   );
@@ -74,10 +70,7 @@ function GuestHeader() {
   return (
     <>
       {/* Announcement bar — dark navy */}
-      <div
-        className="w-full py-2 px-6 flex items-center text-xs font-medium text-white"
-        style={{ background: "#000A1E", fontFamily: "var(--font-lato)" }}
-      >
+      <div className="w-full py-2 px-6 flex items-center bg-navy text-xs font-medium text-surface font-lato">
         <div className="flex-1 flex items-center justify-center gap-2">
           <span>Smarter shopping starts here — track deals and save more</span>
           <Link
@@ -89,15 +82,14 @@ function GuestHeader() {
         </div>
         <button
           type="button"
-          className="hidden md:flex items-center gap-0.5 text-white/60 hover:text-white transition-colors shrink-0"
-          style={{ fontFamily: "var(--font-lato)" }}
+          className="hidden md:flex items-center gap-0.5 text-surface/60 hover:text-surface transition-colors shrink-0 font-lato"
         >
           English <ChevronDown className="w-3 h-3" />
         </button>
       </div>
 
       {/* Main header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-[#E7E8E9]">
+      <header className="sticky top-0 z-40 bg-surface border-b border-border">
         <div className="max-w-350 mx-auto px-4 sm:px-6 h-14 flex items-center gap-6">
           {/* Logo */}
           <Link href="/" className="shrink-0 flex items-center gap-2">
@@ -120,12 +112,9 @@ function GuestHeader() {
               <Link
                 key={label}
                 href={href}
-                className="text-sm font-medium transition-colors"
-                style={{
-                  fontFamily: "var(--font-lato)",
-                  color: i === 0 ? "#000A1E" : "#44474E",
-                  fontWeight: i === 0 ? 700 : 500,
-                }}
+                className={`text-sm transition-colors font-lato ${
+                  i === 0 ? "font-bold text-navy" : "font-medium text-body hover:text-navy"
+                }`}
               >
                 {label}
               </Link>
@@ -136,12 +125,11 @@ function GuestHeader() {
           <div className="ml-auto flex items-center gap-3">
             <Link
               href="/login"
-              className="hidden sm:flex items-center gap-2 px-4 py-1.5 rounded-lg border border-[#E7E8E9] text-sm font-semibold text-navy hover:border-navy transition-colors"
-              style={{ fontFamily: "var(--font-lato)" }}
+              className="hidden sm:flex items-center gap-2 px-4 py-1.5 rounded-lg border border-border text-sm font-semibold text-navy hover:border-navy transition-colors font-lato"
             >
               Log In
-              <span className="w-5 h-5 rounded-md bg-[#000A1E] flex items-center justify-center shrink-0">
-                <ArrowUpRight className="w-3 h-3 text-white" />
+              <span className="w-5 h-5 rounded-md bg-navy flex items-center justify-center shrink-0">
+                <ArrowUpRight className="w-3 h-3 text-surface" />
               </span>
             </Link>
           </div>
@@ -171,81 +159,63 @@ function HeroSection() {
         </div>
 
         {/* Heading */}
-        <h1
-          className="text-4xl md:text-5xl lg:text-[56px] font-extrabold text-navy leading-tight max-w-3xl mx-auto"
-          style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
-        >
+        <h1 className="type-page-title text-4xl md:text-5xl lg:text-[56px] max-w-3xl mx-auto">
           Hunting For The Best Deals?<br />
           You're In The Right Spot.
         </h1>
 
         {/* Subtitle */}
-        <p
-          className="mt-4 text-base text-body max-w-md mx-auto leading-relaxed"
-          style={{ fontFamily: "var(--font-lato)" }}
-        >
+        <p className="type-body mt-4 max-w-md mx-auto text-base text-center">
           We track prices, find the best deals, and tell you exactly when to buy.
         </p>
 
         {/* CTAs */}
         <div className="flex items-center justify-center gap-3 mt-8 flex-wrap">
-          <Link
-            href="/signup"
-            className="px-7 py-3.5 rounded-full text-sm font-bold text-white hover:opacity-90 transition-opacity"
-            style={{ background: "linear-gradient(90deg, #FF4D00 0%, #FF9A00 100%)", fontFamily: "var(--font-lato)" }}
-          >
-            Get Started Free
-          </Link>
-          <Link
-            href="/deals"
-            className="px-7 py-3.5 rounded-full text-sm font-bold text-white hover:opacity-80 transition-opacity"
-            style={{ background: "#000A1E", fontFamily: "var(--font-lato)" }}
-          >
-            Explore Deals
-          </Link>
+          <Link href="/signup" className="btn-primary">Get Started Free</Link>
+          <Link href="/deals" className="btn-dark">Explore Deals</Link>
         </div>
 
         {/* Phone mockup + floating elements */}
         <div className="relative mt-14 flex justify-center">
 
           {/* Floating: 2,341 Deals Bought — TOP LEFT */}
-          <div className="absolute left-4 md:left-10 top-4 z-10 bg-white rounded-2xl shadow-md px-3 py-2 flex items-center gap-2 hidden sm:flex">
+          <div className="absolute left-4 md:left-10 top-4 z-10 bg-surface rounded-2xl shadow-md px-3 py-2 flex items-center gap-2 hidden sm:flex">
             <span className="text-badge-bg text-base">🔥</span>
-            <p className="text-xs font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
+            <p className="text-xs font-bold text-navy font-lato">
               2,341 Deals Bought
             </p>
           </div>
 
           {/* Floating: PRICE DROPPED — LEFT MIDDLE */}
           <div
-            className="absolute left-0 md:left-4 top-36 md:top-40 z-10 bg-white rounded-2xl shadow-lg px-3 py-2.5 text-left hidden sm:block"
+            className="absolute left-0 md:left-4 top-36 md:top-40 z-10 bg-surface rounded-2xl shadow-lg px-3 py-2.5 text-left hidden sm:block"
             style={{ minWidth: 190 }}
           >
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-body mb-1" style={{ fontFamily: "var(--font-inter)" }}>
+            <p className="text-2xs font-semibold uppercase tracking-wide text-body mb-1 font-inter">
               Price Dropped
             </p>
-            <p className="text-xs font-bold text-navy mb-1" style={{ fontFamily: "var(--font-lato)" }}>
+            <p className="text-xs font-bold text-navy mb-1 font-lato">
               Gaming Ultra Promax Headphones
             </p>
             <div className="flex items-center gap-1.5">
               <span className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white"><path d="M12 16l-6-6h12z"/></svg>
+                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-surface"><path d="M12 16l-6-6h12z"/></svg>
               </span>
-              <span className="font-extrabold text-sm text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
+              <span className="font-extrabold text-sm text-navy font-lato">$298</span>
               <span className="text-xs line-through text-body">$399</span>
             </div>
           </div>
 
           {/* Floating: TRENDING NOW — TOP RIGHT */}
-          <div className="absolute right-4 md:right-8 top-10 z-10 bg-white rounded-2xl shadow-md px-3 py-2 hidden sm:block">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-body" style={{ fontFamily: "var(--font-inter)" }}>
+          <div className="absolute right-4 md:right-8 top-10 z-10 bg-surface rounded-2xl shadow-md px-3 py-2 hidden sm:block">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-body font-inter">
               Trending Now
             </p>
             <div className="flex items-center gap-1.5 mt-0.5">
               <span className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white"><path d="M12 16l-6-6h12z"/></svg>
+                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-surface"><path d="M12 16l-6-6h12z"/></svg>
               </span>
-              <span className="font-extrabold text-sm text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
+              <span className="font-extrabold text-sm text-navy font-lato">$298</span>
               <span className="text-xs line-through text-body">$399</span>
             </div>
           </div>
@@ -258,12 +228,12 @@ function HeroSection() {
                 "https://i.pravatar.cc/72?img=44",
                 "https://i.pravatar.cc/72?img=68",
               ].map((src, i) => (
-                <div key={i} className="relative w-8 h-8 rounded-full border-2 border-white overflow-hidden">
+                <div key={i} className="relative w-8 h-8 rounded-full border-2 border-surface overflow-hidden">
                   <Image src={src} alt="" fill sizes="32px" className="object-cover" />
                 </div>
               ))}
             </div>
-            <span className="text-sm font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>10k+</span>
+            <span className="text-sm font-bold text-navy font-lato">10k+</span>
           </div>
 
           {/* Phone frame */}
@@ -277,13 +247,13 @@ function HeroSection() {
             {/* Phone screen */}
             <div className="w-full h-full bg-bg overflow-hidden">
               {/* Status bar */}
-              <div className="bg-white px-4 pt-7 pb-0.5 flex items-center justify-between">
-                <span className="text-[9px] font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>9:41</span>
+              <div className="bg-surface px-4 pt-7 pb-0.5 flex items-center justify-between">
+                <span className="text-[9px] font-bold text-navy font-lato">9:41</span>
                 <div className="flex items-center gap-1">
                   {/* Signal bars */}
                   <div className="flex items-end gap-px h-2.5">
                     {[40, 60, 80, 100].map((pct, i) => (
-                      <div key={i} className="w-[3px] rounded-sm bg-[#000A1E]" style={{ height: `${pct}%` }} />
+                      <div key={i} className="w-[3px] rounded-sm bg-navy" style={{ height: `${pct}%` }} />
                     ))}
                   </div>
                   {/* Wifi */}
@@ -292,16 +262,16 @@ function HeroSection() {
                   </svg>
                   {/* Battery */}
                   <div className="flex items-center">
-                    <div className="w-4 h-2 rounded-sm border border-[#000A1E] p-px">
-                      <div className="h-full w-3/4 bg-[#000A1E] rounded-[1px]" />
+                    <div className="w-4 h-2 rounded-sm border border-navy p-px">
+                      <div className="h-full w-3/4 bg-navy rounded-[1px]" />
                     </div>
-                    <div className="w-0.5 h-1 bg-[#000A1E] rounded-r-full" />
+                    <div className="w-0.5 h-1 bg-navy rounded-r-full" />
                   </div>
                 </div>
               </div>
 
               {/* App nav bar — hamburger + bag */}
-              <div className="bg-white px-3 pt-1 pb-2 flex items-center justify-between">
+              <div className="bg-surface px-3 pt-1 pb-2 flex items-center justify-between">
                 <svg viewBox="0 0 24 24" className="w-5 h-5 text-body" fill="none" stroke="currentColor" strokeWidth={1.5}>
                   <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
                 </svg>
@@ -311,12 +281,12 @@ function HeroSection() {
               </div>
 
               {/* Search bar */}
-              <div className="bg-white px-3 pb-2 border-b border-[#E7E8E9]">
-                <div className="h-7 rounded-full bg-bg border border-[#E7E8E9] flex items-center px-2.5 gap-1.5">
+              <div className="bg-surface px-3 pb-2 border-b border-border">
+                <div className="h-7 rounded-full bg-bg border border-border flex items-center px-2.5 gap-1.5">
                   <svg viewBox="0 0 24 24" className="w-3 h-3 text-body" fill="none" stroke="currentColor" strokeWidth={2}>
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                   </svg>
-                  <span className="text-[10px] text-body" style={{ fontFamily: "var(--font-inter)" }}>Search categories...</span>
+                  <span className="text-2xs text-body font-inter">Search categories...</span>
                 </div>
               </div>
 
@@ -325,13 +295,13 @@ function HeroSection() {
                 className="mx-2 mt-2 rounded-xl p-3 relative overflow-hidden"
                 style={{ background: "linear-gradient(135deg, #FF9500 0%, #FFBE00 100%)" }}
               >
-                <p className="text-[8px] font-bold text-white/80 uppercase tracking-wide" style={{ fontFamily: "var(--font-inter)" }}>
+                <p className="text-[8px] font-bold text-white/80 uppercase tracking-wide font-inter">
                   Top Deals for you today
                 </p>
-                <p className="text-[7px] text-white/70 mt-0.5 leading-tight" style={{ fontFamily: "var(--font-inter)" }}>
+                <p className="text-[7px] text-white/70 mt-0.5 leading-tight font-inter">
                   Handpicked deals based on your<br/>interest and recent activity
                 </p>
-                <div className="mt-2 bg-white rounded-md px-2 py-1 w-fit">
+                <div className="mt-2 bg-surface rounded-md px-2 py-1 w-fit">
                   <span className="text-[7px] font-bold" style={{ color: "#FF7043" }}>View Deals</span>
                 </div>
                 {/* AirPods image */}
@@ -349,14 +319,14 @@ function HeroSection() {
               {/* Mini categories */}
               <div className="px-3 mt-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>Browse Categories</span>
+                  <span className="text-[9px] font-bold text-navy font-lato">Browse Categories</span>
                   <span className="text-[8px] text-badge-bg font-semibold">See All</span>
                 </div>
                 <div className="flex gap-3 overflow-hidden">
                   {["Electronic", "Fashion", "Shoes", "Furniture"].map((cat) => (
                     <div key={cat} className="shrink-0 flex flex-col items-center gap-1">
                       <div className="w-9 h-9 rounded-full bg-[#DBEAFE]" />
-                      <span className="text-[7px] text-navy font-medium" style={{ fontFamily: "var(--font-lato)" }}>{cat}</span>
+                      <span className="text-[7px] text-navy font-medium font-lato">{cat}</span>
                     </div>
                   ))}
                 </div>
@@ -365,15 +335,15 @@ function HeroSection() {
               {/* Mini deal of week */}
               <div className="px-3 mt-3">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>Deal Of Week</span>
+                  <span className="text-[9px] font-bold text-navy font-lato">Deal Of Week</span>
                   <span className="text-[8px] text-badge-bg font-semibold">See All</span>
                 </div>
                 <div className="grid grid-cols-2 gap-1.5">
                   {[0, 1].map((i) => (
-                    <div key={i} className="bg-white rounded-lg p-1.5 border border-[#E7E8E9]">
+                    <div key={i} className="bg-surface rounded-lg p-1.5 border border-border">
                       <div className="w-full aspect-square bg-bg rounded mb-1" />
-                      <div className="h-1.5 bg-[#E7E8E9] rounded w-3/4 mb-1" />
-                      <div className="h-2 bg-[#000A1E] rounded w-1/2" />
+                      <div className="h-1.5 bg-border rounded w-3/4 mb-1" />
+                      <div className="h-2 bg-navy rounded w-1/2" />
                     </div>
                   ))}
                 </div>
@@ -402,19 +372,13 @@ function DealsSection({ deals }: { deals: ShowcaseDeal[] }) {
         </div>
 
         {/* Heading */}
-        <h2
-          className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-navy text-center leading-tight max-w-3xl mx-auto"
-          style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
-        >
+        <h2 className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-navy text-center leading-tight max-w-3xl mx-auto font-lato" style={{ letterSpacing: "-0.02em" }}>
           Top Deals People Are Grabbing<br />
           Right Now — Don't Miss Out
         </h2>
 
         {/* Subtitle */}
-        <p
-          className="mt-4 text-base text-body text-center max-w-md mx-auto"
-          style={{ fontFamily: "var(--font-lato)" }}
-        >
+        <p className="mt-4 text-base text-body text-center max-w-md mx-auto font-lato">
           Live deals updated daily — prices change fast, don't miss your chance
         </p>
 
@@ -422,7 +386,7 @@ function DealsSection({ deals }: { deals: ShowcaseDeal[] }) {
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
           {deals.map((deal) => (
             <Link key={deal.id} href="/signup">
-              <article className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
+              <article className="bg-surface rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
                 {/* Product image */}
                 <div className="relative bg-bg w-full aspect-[4/3]">
                   <Image
@@ -437,30 +401,18 @@ function DealsSection({ deals }: { deals: ShowcaseDeal[] }) {
                 {/* Info */}
                 <div className="px-5 py-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span
-                      className="text-xs font-semibold uppercase tracking-widest text-body"
-                      style={{ fontFamily: "var(--font-inter)" }}
-                    >
+                    <span className="text-xs font-semibold uppercase tracking-widest text-body font-inter">
                       {deal.brand}
                     </span>
-                    <span
-                      className="px-2.5 py-1 rounded text-[11px] font-bold text-white"
-                      style={{ background: "#FE9800" }}
-                    >
+                    <span className="px-2.5 py-1 rounded text-[11px] font-bold text-surface bg-badge-bg">
                       {deal.discount}% Off
                     </span>
                   </div>
-                  <h3
-                    className="text-base font-bold text-navy leading-snug mb-3"
-                    style={{ fontFamily: "var(--font-lato)" }}
-                  >
+                  <h3 className="text-base font-bold text-navy leading-snug mb-3 font-lato">
                     {deal.title}
                   </h3>
                   <div className="flex items-baseline gap-2">
-                    <span
-                      className="text-2xl font-extrabold text-navy"
-                      style={{ fontFamily: "var(--font-lato)" }}
-                    >
+                    <span className="text-2xl font-extrabold text-navy font-lato">
                       ${deal.price}
                     </span>
                     <span className="text-sm line-through text-body">${deal.original}</span>
@@ -472,10 +424,7 @@ function DealsSection({ deals }: { deals: ShowcaseDeal[] }) {
         </div>
 
         {/* More deals text */}
-        <p
-          className="text-center mt-10 text-sm text-body"
-          style={{ fontFamily: "var(--font-lato)" }}
-        >
+        <p className="text-center mt-10 text-sm text-body font-lato">
           <span className="font-extrabold text-navy">+1,200</span> more deals waiting
         </p>
       </div>
@@ -489,24 +438,24 @@ function AlertMockup() {
   return (
     <div className="relative h-44 flex flex-col items-center justify-center p-4">
       <div className="w-8 h-8 rounded-full bg-badge-bg flex items-center justify-center mb-3">
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-surface">
           <path d="M12 16l-6-6h12z"/>
         </svg>
       </div>
-      <div className="bg-bg rounded-xl p-3 w-full shadow-sm border border-[#E7E8E9]">
+      <div className="bg-bg rounded-xl p-3 w-full shadow-sm border border-border">
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1">
-            <p className="text-[9px] font-semibold uppercase text-body" style={{ fontFamily: "var(--font-inter)" }}>Just Now</p>
-            <p className="text-xs font-bold text-navy mt-0.5" style={{ fontFamily: "var(--font-lato)" }}>
+            <p className="text-[9px] font-semibold uppercase text-body font-inter">Just Now</p>
+            <p className="text-xs font-bold text-navy mt-0.5 font-lato">
               Price{" "}
               <span className="text-badge-bg">Dropped 25%</span>
             </p>
             <div className="flex items-baseline gap-1.5 mt-0.5">
-              <span className="text-sm font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
-              <span className="text-[10px] line-through text-body">$399</span>
+              <span className="text-sm font-extrabold text-navy font-lato">$298</span>
+              <span className="text-2xs line-through text-body">$399</span>
             </div>
           </div>
-          <div className="relative w-10 h-10 rounded-lg bg-white border border-[#E7E8E9] overflow-hidden shrink-0">
+          <div className="relative w-10 h-10 rounded-lg bg-surface border border-border overflow-hidden shrink-0">
             <Image
               src="https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg"
               alt=""
@@ -518,7 +467,7 @@ function AlertMockup() {
         </div>
       </div>
       <div className="w-8 h-8 rounded-full bg-badge-bg flex items-center justify-center mt-3">
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-surface">
           <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
         </svg>
       </div>
@@ -530,23 +479,23 @@ function TrackingMockup() {
   return (
     <div className="relative h-44 flex flex-col items-center justify-center gap-2 p-4">
       <div className="w-8 h-8 rounded-full bg-badge-bg flex items-center justify-center">
-        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+        <svg viewBox="0 0 24 24" className="w-4 h-4 fill-surface">
           <path d="M12 16l-6-6h12z"/>
         </svg>
       </div>
-      <div className="bg-bg rounded-xl p-3 w-full shadow-sm border border-[#E7E8E9] space-y-2">
-        <div className="bg-white rounded-lg p-2 border border-[#E7E8E9]">
-          <p className="text-[9px] font-semibold uppercase text-body" style={{ fontFamily: "var(--font-inter)" }}>Add to Watchlist</p>
+      <div className="bg-bg rounded-xl p-3 w-full shadow-sm border border-border space-y-2">
+        <div className="bg-surface rounded-lg p-2 border border-border">
+          <p className="text-[9px] font-semibold uppercase text-body font-inter">Add to Watchlist</p>
           <p className="text-[8px] text-body mt-0.5">We'll monitor the price and notify you of any drops.</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-badge-bg flex items-center justify-center shrink-0">
-            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+            <svg viewBox="0 0 24 24" className="w-4 h-4 fill-surface">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
           </div>
           <div>
-            <p className="text-[8px] font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>Apple AirPods Pro</p>
+            <p className="text-[8px] font-bold text-navy font-lato">Apple AirPods Pro</p>
             <p className="text-[8px] text-body">$179 <span className="uppercase">current price</span></p>
           </div>
         </div>
@@ -563,22 +512,22 @@ function TrackingMockup() {
 function TargetMockup() {
   return (
     <div className="relative h-44 flex flex-col justify-center p-4 gap-2">
-      <div className="absolute top-4 right-4 bg-badge-bg text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
+      <div className="absolute top-4 right-4 bg-badge-bg text-surface text-[9px] font-bold px-2 py-0.5 rounded-full">
         🎯 TARGET HIT
       </div>
-      <div className="bg-bg rounded-xl p-3 border border-[#E7E8E9] space-y-2">
+      <div className="bg-bg rounded-xl p-3 border border-border space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-[9px] font-bold uppercase tracking-wide text-body" style={{ fontFamily: "var(--font-inter)" }}>Target Price</p>
+          <p className="text-[9px] font-bold uppercase tracking-wide text-body font-inter">Target Price</p>
           <div className="w-8 h-4 rounded-full bg-badge-bg relative">
-            <div className="absolute right-0.5 top-0.5 w-3 h-3 rounded-full bg-white" />
+            <div className="absolute right-0.5 top-0.5 w-3 h-3 rounded-full bg-surface" />
           </div>
         </div>
-        <div className="h-1.5 rounded-full bg-[#E7E8E9]">
+        <div className="h-1.5 rounded-full bg-border">
           <div className="h-full rounded-full bg-badge-bg w-2/3" />
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-3.5 h-3.5 rounded border border-badge-bg bg-badge-bg flex items-center justify-center">
-            <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-white">
+            <svg viewBox="0 0 24 24" className="w-2.5 h-2.5 fill-surface">
               <polyline points="20 6 9 17 4 12"/>
             </svg>
           </div>
@@ -587,11 +536,11 @@ function TargetMockup() {
       </div>
       <div className="flex items-center gap-1.5">
         <div className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
-          <svg viewBox="0 0 24 24" className="w-3 h-3 fill-white">
+          <svg viewBox="0 0 24 24" className="w-3 h-3 fill-surface">
             <path d="M12 16l-6-6h12z"/>
           </svg>
         </div>
-        <span className="text-sm font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>$298</span>
+        <span className="text-sm font-extrabold text-navy font-lato">$298</span>
         <span className="text-xs line-through text-body">$399</span>
       </div>
     </div>
@@ -631,19 +580,13 @@ function FeaturesSection() {
         </div>
 
         {/* Heading */}
-        <h2
-          className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-navy text-center leading-tight max-w-3xl mx-auto"
-          style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
-        >
+        <h2 className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-navy text-center leading-tight max-w-3xl mx-auto font-lato" style={{ letterSpacing: "-0.02em" }}>
           Tools That Help You Save More,<br />
           Without The Effort
         </h2>
 
         {/* Subtitle */}
-        <p
-          className="mt-4 text-base text-body text-center max-w-md mx-auto"
-          style={{ fontFamily: "var(--font-lato)" }}
-        >
+        <p className="mt-4 text-base text-body text-center max-w-md mx-auto font-lato">
           Track prices, discover real deals, and buy at the right time — all in one place.
         </p>
 
@@ -652,25 +595,19 @@ function FeaturesSection() {
           {features.map(({ mockup, title, desc }) => (
             <div
               key={title}
-              className="bg-white rounded-2xl overflow-hidden shadow-sm border border-[#E7E8E9] flex flex-col"
+              className="bg-surface rounded-2xl overflow-hidden shadow-sm border border-border flex flex-col"
             >
               {/* Mockup area */}
-              <div className="bg-bg border-b border-[#E7E8E9]">
+              <div className="bg-bg border-b border-border">
                 {mockup}
               </div>
 
               {/* Text */}
               <div className="px-5 py-5">
-                <h3
-                  className="text-lg font-extrabold text-navy mb-2"
-                  style={{ fontFamily: "var(--font-lato)" }}
-                >
+                <h3 className="text-lg font-extrabold text-navy mb-2 font-lato">
                   {title}
                 </h3>
-                <p
-                  className="text-sm text-body leading-relaxed"
-                  style={{ fontFamily: "var(--font-lato)" }}
-                >
+                <p className="text-sm text-body leading-relaxed font-lato">
                   {desc}
                 </p>
               </div>
@@ -736,10 +673,7 @@ function HowItWorksSection() {
         </div>
 
         {/* Heading */}
-        <h2
-          className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-white text-center leading-tight max-w-3xl mx-auto mb-14"
-          style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
-        >
+        <h2 className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-surface text-center leading-tight max-w-3xl mx-auto mb-14 font-lato" style={{ letterSpacing: "-0.02em" }}>
           Find Better Deals And Buy At The<br />
           Right Time, Every Time
         </h2>
@@ -748,10 +682,10 @@ function HowItWorksSection() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
           {/* Left: form mockup */}
           <div className="bg-[#111111] rounded-3xl p-3 max-w-md mx-auto w-full shadow-xl">
-          <div className="bg-white rounded-2xl p-6">
+          <div className="bg-surface rounded-2xl p-6">
             {/* Product row */}
-            <div className="flex items-center gap-3 pb-4 border-b border-[#E7E8E9]">
-              <div className="relative w-12 h-12 rounded-xl bg-bg overflow-hidden border border-[#E7E8E9] shrink-0">
+            <div className="flex items-center gap-3 pb-4 border-b border-border">
+              <div className="relative w-12 h-12 rounded-xl bg-bg overflow-hidden border border-border shrink-0">
                 <Image
                   src="https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg"
                   alt=""
@@ -761,10 +695,10 @@ function HowItWorksSection() {
                 />
               </div>
               <div>
-                <p className="text-sm font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
+                <p className="text-sm font-bold text-navy font-lato">
                   Apple AirPods Pro (2nd Gen)
                 </p>
-                <p className="text-xs text-body uppercase tracking-wide" style={{ fontFamily: "var(--font-inter)" }}>
+                <p className="text-xs text-body uppercase tracking-wide font-inter">
                   $179 <span className="normal-case">Current Price</span>
                 </p>
               </div>
@@ -772,25 +706,19 @@ function HowItWorksSection() {
 
             {/* Target price input */}
             <div className="mt-4">
-              <p
-                className="text-xs font-semibold uppercase tracking-wide text-body mb-2"
-                style={{ fontFamily: "var(--font-inter)" }}
-              >
+              <p className="text-xs font-semibold uppercase tracking-wide text-body mb-2 font-inter">
                 Target Price (USD)
               </p>
-              <div className="flex items-center border border-[#E7E8E9] rounded-lg px-3 py-2.5">
+              <div className="flex items-center border border-border rounded-lg px-3 py-2.5">
                 <span className="text-body mr-2 text-sm">$</span>
-                <span className="text-base font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>150</span>
+                <span className="text-base font-bold text-navy font-lato">150</span>
               </div>
-              <p className="text-xs text-[#FF5733] mt-1.5 font-medium">🔥 You're aiming for a 16% drop</p>
+              <p className="text-xs text-hot mt-1.5 font-medium">🔥 You're aiming for a 16% drop</p>
             </div>
 
             {/* Min discount */}
             <div className="mt-4">
-              <p
-                className="text-xs font-semibold uppercase tracking-wide text-body mb-2"
-                style={{ fontFamily: "var(--font-inter)" }}
-              >
+              <p className="text-xs font-semibold uppercase tracking-wide text-body mb-2 font-inter">
                 Minimum Discount
               </p>
               <div className="flex gap-2 flex-wrap">
@@ -798,13 +726,11 @@ function HowItWorksSection() {
                   <button
                     key={opt}
                     type="button"
-                    className="px-4 py-1.5 rounded-lg border text-sm font-semibold transition-colors"
-                    style={{
-                      fontFamily: "var(--font-lato)",
-                      background: opt === "20%" ? "#FE9800" : "white",
-                      borderColor: opt === "20%" ? "#FE9800" : "#E7E8E9",
-                      color: opt === "20%" ? "white" : "#44474E",
-                    }}
+                    className={`px-4 py-1.5 rounded-lg border text-sm font-semibold transition-colors font-lato ${
+                      opt === "20%"
+                        ? "bg-badge-bg border-badge-bg text-surface"
+                        : "bg-surface border-border text-body"
+                    }`}
                   >
                     {opt}
                   </button>
@@ -815,13 +741,13 @@ function HowItWorksSection() {
             {/* Alert toggle */}
             <div className="mt-4 flex items-center justify-between">
               <div>
-                <p className="text-sm font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>Price alert</p>
-                <p className="text-xs text-body" style={{ fontFamily: "var(--font-inter)" }}>
+                <p className="text-sm font-bold text-navy font-lato">Price alert</p>
+                <p className="text-xs text-body font-inter">
                   Notify me when price drops below my target
                 </p>
               </div>
               <div className="w-11 h-6 rounded-full bg-badge-bg relative shrink-0">
-                <div className="absolute right-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow" />
+                <div className="absolute right-0.5 top-0.5 w-5 h-5 rounded-full bg-surface shadow" />
               </div>
             </div>
           </div>
@@ -841,16 +767,10 @@ function HowItWorksSection() {
                   {icon}
                 </div>
                 <div>
-                  <h3
-                    className="text-base font-bold text-white mb-1"
-                    style={{ fontFamily: "var(--font-lato)" }}
-                  >
+                  <h3 className="text-base font-bold text-surface mb-1 font-lato">
                     {title}
                   </h3>
-                  <p
-                    className="text-sm text-white/60 leading-relaxed"
-                    style={{ fontFamily: "var(--font-lato)" }}
-                  >
+                  <p className="text-sm text-surface/60 leading-relaxed font-lato">
                     {desc}
                   </p>
                 </div>
@@ -867,7 +787,7 @@ function HowItWorksSection() {
 
 function CTASection() {
   return (
-    <section className="py-20 bg-white">
+    <section className="py-20 bg-surface">
       <div className="max-w-350 mx-auto px-4 sm:px-6">
         <div className="max-w-2xl mx-auto text-center">
           {/* Avatar group + trusted */}
@@ -878,46 +798,33 @@ function CTASection() {
                 "https://i.pravatar.cc/72?img=44",
                 "https://i.pravatar.cc/72?img=68",
               ].map((src, i) => (
-                <div key={i} className="relative w-9 h-9 rounded-full border-2 border-white overflow-hidden">
+                <div key={i} className="relative w-9 h-9 rounded-full border-2 border-surface overflow-hidden">
                   <Image src={src} alt="" fill sizes="36px" className="object-cover" />
                 </div>
               ))}
             </div>
-            <div className="bg-bg border border-[#E7E8E9] rounded-full px-4 py-1.5 text-sm font-medium text-navy" style={{ fontFamily: "var(--font-lato)" }}>
+            <div className="bg-bg border border-border rounded-full px-4 py-1.5 text-sm font-medium text-navy font-lato">
               Trusted by 10,000+ users
             </div>
           </div>
 
           {/* Heading */}
-          <h2
-            className="text-4xl md:text-5xl font-extrabold text-navy leading-tight"
-            style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
-          >
+          <h2 className="text-4xl md:text-5xl font-extrabold text-navy leading-tight font-lato" style={{ letterSpacing: "-0.02em" }}>
             Stop overpaying.
           </h2>
-          <h2
-            className="text-4xl md:text-5xl font-extrabold leading-tight text-badge-bg"
-            style={{ fontFamily: "var(--font-lato)", letterSpacing: "-0.02em" }}
-          >
+          <h2 className="text-4xl md:text-5xl font-extrabold leading-tight text-badge-bg font-lato" style={{ letterSpacing: "-0.02em" }}>
             Start buying smarter — every time.
           </h2>
 
           {/* Subtitle */}
-          <p
-            className="mt-5 text-base text-body max-w-sm mx-auto leading-relaxed"
-            style={{ fontFamily: "var(--font-lato)" }}
-          >
+          <p className="mt-5 text-base text-body max-w-sm mx-auto leading-relaxed font-lato">
             Track prices, get real deals, and know exactly<br />
             when to buy — all in one place.
           </p>
 
           {/* CTA button */}
           <div className="mt-8">
-            <Link
-              href="/signup"
-              className="inline-flex items-center justify-center px-10 py-4 rounded-xl text-base font-bold text-white hover:opacity-90 transition-opacity"
-              style={{ background: "#000A1E", fontFamily: "var(--font-lato)" }}
-            >
+            <Link href="/signup" className="btn-dark inline-flex items-center justify-center px-10 py-4 rounded-xl text-base">
               Start Saving Now
             </Link>
           </div>
@@ -929,25 +836,6 @@ function CTASection() {
 
 // ── Footer ─────────────────────────────────────────────────────────────────────
 
-const FOOTER_COLS = [
-  {
-    heading: "Product",
-    links: [
-      { label: "Deals",       href: "/deals" },
-      { label: "Watchlist",   href: "/signup" },
-      { label: "Alerts",      href: "/signup" },
-      { label: "Preferences", href: "/signup" },
-    ],
-  },
-  {
-    heading: "Support",
-    links: [
-      { label: "FAQs",            href: "#" },
-      { label: "Report Issue",    href: "#" },
-    ],
-  },
-];
-
 const SOCIAL_SVGS = [
   { label: "Facebook", d: "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" },
   { label: "Twitter",  d: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L2.012 2.25h6.962l4.264 5.633L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" },
@@ -958,7 +846,7 @@ const SOCIAL_SVGS = [
 
 function GuestFooter() {
   return (
-    <footer className="bg-bg border-t border-[#E7E8E9]">
+    <footer className="bg-bg border-t border-border">
       <div className="max-w-350 mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row gap-10">
           {/* Brand */}
@@ -971,17 +859,11 @@ function GuestFooter() {
                 height={44}
                 className="rounded-full"
               />
-              <span
-                className="text-xl font-extrabold text-navy"
-                style={{ fontFamily: "var(--font-lato)" }}
-              >
+              <span className="text-xl font-extrabold text-navy font-lato">
                 LTSD
               </span>
             </div>
-            <p
-              className="text-sm text-body leading-relaxed"
-              style={{ fontFamily: "var(--font-lato)" }}
-            >
+            <p className="text-sm text-body leading-relaxed font-lato">
               Smart deal discovery powered by your preferences.
             </p>
             {/* Social icons */}
@@ -1005,9 +887,7 @@ function GuestFooter() {
           <div className="flex flex-1 gap-10 flex-wrap">
             {/* Product */}
             <div className="space-y-4 min-w-[120px]">
-              <p className="text-sm font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
-                Product
-              </p>
+              <p className="text-sm font-bold text-navy font-lato">Product</p>
               {[
                 { label: "Deals",       href: "/deals" },
                 { label: "Watchlist",   href: "/signup" },
@@ -1015,7 +895,7 @@ function GuestFooter() {
                 { label: "Preferences", href: "/signup" },
               ].map((l) => (
                 <p key={l.label}>
-                  <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity" style={{ fontFamily: "var(--font-lato)" }}>
+                  <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity font-lato">
                     {l.label}
                   </Link>
                 </p>
@@ -1023,15 +903,13 @@ function GuestFooter() {
             </div>
             {/* Support */}
             <div className="space-y-4 min-w-[120px]">
-              <p className="text-sm font-bold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
-                Support
-              </p>
+              <p className="text-sm font-bold text-navy font-lato">Support</p>
               {[
                 { label: "FAQs",         href: "#" },
                 { label: "Report Issue", href: "#" },
               ].map((l) => (
                 <p key={l.label}>
-                  <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity" style={{ fontFamily: "var(--font-lato)" }}>
+                  <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity font-lato">
                     {l.label}
                   </Link>
                 </p>
@@ -1041,14 +919,11 @@ function GuestFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-[#E7E8E9] mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p
-            className="text-xs text-body"
-            style={{ fontFamily: "var(--font-lato)" }}
-          >
+        <div className="border-t border-border mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-xs text-body font-lato">
             Copyright © {new Date().getFullYear()} LTSD.
           </p>
-          <div className="flex items-center gap-2 text-xs" style={{ fontFamily: "var(--font-lato)" }}>
+          <div className="flex items-center gap-2 text-xs font-lato">
             <span className="text-body">All Rights Reserved</span>
             <span className="text-body">|</span>
             <Link href="#" className="text-badge-bg hover:underline">Terms and Conditions</Link>

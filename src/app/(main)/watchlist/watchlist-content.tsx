@@ -34,12 +34,12 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       onClick={() => onChange(!on)}
       className={cn(
         "relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors",
-        on ? "bg-badge-bg" : "bg-[#E7E8E9]",
+        on ? "bg-badge-bg" : "bg-border",
       )}
     >
       <span
         className={cn(
-          "pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-md transition-transform",
+          "pointer-events-none inline-block h-5 w-5 rounded-full bg-surface shadow-md transition-transform",
           on ? "translate-x-5" : "translate-x-0",
         )}
       />
@@ -73,8 +73,8 @@ function TrackingRow({
   return (
     <article
       className={cn(
-        "bg-white rounded-xl border transition-colors",
-        selected ? "border-[#FE9800] bg-[#FFF8EE]" : "border-[#E7E8E9]",
+        "bg-surface rounded-xl border transition-colors",
+        selected ? "border-badge-bg bg-badge-tint" : "border-border",
       )}
       onClick={selectMode ? onSelect : undefined}
     >
@@ -85,14 +85,14 @@ function TrackingRow({
             onClick={(e) => { e.stopPropagation(); onSelect(); }}
             className={cn(
               "mt-1 shrink-0 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
-              selected ? "border-[#FE9800] bg-[#FE9800]" : "border-[#CBCBCB] bg-white",
+              selected ? "border-badge-bg bg-badge-bg" : "border-border-mid bg-surface",
             )}
           >
-            {selected && <span className="text-white text-[10px] font-bold">✓</span>}
+            {selected && <span className="text-surface text-2xs font-bold">✓</span>}
           </button>
         )}
 
-        <div className="shrink-0 w-20 h-20 rounded-lg border border-[#E7E8E9] bg-[#F8F9FA] flex items-center justify-center overflow-hidden">
+        <div className="shrink-0 w-20 h-20 rounded-lg border border-border bg-bg flex items-center justify-center overflow-hidden">
           <Image src={item.imageUrl} alt={item.product} width={80} height={80} className="object-contain w-full h-full p-1" />
         </div>
 
@@ -104,12 +104,12 @@ function TrackingRow({
             </div>
             <div className="shrink-0 flex items-center gap-2">
               {item.status === "target_hit" && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-badge-bg text-badge-text whitespace-nowrap">
+                <span className="px-2 py-0.5 rounded text-2xs font-bold bg-badge-bg text-badge-text whitespace-nowrap">
                   TARGET HIT
                 </span>
               )}
               {item.status === "paused" && (
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-[#F5F6F7] text-body whitespace-nowrap">
+                <span className="px-2 py-0.5 rounded text-2xs font-bold bg-surface-hover text-body whitespace-nowrap">
                   TRACKING PAUSED
                 </span>
               )}
@@ -119,15 +119,15 @@ function TrackingRow({
 
           <div className="flex items-start gap-6">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-body">Target Price</p>
+              <p className="text-2xs font-bold uppercase tracking-wider text-body">Target Price</p>
               <p className="text-sm font-bold text-navy">${item.targetPrice.toFixed(2)}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-body">Current Price</p>
+              <p className="text-2xs font-bold uppercase tracking-wider text-body">Current Price</p>
               <p className="text-sm font-bold text-navy">${item.currentPrice.toFixed(2)}</p>
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-body">Trend</p>
+              <p className="text-2xs font-bold uppercase tracking-wider text-body">Trend</p>
               <p className={cn("text-sm font-bold flex items-center gap-0.5", trendUp ? "text-best-price" : "text-claimed")}>
                 {trendUp ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                 {trendUp ? "+" : "-"}{Math.abs(item.trendPct)}%
@@ -140,25 +140,25 @@ function TrackingRow({
               type="checkbox"
               checked={notify}
               onChange={(e) => setNotify(e.target.checked)}
-              className="w-3.5 h-3.5 rounded border-[#CBCBCB] accent-badge-bg cursor-pointer"
+              className="w-3.5 h-3.5 rounded border-border-mid accent-badge-bg cursor-pointer"
             />
             <span className="text-[11px] text-body">Notify me on any price drop</span>
           </label>
 
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-1.5 rounded-full bg-[#E7E8E9] overflow-hidden">
+            <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
               <div
-                className="h-full rounded-full bg-gradient-to-r from-[#FE9800] to-[#FF5733]"
+                className="h-full rounded-full bg-gradient-to-r from-badge-bg to-hot"
                 style={{ width: `${item.targetProgressPct}%` }}
               />
             </div>
-            <span className="text-[10px] text-body whitespace-nowrap shrink-0 uppercase tracking-wide">
+            <span className="text-2xs text-body whitespace-nowrap shrink-0 uppercase tracking-wide">
               {item.targetProgressPct}% towards your target price
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <p className="text-[10px] text-[#9AA0AB]">Updated 2 min ago · Amazon</p>
+            <p className="text-2xs text-subtle">Updated 2 min ago · Amazon</p>
             <div className="flex items-center gap-3">
               <Link href={`/deals/${item.slug}`} className="text-xs font-semibold text-navy hover:text-badge-bg transition-colors flex items-center gap-0.5">
                 View deal <ChevronRight className="w-3.5 h-3.5" />
@@ -177,34 +177,34 @@ function TrackingRow({
 // ── Matched deal mini-card ─────────────────────────────────────────────────────
 function MatchedDealCard({ deal }: { deal: DealItem }) {
   return (
-    <div className="bg-white rounded-xl border border-[#E7E8E9] overflow-hidden flex flex-col hover:shadow-sm transition-shadow min-w-0">
-      <div className="relative bg-[#F8F9FA] aspect-4/3 flex items-center justify-center">
+    <div className="bg-surface rounded-xl border border-border overflow-hidden flex flex-col hover:shadow-sm transition-shadow min-w-0">
+      <div className="relative bg-bg aspect-4/3 flex items-center justify-center">
         <Image src={deal.imageUrl} alt={deal.title} fill className="object-contain p-4" sizes="200px" />
         {deal.discountPercent > 0 && (
-          <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[10px] font-bold bg-badge-bg text-badge-text">
+          <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-2xs font-bold bg-badge-bg text-badge-text">
             {deal.discountPercent}% OFF
           </span>
         )}
         <div className="absolute top-2 right-2 flex gap-1">
-          <button type="button" className="w-6 h-6 rounded-full bg-white/80 border border-[#E7E8E9] flex items-center justify-center">
+          <button type="button" className="w-6 h-6 rounded-full bg-surface/80 border border-border flex items-center justify-center">
             <Share2 className="w-3 h-3 text-body" />
           </button>
-          <button type="button" className="w-6 h-6 rounded-full bg-white/80 border border-[#E7E8E9] flex items-center justify-center">
+          <button type="button" className="w-6 h-6 rounded-full bg-surface/80 border border-border flex items-center justify-center">
             <Heart className="w-3 h-3 text-body" />
           </button>
         </div>
         <Link href={`/deals/${deal.slug ?? deal.id}`} className="absolute bottom-2 inset-x-2">
-          <span className="block w-full text-center text-[10px] font-semibold bg-white border border-[#E7E8E9] rounded py-1 text-navy hover:bg-[#F5F6F7] transition-colors">
+          <span className="block w-full text-center text-2xs font-semibold bg-surface border border-border rounded py-1 text-navy hover:bg-surface-hover transition-colors">
             View Deal
           </span>
         </Link>
       </div>
       <div className="p-3 flex flex-col gap-1.5">
-        <p className="text-[10px] font-bold uppercase tracking-wider text-body">{deal.brand}</p>
+        <p className="type-label">{deal.brand}</p>
         <p className="text-xs font-semibold text-navy leading-snug line-clamp-2">{deal.title}</p>
         <div className="flex items-center gap-1">
-          <span className="text-[10px] text-[#FE9800] font-bold">★★★★★</span>
-          <span className="text-[10px] text-body">{deal.rating} ({deal.reviewCount.toLocaleString()} reviews)</span>
+          <span className="text-2xs text-badge-bg font-bold">★★★★★</span>
+          <span className="text-2xs text-body">{deal.rating} ({deal.reviewCount.toLocaleString()} reviews)</span>
         </div>
         <div className="flex items-baseline gap-1.5 flex-wrap">
           <span className="text-base font-extrabold text-navy">${(deal.currentPrice / 100).toFixed(0)}</span>
@@ -212,10 +212,10 @@ function MatchedDealCard({ deal }: { deal: DealItem }) {
         </div>
         {deal.totalCount > 0 && (
           <div className="flex items-center gap-2">
-            <div className="flex-1 h-1 rounded-full bg-[#E7E8E9] overflow-hidden">
+            <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
               <div className="h-full bg-claimed rounded-full" style={{ width: `${Math.round(deal.claimedCount / deal.totalCount * 100)}%` }} />
             </div>
-            <span className="text-[10px] text-body shrink-0">{Math.round(deal.claimedCount / deal.totalCount * 100)}% claimed</span>
+            <span className="text-2xs text-body shrink-0">{Math.round(deal.claimedCount / deal.totalCount * 100)}% claimed</span>
           </div>
         )}
       </div>
@@ -242,7 +242,7 @@ function EmptyWatchlist() {
         <p className="text-sm font-semibold text-navy">Your watchlist is empty</p>
         <p className="text-xs text-body mt-1">Start tracking products or keywords to get alerts<br />when prices drop below your target.</p>
       </div>
-      <Link href="/deals" className="px-5 py-2 rounded-lg bg-navy text-white text-sm font-semibold hover:opacity-90 transition-opacity">
+      <Link href="/deals" className="px-5 py-2 rounded-lg bg-navy text-surface text-sm font-semibold hover:opacity-90 transition-opacity">
         Browse Deals
       </Link>
     </div>
@@ -301,12 +301,12 @@ export function WatchlistContent({
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search products or keywords..."
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-[#E7E8E9] bg-white text-sm text-navy placeholder:text-body outline-none focus:border-navy transition-colors"
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-border bg-surface text-sm text-navy placeholder:text-body outline-none focus:border-navy transition-colors"
           />
         </div>
         <button
           type="button"
-          className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy text-white text-sm font-bold hover:opacity-90 transition-opacity"
+          className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-navy text-surface text-sm font-bold hover:opacity-90 transition-opacity"
         >
           <Plus className="w-4 h-4" /> Add
         </button>
@@ -321,13 +321,13 @@ export function WatchlistContent({
               <span className="text-sm font-semibold text-navy flex-1">
                 {selected.size} item{selected.size > 1 ? "s" : ""} selected
               </span>
-              <button onClick={deleteSelected} className="px-3 py-1.5 rounded-lg bg-claimed text-white text-xs font-bold hover:opacity-90 transition-opacity">
+              <button onClick={deleteSelected} className="px-3 py-1.5 rounded-lg bg-claimed text-surface text-xs font-bold hover:opacity-90 transition-opacity">
                 Delete
               </button>
-              <button onClick={selectAll} className="px-3 py-1.5 rounded-lg border border-[#E7E8E9] text-xs font-semibold text-navy hover:bg-[#F5F6F7] transition-colors">
+              <button onClick={selectAll} className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-navy hover:bg-surface-hover transition-colors">
                 Select All
               </button>
-              <button onClick={() => { setSelectMode(false); setSelected(new Set()); }} className="px-3 py-1.5 rounded-lg border border-[#E7E8E9] text-xs font-semibold text-body hover:bg-[#F5F6F7] transition-colors">
+              <button onClick={() => { setSelectMode(false); setSelected(new Set()); }} className="px-3 py-1.5 rounded-lg border border-border text-xs font-semibold text-body hover:bg-surface-hover transition-colors">
                 Cancel
               </button>
             </div>
@@ -369,8 +369,8 @@ export function WatchlistContent({
           {matchedDeals.length > 0 && (
             <section className="space-y-4">
               <div>
-                <h2 className="text-lg font-extrabold text-navy">Matched for You</h2>
-                <p className="text-sm text-body mt-0.5">Deals trending in your tracked categories.</p>
+                <h2 className="type-section-title">Matched for You</h2>
+                <p className="type-section-sub mt-0.5">Deals trending in your tracked categories.</p>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {matchedDeals.map(d => <MatchedDealCard key={d.id} deal={d} />)}

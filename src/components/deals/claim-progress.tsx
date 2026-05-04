@@ -12,21 +12,13 @@ export function ClaimProgress({ claimed, total, className }: ClaimProgressProps)
 
   return (
     <div className={cn("space-y-1", className)}>
-      <div className="w-full h-1.5 bg-[#E7E8E9] rounded-full overflow-hidden">
+      <div className="w-full h-1.5 bg-border rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all"
-          style={{
-            width: `${pct}%`,
-            background: "linear-gradient(to right, #FE9800, #EF4444)",
-          }}
+          style={{ width: `${pct}%`, background: "linear-gradient(to right, var(--color-badge-bg), var(--color-claimed))" }}
         />
       </div>
-      <p
-        className="text-[10px] font-medium text-right"
-        style={{ color: "#EF4444", fontFamily: "var(--font-inter)" }}
-      >
-        {pct}% claimed
-      </p>
+      <p className="type-badge text-right text-claimed">{pct}% claimed</p>
     </div>
   );
 }

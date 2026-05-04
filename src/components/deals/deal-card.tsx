@@ -34,7 +34,6 @@ function fmtCountdown(expiresAt: Date): string {
 }
 
 export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
-  // Client-side only to avoid SSR/hydration mismatch
   const [countdown, setCountdown] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,17 +47,16 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
   return (
     <article
       className={cn(
-        "bg-white rounded-2xl border border-[#E7E8E9] overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col",
+        "bg-surface rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col",
         className
       )}
     >
       {/* ── Image area ─────────────────────────────── */}
       <div className="relative bg-bg">
-        {/* Action icons — top right */}
         <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1">
           <button
             aria-label="Share deal"
-            className="w-6 h-6 rounded-full bg-white shadow-sm flex items-center justify-center text-[#74777F] hover:text-navy transition-colors"
+            className="w-6 h-6 rounded-full bg-surface shadow-sm flex items-center justify-center text-subtle hover:text-navy transition-colors"
             onClick={(e) => e.preventDefault()}
           >
             <Share2 className="w-3 h-3" />
@@ -66,7 +64,6 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
           <WatchlistButton dealId={deal.id} watchlistItemId={watchlistItemId} />
         </div>
 
-        {/* Product image */}
         <Link href={`/deals/${deal.slug ?? deal.id}`} className="block relative w-full aspect-4/3">
           <Image
             src={deal.imageUrl}
@@ -76,8 +73,7 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
             className="object-contain p-3"
             loading="lazy"
           />
-          {/* View Deal overlay button — always visible per Figma */}
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-md bg-white border border-[#E7E8E9] text-[10px] font-semibold text-navy shadow-sm pointer-events-none">
+          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-md bg-surface border border-border text-2xs font-semibold text-navy shadow-sm pointer-events-none">
             ⊙ View Deal
           </span>
         </Link>
@@ -85,65 +81,38 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
 
       {/* ── Info area ──────────────────────────────── */}
       <div className="px-3 pt-2.5 pb-3 flex flex-col gap-1.5 flex-1">
-        {/* Brand + discount badge on same line */}
-        <div className="flex items-center justify-between">
-          <p
-            className="text-[10px] font-semibold uppercase tracking-widest text-[#74777F] truncate"
-            style={{ fontFamily: "var(--font-inter)" }}
-          >
-            {deal.brand || "\u00A0"}
-          </p>
+        <div className="flex items-center justify-between gap-1">
+          <p className="type-label truncate">{deal.brand || "\u00A0"}</p>
           {deal.discountPercent > 0 && (
-            <span
-              className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white leading-none shrink-0"
-              style={{ background: "#FE9800" }}
-            >
+            <span className="type-badge px-1.5 py-0.5 rounded text-surface leading-none shrink-0 bg-badge-bg">
               {deal.discountPercent}% OFF
             </span>
           )}
         </div>
 
-        {/* Title */}
         <Link href={`/deals/${deal.slug ?? deal.id}`}>
-          <h3
-            className="text-xs font-semibold text-navy line-clamp-2 leading-snug hover:text-badge-bg transition-colors"
-            style={{ fontFamily: "var(--font-lato)" }}
-          >
+          <h3 className="type-card-title line-clamp-2 hover:text-badge-bg transition-colors">
             {deal.title}
           </h3>
         </Link>
 
-        {/* Stars */}
         {deal.rating > 0 && (
           <StarRating score={deal.rating} reviewCount={deal.reviewCount} />
         )}
 
-        {/* Selling fast + countdown */}
         {countdown && (
-          <p
-            className="text-[10px] font-medium"
-            style={{ color: "#FF5733", fontFamily: "var(--font-inter)" }}
-          >
+          <p className="text-2xs font-medium font-inter text-hot">
             🔥 Selling fast • Ends in {countdown}
           </p>
         )}
 
-        {/* Price row */}
         <div className="flex items-baseline gap-1.5 flex-wrap mt-auto">
-          <span
-            className="text-sm font-extrabold text-navy"
-            style={{ fontFamily: "var(--font-lato)" }}
-          >
-            {formatUSD(deal.currentPrice)}
-          </span>
+          <span className="type-price">{formatUSD(deal.currentPrice)}</span>
           {deal.originalPrice > deal.currentPrice && (
-            <span className="text-xs line-through text-[#74777F]">
-              {formatUSD(deal.originalPrice)}
-            </span>
+            <span className="type-price-original">{formatUSD(deal.originalPrice)}</span>
           )}
         </div>
 
-        {/* Claimed progress — only for lightning deals */}
         {deal.dealType === "LIGHTNING_DEAL" && deal.totalCount > 0 && (
           <ClaimProgress claimed={deal.claimedCount} total={deal.totalCount} />
         )}

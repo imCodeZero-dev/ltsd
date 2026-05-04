@@ -90,10 +90,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
       </Suspense>
 
       {/* Results heading */}
-      <h1
-        className="text-lg font-extrabold text-navy"
-        style={{ fontFamily: "var(--font-lato)" }}
-      >
+      <h1 className="type-section-title">
         Results{" "}
         <span className="text-sm font-normal text-body">({total}+ deals found)</span>
       </h1>
@@ -105,13 +102,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
 
       {/* Load more */}
       <div className="flex justify-center pt-2">
-        <button
-          type="button"
-          className="px-8 py-2.5 rounded-full text-sm font-bold text-white transition-opacity hover:opacity-90"
-          style={{ background: "#FE9800", fontFamily: "var(--font-lato)" }}
-        >
-          Load More
-        </button>
+        <button type="button" className="btn-more">Load More</button>
       </div>
     </div>
   );

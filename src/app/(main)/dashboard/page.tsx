@@ -7,6 +7,7 @@ import { requireAuth } from "@/lib/auth-guard";
 import { mapDeals, mapDeal, type RawDeal } from "@/lib/deal-mapper";
 import { DealCard } from "@/components/deals/deal-card";
 import { HeroCarousel, type HeroSlide } from "@/components/dashboard/hero-carousel";
+import { SectionHeading } from "@/components/common/section-heading";
 import type { DealItem } from "@/lib/deal-api/types";
 
 export const metadata: Metadata = { title: "Dashboard — LTSD" };
@@ -89,7 +90,7 @@ function PersonalizationBar({ userName }: { userName: string }) {
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-[#E7E8E9] shadow-sm px-6 md:px-10 py-5 flex items-center justify-between overflow-x-auto scrollbar-none gap-6">
+    <div className="bg-surface rounded-2xl border border-border shadow-sm px-6 md:px-10 py-5 flex items-center justify-between overflow-x-auto scrollbar-none gap-6">
       <div className="flex items-center gap-3.5 shrink-0">
         <div className="w-14 h-14 rounded-full bg-navy flex items-center justify-center text-lg font-bold text-white shrink-0">
           {initial}
@@ -102,7 +103,7 @@ function PersonalizationBar({ userName }: { userName: string }) {
 
       {quickLinks.map((item, i) => (
         <div key={i} className="contents">
-          <div className="w-px h-12 bg-[#E7E8E9] shrink-0 hidden md:block" />
+          <div className="w-px h-12 bg-border shrink-0 hidden md:block" />
           <Link href={item.href} className="flex items-center gap-3.5 shrink-0 hover:opacity-80 transition-opacity">
             <div className="w-14 h-14 shrink-0 rounded-xl bg-bg flex items-center justify-center">
               {item.icon}
@@ -122,10 +123,7 @@ function PersonalizationBar({ userName }: { userName: string }) {
 function CategoriesRow({ categories }: { categories: CategoryWithImage[] }) {
   return (
     <section>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-extrabold text-navy">Our Categories</h2>
-        <Link href="/deals" className="text-xs font-semibold text-badge-bg hover:underline">See All</Link>
-      </div>
+      <SectionHeading title="Our Categories" viewAllHref="/deals" />
 
       {/* Mobile: horizontal pill filters */}
       <div className="md:hidden flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4">
@@ -136,7 +134,7 @@ function CategoriesRow({ categories }: { categories: CategoryWithImage[] }) {
             className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border whitespace-nowrap transition-colors ${
               i === 0
                 ? "bg-navy text-white border-navy"
-                : "bg-white text-body border-[#E7E8E9]"
+                : "bg-surface text-body border-border"
             }`}
           >
             {label}
@@ -150,7 +148,7 @@ function CategoriesRow({ categories }: { categories: CategoryWithImage[] }) {
           <button
             type="button"
             aria-label="Scroll left"
-            className="shrink-0 -ml-2 mr-2 flex w-9 h-9 rounded-full bg-white border border-[#E7E8E9] shadow items-center justify-center hover:border-badge-bg transition-colors z-10"
+            className="shrink-0 -ml-2 mr-2 flex w-9 h-9 rounded-full bg-surface border border-border shadow items-center justify-center hover:border-badge-bg transition-colors z-10"
           >
             <ChevronLeft className="w-4 h-4 text-body" />
           </button>
@@ -188,7 +186,7 @@ function CategoriesRow({ categories }: { categories: CategoryWithImage[] }) {
           <button
             type="button"
             aria-label="Scroll right"
-            className="shrink-0 -mr-2 ml-2 flex w-9 h-9 rounded-full bg-white border border-[#E7E8E9] shadow items-center justify-center hover:border-badge-bg transition-colors z-10"
+            className="shrink-0 -mr-2 ml-2 flex w-9 h-9 rounded-full bg-surface border border-border shadow items-center justify-center hover:border-badge-bg transition-colors z-10"
           >
             <ChevronRight className="w-4 h-4 text-body" />
           </button>
@@ -225,23 +223,7 @@ function DealOfWeekSection({ deals }: { deals: DealItem[] }) {
     <section className="relative lg:p-5">
       <div className="pointer-events-none hidden md:block absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-[#E8C4C4] rounded-tl-2xl" />
       <div className="pointer-events-none hidden md:block absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-[#E8C4C4] rounded-br-2xl" />
-      <div className="flex items-start justify-between mb-5">
-        <div>
-          <h2 className="text-lg font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
-            Deal Of Week
-          </h2>
-          <p className="text-xs text-body mt-1" style={{ fontFamily: "var(--font-lato)" }}>
-            Based on your interests and activity
-          </p>
-        </div>
-        <Link
-          href="/deals"
-          className="text-xs font-semibold text-badge-bg hover:underline shrink-0 mt-1"
-          style={{ fontFamily: "var(--font-lato)" }}
-        >
-          See All
-        </Link>
-      </div>
+      <SectionHeading title="Deal Of Week" subtitle="Based on your interests and activity" viewAllHref="/deals" />
 
       <div className="md:hidden flex gap-3 overflow-x-auto scrollbar-none -mx-5 px-5 pb-1">
         {deals.map((deal) => (
@@ -268,7 +250,7 @@ function WatchlistCard({ item }: { item: WatchlistDashItem }) {
   return (
     <Link
       href={`/deals/${item.deal.slug}`}
-      className="shrink-0 w-80 bg-white rounded-2xl border-2 shadow-sm p-4 flex items-center gap-4 hover:shadow-md transition-shadow"
+      className="shrink-0 w-80 bg-surface rounded-2xl border-2 shadow-sm p-4 flex items-center gap-4 hover:shadow-md transition-shadow"
       style={{ borderColor: isHit ? "#FE9800" : "#E7E8E9" }}
     >
       <div className="relative w-20 h-20 shrink-0 rounded-xl overflow-hidden bg-bg">
@@ -293,27 +275,23 @@ function WatchlistCard({ item }: { item: WatchlistDashItem }) {
 
       <div className="flex-1 min-w-0">
         <span
-          className="inline-block mb-2 px-2.5 py-1 rounded text-[10px] font-bold text-white leading-none"
-          style={{ background: isHit ? "#FE9800" : "#44474E" }}
+          className={`type-badge inline-block mb-2 px-2.5 py-1 rounded text-surface leading-none ${isHit ? "bg-badge-bg" : "bg-body"}`}
         >
           {badge}
         </span>
-        <p className="text-sm font-bold text-navy line-clamp-1 mb-2" style={{ fontFamily: "var(--font-lato)" }}>
+        <p className="font-lato text-sm font-bold text-navy line-clamp-1 mb-2">
           {item.deal.title}
         </p>
         <div className="flex gap-6">
           <div>
-            <p className="text-[10px] font-semibold uppercase text-body" style={{ fontFamily: "var(--font-inter)" }}>Target</p>
-            <p className="text-sm font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
+            <p className="type-label">Target</p>
+            <p className="font-lato text-sm font-extrabold text-navy">
               {item.targetPrice != null ? `$${item.targetPrice.toFixed(2)}` : "—"}
             </p>
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase text-body" style={{ fontFamily: "var(--font-inter)" }}>Current</p>
-            <p
-              className="text-sm font-extrabold"
-              style={{ fontFamily: "var(--font-lato)", color: isHit ? "#FE9800" : "#000A1E" }}
-            >
+            <p className="type-label">Current</p>
+            <p className={`font-lato text-sm font-extrabold ${isHit ? "text-badge-bg" : "text-navy"}`}>
               ${item.deal.currentPrice.toFixed(2)}
             </p>
           </div>
@@ -479,14 +457,7 @@ export default async function DashboardPage() {
       {/* Live Watchlist */}
       {watchlistItems.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
-              Live Watchlist
-            </h2>
-            <Link href="/watchlist" className="text-xs font-semibold text-badge-bg hover:underline" style={{ fontFamily: "var(--font-lato)" }}>
-              View Watchlist
-            </Link>
-          </div>
+          <SectionHeading title="Live Watchlist" viewAllHref="/watchlist" viewAllLabel="View Watchlist" />
           <div className="flex gap-3 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4 md:mx-0 md:px-0">
             {watchlistItems.map((item) => (
               <WatchlistCard key={item.id} item={item} />
@@ -498,30 +469,14 @@ export default async function DashboardPage() {
       {/* Trending Deals */}
       {trendingDeals.length > 0 && (
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
-              Trending Deals
-            </h2>
-            <Link href="/deals" className="text-xs font-semibold text-badge-bg hover:underline" style={{ fontFamily: "var(--font-lato)" }}>
-              See All
-            </Link>
-          </div>
+          <SectionHeading title="Trending Deals" viewAllHref="/deals" />
           <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 mb-4 -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible">
             {[
               { label: "Lightning Deals", href: "/deals?type=LIGHTNING_DEAL",  active: true },
               { label: "Price Drops",     href: "/deals?type=PRICE_DROP",      active: false },
               { label: "Prime Day",       href: "/deals?type=PRIME_EXCLUSIVE", active: false },
             ].map(({ label, href, active }) => (
-              <Link
-                key={label}
-                href={href}
-                className={`shrink-0 px-4 py-2 rounded-full text-xs font-semibold border whitespace-nowrap transition-colors ${
-                  active
-                    ? "bg-navy text-white border-navy"
-                    : "bg-white text-body border-[#E7E8E9] hover:border-navy/30"
-                }`}
-                style={{ fontFamily: "var(--font-lato)" }}
-              >
+              <Link key={label} href={href} className={active ? "btn-ghost-active" : "btn-ghost"}>
                 {label}
               </Link>
             ))}
@@ -532,13 +487,7 @@ export default async function DashboardPage() {
             ))}
           </div>
           <div className="flex justify-center mt-6">
-            <Link
-              href="/deals"
-              className="px-8 py-2.5 rounded-full text-sm font-bold text-white transition-opacity hover:opacity-90"
-              style={{ background: "#FE9800", fontFamily: "var(--font-lato)" }}
-            >
-              More Deals
-            </Link>
+            <Link href="/deals" className="btn-more">More Deals</Link>
           </div>
         </section>
       )}
@@ -546,19 +495,14 @@ export default async function DashboardPage() {
       {/* Shop by Top Brands — only shown when DB has brands */}
       {topBrands.length > 0 && (
         <section className="pb-4">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
-              Shop By Top Brands
-            </h2>
-            <Link href="/deals" className="text-xs font-semibold text-badge-bg hover:underline">See All</Link>
-          </div>
+          <SectionHeading title="Shop By Top Brands" viewAllHref="/deals" />
           <div className="flex gap-3 overflow-x-auto scrollbar-none pb-1">
             {topBrands.map((name) => (
               <Link
                 key={name}
                 href={`/deals?q=${encodeURIComponent(name)}`}
                 aria-label={name}
-                className="shrink-0 w-24 h-16 md:w-36 md:h-24 flex items-center justify-center bg-white rounded-xl border border-[#E7E8E9] shadow-sm hover:border-badge-bg hover:shadow-md transition-all px-3"
+                className="shrink-0 w-24 h-16 md:w-36 md:h-24 flex items-center justify-center bg-surface rounded-xl border border-border shadow-sm hover:border-badge-bg hover:shadow-md transition-all px-3"
               >
                 <span className="font-bold text-sm text-navy text-center leading-tight">{name}</span>
               </Link>

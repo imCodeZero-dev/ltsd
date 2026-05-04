@@ -4,188 +4,205 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/* ─────────────────────────────────────────────
-   LTSD Design Tokens — sourced from Figma
+/* ═══════════════════════════════════════════════════
+   LTSD DESIGN TOKENS
+   Single source of truth — sourced from Figma
    (file: 6pAN2JVEoyxpP8eE55lFPE)
-   Note: --color-border, --color-muted, --radius-* are
-   handled by shadcn's @theme inline below — we wire
-   them via :root overrides.
-   ───────────────────────────────────────────── */
+
+   Every value here creates a Tailwind utility:
+     --color-navy   →  text-navy / bg-navy / border-navy
+     --font-lato    →  font-lato
+     --text-2xs     →  text-2xs
+   Reference these classes in components — never raw hex.
+   ═══════════════════════════════════════════════════ */
 @theme {
-  /* Fonts */
+  /* ── Fonts ───────────────────────────────────────
+     font-lato     → headings, buttons, prices
+     font-inter    → body, labels, metadata (default)
+     font-dm-sans  → hero display headline only
+  ─────────────────────────────────────────────── */
   --font-lato:    var(--font-lato);
   --font-dm-sans: var(--font-dm-sans);
   --font-inter:   var(--font-inter);
 
-  /* Auth form tokens (from Figma) */
-  --color-input-border:         #E5E7EB;   /* default input border */
-  --color-input-border-focus:   #143057;   /* focused input border */
-  --color-input-text:           #2D3648;   /* input value text */
-  --color-label:                rgba(81,83,94,0.9); /* field label */
-  --color-divider:              rgba(196,198,207,0.6); /* "or" divider lines */
-  --color-link:                 #708AB5;   /* Forgot Password? */
-  --color-muted-text:           #747474;   /* "Already have account?" */
+  /* ── Font sizes ──────────────────────────────────
+     Tailwind's scale covers most sizes.
+     text-2xs fills the one gap (10px labels/badges).
+  ─────────────────────────────────────────────── */
+  --text-2xs: 0.625rem;   /* 10px — brand labels, tiny badges */
 
-  /* Brand colours — LTSD-namespaced to avoid shadcn conflicts */
-  --color-crimson:      #C82750;   /* primary CTA, nav active */
-  --color-orange:       #FF7C56;   /* secondary, hover states */
-  --color-yellow:       #FFC700;   /* Lightning deal badge */
+  /* ── Brand colours ───────────────────────────────
+     Primary palette
+  ─────────────────────────────────────────────── */
+  --color-crimson:      #C82750;   /* primary CTA, active nav underline */
+  --color-orange:       #FF7C56;   /* secondary accent, hover */
+  --color-yellow:       #FFC700;   /* lightning deal badge background */
 
-  /* Neutral / text */
-  --color-navy:         #000A1E;   /* headings */
-  --color-navy-btn:     #011C3D;   /* dark buttons */
-  --color-carbon:       #2D2D2D;   /* primary body text */
-  --color-body:         #44474E;   /* secondary body text */
+  /* ── CTA gradient stops ──────────────────────────
+     Used only in .btn-primary. Kept as tokens so the
+     gradient can be reused without repeating hex.
+  ─────────────────────────────────────────────── */
+  --color-cta-start:    #FF4D00;   /* btn-primary gradient → from */
+  --color-cta-end:      #FF9A00;   /* btn-primary gradient → to  */
 
-  /* Surfaces */
-  --color-bg:           #F8F9FA;   /* page background */
-  --color-surface:      #FFFFFF;   /* cards, modals */
-  --color-border-mid:   #CBCBCB;   /* stronger borders */
+  /* ── Text colours ────────────────────────────────
+     navy         headings, prices, strong text
+     carbon       primary body (default foreground)
+     body         secondary body — paragraphs, descriptions
+     subtle       icons, muted labels, strikethrough prices
+  ─────────────────────────────────────────────── */
+  --color-navy:         #000A1E;
+  --color-navy-btn:     #011C3D;   /* slightly lighter navy for dark buttons */
+  --color-carbon:       #2D2D2D;
+  --color-body:         #44474E;
+  --color-subtle:       #74777F;   /* was hardcoded everywhere as #74777F */
 
-  /* Badges */
-  --color-badge-bg:     #FE9800;   /* discount badge fill */
-  --color-badge-text:   #643900;   /* discount badge label */
+  /* ── Surface colours ─────────────────────────────
+     bg            page background
+     surface       cards, modals, dropdowns
+     border-mid    stronger dividers / checkbox borders
+     badge-tint    warm cream — active filter pills, selected rows
+     surface-hover neutral hover bg for list items / dropdown options
+  ─────────────────────────────────────────────── */
+  --color-bg:            #F8F9FA;
+  --color-surface:       #FFFFFF;
+  --color-border-mid:    #CBCBCB;
+  --color-badge-tint:    #FFF8EE;  /* active filter pill / selected item bg */
+  --color-surface-hover: #F5F6F7;  /* dropdown option hover / list item hover */
 
-  /* Semantic */
+  /* ── Badge / discount ────────────────────────────
+     badge-bg    orange fill for discount badges, progress bars
+     badge-text  dark brown text inside orange badges
+  ─────────────────────────────────────────────── */
+  --color-badge-bg:     #FE9800;
+  --color-badge-text:   #643900;
+
+  /* ── Semantic colours ────────────────────────────*/
   --color-error:        #BA1A1A;
   --color-error-bg:     #FFDAD6;
   --color-success:      #1A6932;
   --color-success-bg:   #C8F0D4;
 
-  /* Deal-specific */
-  --color-hot:          #FF5733;   /* "selling fast" label */
-  --color-claimed:      #FF4444;   /* availability bar */
-  --color-best-price:   #22A45D;   /* "best price" green */
+  /* ── Deal-specific ───────────────────────────────*/
+  --color-hot:          #FF5733;   /* "selling fast" countdown */
+  --color-claimed:      #FF4444;   /* availability / progress bar end */
+  --color-best-price:   #22A45D;   /* "best price" / all-time-low green */
 
-  /* Shadows */
-  --shadow-card:        0 1px 4px 0 rgba(0, 0, 0, 0.08);
-  --shadow-modal:       0 8px 24px 0 rgba(0, 0, 0, 0.12);
+  /* ── Auth form ───────────────────────────────────
+     (login / signup / reset pages only)
+  ─────────────────────────────────────────────── */
+  --color-input-border:        #E5E7EB;
+  --color-input-border-focus:  #143057;
+  --color-input-text:          #2D3648;
+  --color-label:               rgba(81, 83, 94, 0.9);
+  --color-divider:             rgba(196, 198, 207, 0.6);
+  --color-link:                #708AB5;
+  --color-muted-text:          #747474;
+
+  /* ── Shadows ─────────────────────────────────────*/
+  --shadow-card:  0 1px 4px 0 rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 8px 24px 0 rgba(0, 0, 0, 0.12);
 }
 
-/* ─────────────────────────────────────────────
-   shadcn @theme inline — resolves semantic tokens
-   (--color-border → var(--border), etc.)
-   ───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════
+   shadcn @theme inline
+   Maps Tailwind's --color-* → shadcn CSS vars so
+   shadcn components keep working unchanged.
+   ═══════════════════════════════════════════════════ */
 @theme inline {
-  --font-heading:                    var(--font-sans);
-  --font-sans:                       var(--font-sans);
-  --color-sidebar-ring:              var(--sidebar-ring);
-  --color-sidebar-border:            var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent:            var(--sidebar-accent);
-  --color-sidebar-primary-foreground:var(--sidebar-primary-foreground);
-  --color-sidebar-primary:           var(--sidebar-primary);
-  --color-sidebar-foreground:        var(--sidebar-foreground);
-  --color-sidebar:                   var(--sidebar);
-  --color-chart-5:                   var(--chart-5);
-  --color-chart-4:                   var(--chart-4);
-  --color-chart-3:                   var(--chart-3);
-  --color-chart-2:                   var(--chart-2);
-  --color-chart-1:                   var(--chart-1);
-  --color-ring:                      var(--ring);
-  --color-input:                     var(--input);
-  --color-border:                    var(--border);
-  --color-destructive:               var(--destructive);
-  --color-accent-foreground:         var(--accent-foreground);
-  --color-accent:                    var(--accent);
-  --color-muted-foreground:          var(--muted-foreground);
-  --color-muted:                     var(--muted);
-  --color-secondary-foreground:      var(--secondary-foreground);
-  --color-secondary:                 var(--secondary);
-  --color-primary-foreground:        var(--primary-foreground);
-  --color-primary:                   var(--primary);
-  --color-popover-foreground:        var(--popover-foreground);
-  --color-popover:                   var(--popover);
-  --color-card-foreground:           var(--card-foreground);
-  --color-card:                      var(--card);
-  --color-foreground:                var(--foreground);
-  --color-background:                var(--background);
-  --radius-sm:   calc(var(--radius) * 0.5);   /* 6px  */
-  --radius-md:   calc(var(--radius) * 0.667); /* 8px  */
-  --radius-lg:   var(--radius);               /* 12px */
-  --radius-xl:   calc(var(--radius) * 1.333); /* 16px */
-  --radius-2xl:  calc(var(--radius) * 1.667); /* 20px */
+  --font-heading:                     var(--font-sans);
+  --font-sans:                        var(--font-sans);
+  --color-sidebar-ring:               var(--sidebar-ring);
+  --color-sidebar-border:             var(--sidebar-border);
+  --color-sidebar-accent-foreground:  var(--sidebar-accent-foreground);
+  --color-sidebar-accent:             var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary:            var(--sidebar-primary);
+  --color-sidebar-foreground:         var(--sidebar-foreground);
+  --color-sidebar:                    var(--sidebar);
+  --color-chart-5:                    var(--chart-5);
+  --color-chart-4:                    var(--chart-4);
+  --color-chart-3:                    var(--chart-3);
+  --color-chart-2:                    var(--chart-2);
+  --color-chart-1:                    var(--chart-1);
+  --color-ring:                       var(--ring);
+  --color-input:                      var(--input);
+  --color-border:                     var(--border);
+  --color-destructive:                var(--destructive);
+  --color-accent-foreground:          var(--accent-foreground);
+  --color-accent:                     var(--accent);
+  --color-muted-foreground:           var(--muted-foreground);
+  --color-muted:                      var(--muted);
+  --color-secondary-foreground:       var(--secondary-foreground);
+  --color-secondary:                  var(--secondary);
+  --color-primary-foreground:         var(--primary-foreground);
+  --color-primary:                    var(--primary);
+  --color-popover-foreground:         var(--popover-foreground);
+  --color-popover:                    var(--popover);
+  --color-card-foreground:            var(--card-foreground);
+  --color-card:                       var(--card);
+  --color-foreground:                 var(--foreground);
+  --color-background:                 var(--background);
+  --radius-sm:   calc(var(--radius) * 0.5);
+  --radius-md:   calc(var(--radius) * 0.667);
+  --radius-lg:   var(--radius);
+  --radius-xl:   calc(var(--radius) * 1.333);
+  --radius-2xl:  calc(var(--radius) * 1.667);
   --radius-full: 9999px;
 }
 
-/* ─────────────────────────────────────────────
-   LTSD brand theme — overrides shadcn defaults
-   Maps semantic tokens → brand values
-   ───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════
+   LTSD brand theme — overrides shadcn semantic tokens
+   ═══════════════════════════════════════════════════ */
 :root {
-  /* Backgrounds */
-  --background:              #F8F9FA;   /* page bg */
-  --foreground:              #2D2D2D;   /* carbon text */
-  --card:                    #FFFFFF;
-  --card-foreground:         #2D2D2D;
-  --popover:                 #FFFFFF;
-  --popover-foreground:      #2D2D2D;
-
-  /* Primary = crimson */
-  --primary:                 #C82750;
-  --primary-foreground:      #FFFFFF;
-
-  /* Secondary = light gray */
-  --secondary:               #F0F1F2;
-  --secondary-foreground:    #2D2D2D;
-
-  /* Muted */
-  --muted:                   #F0F1F2;
-  --muted-foreground:        #74777F;
-
-  /* Accent = orange */
-  --accent:                  #FF7C56;
-  --accent-foreground:       #FFFFFF;
-
-  /* Destructive = error */
-  --destructive:             #BA1A1A;
-
-  /* Borders & inputs */
-  --border:                  #E7E8E9;
-  --input:                   #E7E8E9;
-
-  /* Focus ring = crimson */
-  --ring:                    #C82750;
-
-  /* Base radius = 12px */
-  --radius:                  0.75rem;
-
-  /* Charts */
-  --chart-1:                 #C82750;
-  --chart-2:                 #FF7C56;
-  --chart-3:                 #FFC700;
-  --chart-4:                 #000A1E;
-  --chart-5:                 #74777F;
-
-  /* Sidebar (admin panel) */
-  --sidebar:                 #000A1E;
-  --sidebar-foreground:      #FFFFFF;
-  --sidebar-primary:         #C82750;
+  --background:           #F8F9FA;
+  --foreground:           #2D2D2D;
+  --card:                 #FFFFFF;
+  --card-foreground:      #2D2D2D;
+  --popover:              #FFFFFF;
+  --popover-foreground:   #2D2D2D;
+  --primary:              #C82750;
+  --primary-foreground:   #FFFFFF;
+  --secondary:            #F0F1F2;
+  --secondary-foreground: #2D2D2D;
+  --muted:                #F0F1F2;
+  --muted-foreground:     #74777F;
+  --accent:               #FF7C56;
+  --accent-foreground:    #FFFFFF;
+  --destructive:          #BA1A1A;
+  --border:               #E7E8E9;
+  --input:                #E7E8E9;
+  --ring:                 #C82750;
+  --radius:               0.75rem;
+  --chart-1:              #C82750;
+  --chart-2:              #FF7C56;
+  --chart-3:              #FFC700;
+  --chart-4:              #000A1E;
+  --chart-5:              #74777F;
+  --sidebar:              #000A1E;
+  --sidebar-foreground:   #FFFFFF;
+  --sidebar-primary:      #C82750;
   --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent:          #011C3D;
+  --sidebar-accent:       #011C3D;
   --sidebar-accent-foreground: #FFFFFF;
-  --sidebar-border:          #1A2A4A;
-  --sidebar-ring:            #C82750;
+  --sidebar-border:       #1A2A4A;
+  --sidebar-ring:         #C82750;
 }
 
-/* ─────────────────────────────────────────────
-   Base styles
-   ───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════
+   BASE STYLES
+   ═══════════════════════════════════════════════════ */
 @layer base {
-  *, *::before, *::after {
-    box-sizing: border-box;
-  }
+  *, *::before, *::after { box-sizing: border-box; }
 
-  * {
-    @apply border-border outline-ring/50;
-  }
+  * { @apply border-border outline-ring/50; }
 
   html {
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
     height: 100%;
     scrollbar-gutter: stable;
-    font-family: var(--font-inter);
+    font-family: var(--font-inter);   /* Inter is the default for all body text */
   }
 
   body {
@@ -195,7 +212,6 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     min-height: 100%;
-    /* Reserve space for fixed bottom tab nav on mobile */
     padding-bottom: env(safe-area-inset-bottom);
   }
 
@@ -205,56 +221,287 @@
   }
 }
 
-/* ─────────────────────────────────────────────
-   Typography utilities
-   ───────────────────────────────────────────── */
-.text-display {
-  font-size: clamp(1.75rem, 5vw, 2.5rem);
-  font-weight: 700;
+/* ═══════════════════════════════════════════════════
+   TYPOGRAPHY SYSTEM
+   Use these .type-* classes instead of ad-hoc
+   Tailwind size + weight + font-family combos.
+   All values reference CSS vars — zero raw hex.
+   ═══════════════════════════════════════════════════
+
+   Scale:
+     type-page-title   H1 on landing / auth pages
+     type-section-title  H2 section headings in app
+     type-section-sub    Small subtitle below a section H2
+     type-card-title     Product / card heading (H3)
+     type-hero-sub       Hero paragraph under page-title
+     type-nav-link       Header navigation links
+     type-overline       "PERSONALIZED FOR YOU" all-caps opener
+     type-label          BRAND / CATEGORY / TARGET PRICE caps label
+     type-badge          Text inside discount / status badges
+     type-price          Current price ($37)
+     type-price-original Strikethrough original price
+     type-body           Regular paragraph / description text
+     type-meta           Timestamps, counts, small metadata
+   ─────────────────────────────────────────────── */
+
+/* H1 — landing hero, auth pages */
+.type-page-title {
+  font-family: var(--font-lato);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 800;
   line-height: 1.1;
-  color: var(--color-navy);
   letter-spacing: -0.02em;
-}
-
-.text-heading {
-  font-size: clamp(1.25rem, 3vw, 1.75rem);
-  font-weight: 600;
-  line-height: 1.2;
   color: var(--color-navy);
 }
 
-.text-subheading {
-  font-size: 1rem;
+/* H2 — "Deal Of Week", "Trending Deals", "Our Categories" */
+.type-section-title {
+  font-family: var(--font-lato);
+  font-size: 1.125rem;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--color-navy);
+}
+
+/* Subtitle below a section heading */
+.type-section-sub {
+  font-family: var(--font-inter);
+  font-size: 0.75rem;
+  color: var(--color-body);
+  line-height: 1.4;
+}
+
+/* H3 — product card title, watchlist item name */
+.type-card-title {
+  font-family: var(--font-lato);
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.4;
-  color: var(--color-carbon);
+  color: var(--color-navy);
 }
 
-/* ─────────────────────────────────────────────
-   Mobile PWA — safe areas
-   ───────────────────────────────────────────── */
-.safe-bottom {
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+/* Hero subtitle paragraph (landing page, below H1) */
+.type-hero-sub {
+  font-family: var(--font-inter);
+  font-size: 1rem;
+  line-height: 1.65;
+  color: var(--color-body);
 }
 
-.safe-top {
-  padding-top: max(0px, env(safe-area-inset-top));
+/* Header nav links */
+.type-nav-link {
+  font-family: var(--font-inter);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-body);
+  transition: color 0.15s;
+}
+.type-nav-link:hover,
+.type-nav-link[data-active="true"] {
+  color: var(--color-navy);
 }
 
-/* Reserve space so content isn't hidden behind fixed bottom nav */
-.main-content-pb {
-  padding-bottom: calc(60px + env(safe-area-inset-bottom) + 1rem);
+/* "PERSONALIZED FOR YOU" — small all-caps section opener */
+.type-overline {
+  font-family: var(--font-inter);
+  font-size: var(--text-2xs);    /* 10px */
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-badge-bg);
 }
 
-/* ─────────────────────────────────────────────
-   Scrollbar styling (WebKit)
-   ───────────────────────────────────────────── */
-/* Vertical scrollbars: thin, styled. Horizontal: always hidden (height:0). */
+/* BRAND / CATEGORY / TARGET PRICE — small caps row label */
+.type-label {
+  font-family: var(--font-inter);
+  font-size: var(--text-2xs);    /* 10px */
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-subtle);
+}
+
+/* Text inside discount / status pill badges */
+.type-badge {
+  font-family: var(--font-inter);
+  font-size: var(--text-2xs);    /* 10px */
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+/* Current price — $37 */
+.type-price {
+  font-family: var(--font-lato);
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--color-navy);
+  line-height: 1;
+}
+
+/* Strikethrough original price */
+.type-price-original {
+  font-family: var(--font-inter);
+  font-size: 0.75rem;
+  text-decoration: line-through;
+  color: var(--color-subtle);
+}
+
+/* Regular body / description paragraph */
+.type-body {
+  font-family: var(--font-inter);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--color-body);
+}
+
+/* Timestamps, review counts, small metadata */
+.type-meta {
+  font-family: var(--font-inter);
+  font-size: 0.75rem;
+  color: var(--color-body);
+  line-height: 1.4;
+}
+
+/* "See All" / "View All" — right side of section heading row */
+.link-see-all {
+  font-family: var(--font-lato);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-badge-bg);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+.link-see-all:hover { text-decoration: underline; }
+
+/* ═══════════════════════════════════════════════════
+   BUTTON SYSTEM
+   Use .btn-* instead of inline styles.
+   All values reference CSS vars — zero raw hex.
+   ═══════════════════════════════════════════════════
+
+   .btn-primary      Orange gradient pill  — main CTA
+   .btn-secondary    Navy outline pill     — secondary action
+   .btn-ghost        Light border pill     — filter / sort pill (idle)
+   .btn-ghost-active Tinted border pill    — filter / sort pill (active)
+   .btn-dark         Solid navy pill       — "Explore Deals" etc.
+   .btn-more         Solid orange pill     — "More Deals" pagination
+   ─────────────────────────────────────────────── */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
+  font-family: var(--font-lato);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-surface);
+  background: linear-gradient(90deg, var(--color-cta-start) 0%, var(--color-cta-end) 100%);
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.btn-primary:hover { opacity: 0.9; }
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.5rem;
+  border-radius: 9999px;
+  font-family: var(--font-lato);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-navy);
+  background: transparent;
+  border: 2px solid var(--color-navy);
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.btn-secondary:hover { background: var(--color-navy); color: var(--color-surface); }
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 9999px;
+  font-family: var(--font-lato);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-body);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  transition: border-color 0.15s;
+  white-space: nowrap;
+}
+.btn-ghost:hover { border-color: var(--color-badge-bg); }
+
+.btn-ghost-active {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border-radius: 9999px;
+  font-family: var(--font-lato);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-navy);
+  background: var(--color-badge-tint);
+  border: 1px solid var(--color-badge-bg);
+  white-space: nowrap;
+}
+
+.btn-dark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.75rem;
+  border-radius: 9999px;
+  font-family: var(--font-lato);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-surface);
+  background: var(--color-navy);
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.btn-dark:hover { opacity: 0.85; }
+
+.btn-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 2rem;
+  border-radius: 9999px;
+  font-family: var(--font-lato);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-surface);
+  background: var(--color-badge-bg);
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.btn-more:hover { opacity: 0.9; }
+
+/* ═══════════════════════════════════════════════════
+   MOBILE PWA — safe areas
+   ═══════════════════════════════════════════════════ */
+.safe-bottom    { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.safe-top       { padding-top: max(0px, env(safe-area-inset-top)); }
+.main-content-pb { padding-bottom: calc(60px + env(safe-area-inset-bottom) + 1rem); }
+
+/* ═══════════════════════════════════════════════════
+   SCROLLBAR
+   ═══════════════════════════════════════════════════ */
 ::-webkit-scrollbar        { width: 4px; height: 0; }
 ::-webkit-scrollbar-track  { background: transparent; }
 ::-webkit-scrollbar-thumb  { background: var(--color-border-mid); border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+::-webkit-scrollbar-thumb:hover { background: var(--color-subtle); }
 
-/* scrollbar-none utility: fully hides scrollbar on all browsers */
-.scrollbar-none                    { scrollbar-width: none; }
-.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none                     { scrollbar-width: none; }
+.scrollbar-none::-webkit-scrollbar  { display: none; }

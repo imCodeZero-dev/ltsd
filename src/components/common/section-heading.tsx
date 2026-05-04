@@ -1,24 +1,30 @@
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SectionHeadingProps {
   title: string;
+  subtitle?: string;
   viewAllHref?: string;
+  viewAllLabel?: string;
   className?: string;
 }
 
-export function SectionHeading({ title, viewAllHref, className }: SectionHeadingProps) {
+export function SectionHeading({
+  title,
+  subtitle,
+  viewAllHref,
+  viewAllLabel = "See All",
+  className,
+}: SectionHeadingProps) {
   return (
-    <div className={cn("flex items-center justify-between mb-3", className)}>
-      <h2 className="text-subheading font-semibold text-navy">{title}</h2>
+    <div className={cn("flex items-start justify-between mb-4", className)}>
+      <div>
+        <h2 className="type-section-title">{title}</h2>
+        {subtitle && <p className="type-section-sub mt-1">{subtitle}</p>}
+      </div>
       {viewAllHref && (
-        <Link
-          href={viewAllHref}
-          className="flex items-center gap-0.5 text-sm font-medium text-crimson hover:text-orange transition-colors"
-        >
-          See all
-          <ChevronRight className="w-4 h-4" />
+        <Link href={viewAllHref} className="link-see-all">
+          {viewAllLabel}
         </Link>
       )}
     </div>

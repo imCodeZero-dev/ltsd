@@ -14,8 +14,8 @@ const FOOTER_COLS = [
   {
     heading: "Support",
     links: [
-      { label: "FAQs",            href: "#" },
-      { label: "Report Issue",    href: "#" },
+      { label: "FAQs",         href: "#" },
+      { label: "Report Issue", href: "#" },
     ],
   },
 ];
@@ -30,40 +30,19 @@ const SOCIAL_PATHS = [
 
 export function AppFooter() {
   return (
-    <footer className="bg-white border-t border-[#E7E8E9]">
+    <footer className="bg-surface border-t border-border">
       <div className="max-w-350 mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row gap-10">
           {/* Brand */}
           <div className="md:w-56 shrink-0 space-y-4">
             <div className="flex items-center gap-3">
-              <Image
-                src="/images/ltsd-logo.png"
-                alt="LTSD"
-                width={44}
-                height={44}
-                className="rounded-full"
-              />
-              <span
-                className="text-xl font-extrabold text-navy"
-                style={{ fontFamily: "var(--font-lato)" }}
-              >
-                LTSD
-              </span>
+              <Image src="/images/ltsd-logo.png" alt="LTSD" width={44} height={44} className="rounded-full" />
+              <span className="font-lato text-xl font-extrabold text-navy">LTSD</span>
             </div>
-            <p
-              className="text-sm text-body leading-relaxed"
-              style={{ fontFamily: "var(--font-lato)" }}
-            >
-              Smart deal discovery powered by your preferences.
-            </p>
+            <p className="type-body leading-relaxed">Smart deal discovery powered by your preferences.</p>
             <div className="flex items-center gap-3 pt-1">
               {SOCIAL_PATHS.map(({ label, d }) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-label={label}
-                  className="text-body hover:text-navy transition-colors"
-                >
+                <button key={label} type="button" aria-label={label} className="text-body hover:text-navy transition-colors">
                   <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="currentColor" aria-hidden>
                     <path d={d} />
                   </svg>
@@ -76,19 +55,10 @@ export function AppFooter() {
           <div className="flex flex-1 gap-10 flex-wrap">
             {FOOTER_COLS.map((col) => (
               <div key={col.heading} className="space-y-3 min-w-30">
-                <p
-                  className="text-sm font-bold text-navy"
-                  style={{ fontFamily: "var(--font-lato)" }}
-                >
-                  {col.heading}
-                </p>
+                <p className="font-lato text-sm font-bold text-navy">{col.heading}</p>
                 {col.links.map((l) => (
                   <p key={l.label}>
-                    <Link
-                      href={l.href}
-                      className="text-sm text-body hover:text-navy transition-colors"
-                      style={{ fontFamily: "var(--font-lato)" }}
-                    >
+                    <Link href={l.href} className="font-lato text-sm text-body hover:text-navy transition-colors">
                       {l.label}
                     </Link>
                   </p>
@@ -99,21 +69,14 @@ export function AppFooter() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-[#E7E8E9] mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p
-            className="text-xs text-body"
-            style={{ fontFamily: "var(--font-lato)" }}
-          >
+        <div className="border-t border-border mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="font-lato text-xs text-body">
             Copyright © {new Date().getFullYear()} LTSD. All Rights Reserved.
           </p>
-          <div className="flex items-center gap-2 text-xs">
-            <Link href="#" className="text-badge-bg hover:underline" style={{ fontFamily: "var(--font-lato)" }}>
-              Terms and Conditions
-            </Link>
+          <div className="flex items-center gap-2 font-lato text-xs">
+            <Link href="#" className="text-badge-bg hover:underline">Terms and Conditions</Link>
             <span className="text-body">|</span>
-            <Link href="#" className="text-badge-bg hover:underline" style={{ fontFamily: "var(--font-lato)" }}>
-              Privacy Policy
-            </Link>
+            <Link href="#" className="text-badge-bg hover:underline">Privacy Policy</Link>
           </div>
         </div>
       </div>

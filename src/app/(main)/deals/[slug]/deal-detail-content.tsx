@@ -137,12 +137,12 @@ function ImageCarousel({
     <div className={cn(stretch && "flex flex-col flex-1")}>
       {/* Main image */}
       <div className={cn(
-        "relative w-full bg-white overflow-hidden",
+        "relative w-full bg-surface overflow-hidden",
         mobile
-          ? "aspect-square border-b border-[#E7E8E9]"
+          ? "aspect-square border-b border-border"
           : stretch
-            ? "flex-1 min-h-0 rounded-2xl border border-[#E7E8E9]"
-            : "aspect-[4/3] rounded-2xl border border-[#E7E8E9]"
+            ? "flex-1 min-h-0 rounded-2xl border border-border"
+            : "aspect-[4/3] rounded-2xl border border-border"
       )}>
         <Image
           src={images[activeImg]}
@@ -156,13 +156,13 @@ function ImageCarousel({
         {/* Nav arrows */}
         {images.length > 1 && activeImg > 0 && (
           <button type="button" onClick={onPrev}
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-[#E7E8E9] shadow-md flex items-center justify-center z-10 hover:border-badge-bg transition-colors">
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-surface border border-border shadow-md flex items-center justify-center z-10 hover:border-badge-bg transition-colors">
             <ChevronLeft className="w-4 h-4 text-body" />
           </button>
         )}
         {images.length > 1 && activeImg < images.length - 1 && (
           <button type="button" onClick={onNext}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-[#E7E8E9] shadow-md flex items-center justify-center z-10 hover:border-badge-bg transition-colors">
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-surface border border-border shadow-md flex items-center justify-center z-10 hover:border-badge-bg transition-colors">
             <ChevronRight className="w-4 h-4 text-body" />
           </button>
         )}
@@ -174,7 +174,7 @@ function ImageCarousel({
               <button key={i} type="button" onClick={() => onDot(i)}
                 className={cn(
                   "h-1.5 rounded-full transition-all",
-                  activeImg === i ? "w-5 bg-badge-bg" : "w-1.5 bg-[#C4C6CE]"
+                  activeImg === i ? "w-5 bg-badge-bg" : "w-1.5 bg-border-mid"
                 )} />
             ))}
           </div>
@@ -187,8 +187,8 @@ function ImageCarousel({
           {images.map((img, i) => (
             <button key={i} type="button" onClick={() => onDot(i)}
               className={cn(
-                "w-[72px] h-[72px] rounded-xl border-2 bg-white overflow-hidden shrink-0 transition-all",
-                activeImg === i ? "border-badge-bg" : "border-[#E7E8E9] hover:border-[#C4C6CE]"
+                "w-[72px] h-[72px] rounded-xl border-2 bg-surface overflow-hidden shrink-0 transition-all",
+                activeImg === i ? "border-badge-bg" : "border-border hover:border-border-mid"
               )}>
               <Image src={img} alt="" width={72} height={72} className="object-contain p-2 w-full h-full" />
             </button>
@@ -211,8 +211,8 @@ function TimerBoxes({ timer }: { timer: { d: string; h: string; m: string; s: st
     <div className="flex items-center gap-2">
       {boxes.map(({ value, label }) => (
         <div key={label}
-          className="w-12 h-12 rounded-xl border border-[#E7E8E9] bg-white flex flex-col items-center justify-center shadow-sm">
-          <span className="text-base font-extrabold text-navy leading-none tabular-nums" style={{ fontFamily: "var(--font-lato)" }}>
+          className="w-12 h-12 rounded-xl border border-border bg-surface flex flex-col items-center justify-center shadow-sm">
+          <span className="text-base font-extrabold text-navy leading-none tabular-nums font-lato">
             {value}
           </span>
           <span className="text-[9px] font-bold text-body leading-none mt-0.5 uppercase tracking-wide">{label}</span>
@@ -325,8 +325,8 @@ function CustomerRatings({ deal }: { deal: DealItem }) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="pb-5 border-b border-[#E7E8E9]">
-        <h2 className="text-xl font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
+      <div className="pb-5 border-b border-border">
+        <h2 className="text-xl font-extrabold text-navy font-lato">
           Customer Ratings (from Amazon)
         </h2>
         <p className="text-sm text-body mt-1">Track rating of deal directly from Amazon</p>
@@ -340,7 +340,7 @@ function CustomerRatings({ deal }: { deal: DealItem }) {
           {/* Score */}
           <div className="shrink-0">
             <div className="flex items-end gap-1 leading-none">
-              <span className="text-[96px] font-extrabold text-navy leading-none" style={{ fontFamily: "var(--font-lato)" }}>
+              <span className="text-[96px] font-extrabold text-navy leading-none font-lato">
                 {rating.toFixed(1)}
               </span>
               <span className="text-2xl text-body mb-4">/5</span>
@@ -356,7 +356,7 @@ function CustomerRatings({ deal }: { deal: DealItem }) {
             {ratingBarsFromScore(rating).map(({ stars, pct }) => (
               <div key={stars} className="flex items-center gap-3">
                 <span className="text-xs text-body w-10 shrink-0">{stars} star</span>
-                <div className="flex-1 h-2.5 rounded-full bg-[#EBEBEB] overflow-hidden">
+                <div className="flex-1 h-2.5 rounded-full bg-border overflow-hidden">
                   <div className="h-full rounded-full bg-badge-bg transition-all" style={{ width: `${pct}%` }} />
                 </div>
                 <span className="text-xs text-body w-8 text-right shrink-0">{pct}%</span>
@@ -366,7 +366,7 @@ function CustomerRatings({ deal }: { deal: DealItem }) {
         </div>
 
         {/* Right: link to Amazon reviews */}
-        <div className="hidden lg:flex flex-1 flex-col justify-center items-center gap-3 pl-10 border-l border-[#E7E8E9]">
+        <div className="hidden lg:flex flex-1 flex-col justify-center items-center gap-3 pl-10 border-l border-border">
           <p className="text-sm text-body text-center">
             This product has <span className="font-semibold text-navy">{reviews.toLocaleString()}+ verified reviews</span> on Amazon.
           </p>
@@ -374,7 +374,7 @@ function CustomerRatings({ deal }: { deal: DealItem }) {
             href={deal.affiliateUrl}
             target="_blank"
             rel="noopener noreferrer sponsored"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-navy text-white text-xs font-bold hover:opacity-90 transition-opacity"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-navy text-surface text-xs font-bold hover:opacity-90 transition-opacity"
           >
             View all reviews on Amazon
             <ExternalLink className="w-3 h-3" />
@@ -401,15 +401,15 @@ function PriceIntelligence({
       {/* Title + segmented tabs — sit on page background, no white card */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>Price Intelligence</h2>
+          <h2 className="text-xl font-extrabold text-navy font-lato">Price Intelligence</h2>
           <p className="text-sm text-body mt-1">Real-time market analytics and pricing history trends.</p>
         </div>
-        <div className="flex items-center bg-[#F0F1F3] rounded-full p-1 shrink-0">
+        <div className="flex items-center bg-surface-hover rounded-full p-1 shrink-0">
           {["30 DAYS", "90 DAYS", "ALL TIME"].map((label, i) => (
             <button key={label} type="button" onClick={() => onRangeChange(i)}
               className={cn(
                 "px-4 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wide transition-all",
-                range === i ? "bg-white text-navy shadow-sm" : "text-body hover:text-navy"
+                range === i ? "bg-surface text-navy shadow-sm" : "text-body hover:text-navy"
               )}>
               {label}
             </button>
@@ -418,14 +418,14 @@ function PriceIntelligence({
       </div>
 
       {/* White card — pills + chart + stats */}
-      <div className="bg-white rounded-2xl border border-[#E7E8E9] px-6 pt-5 pb-6">
+      <div className="bg-surface rounded-2xl border border-border px-6 pt-5 pb-6">
         {/* Pills */}
         <div className="flex items-center gap-2 flex-wrap mb-4">
-          <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#F0FBF5] border border-[#B8EDD4] text-[11px] font-semibold text-[#22A45D]">
+          <span className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#F0FBF5] border border-[#B8EDD4] text-[11px] font-semibold text-best-price">
             <TrendingDown className="w-3 h-3" />
             All-time low: ${Math.round(chartData.allTimeLow)}
           </span>
-          <span className="px-3 py-1 rounded-full bg-[#F5F6F7] border border-[#E7E8E9] text-[11px] font-semibold text-body">
+          <span className="px-3 py-1 rounded-full bg-surface-hover border border-border text-[11px] font-semibold text-body">
             Avg Price: ${Math.round(chartData.avgPrice)}
           </span>
         </div>
@@ -434,7 +434,7 @@ function PriceIntelligence({
           <PriceChart data={chartData} />
         </div>
 
-        <div className="grid grid-cols-3 gap-4 pt-5 border-t border-[#E7E8E9] mt-2">
+        <div className="grid grid-cols-3 gap-4 pt-5 border-t border-border mt-2">
           {[
             { label: "All-time Low",  value: `$${Math.round(chartData.allTimeLow)}` },
             { label: "Average Price", value: `$${Math.round(chartData.avgPrice)}` },
@@ -442,7 +442,7 @@ function PriceIntelligence({
           ].map(({ label, value }) => (
             <div key={label} className="text-center">
               <p className="text-xs text-body">{label}</p>
-              <p className="text-2xl font-extrabold text-navy mt-1" style={{ fontFamily: "var(--font-lato)" }}>{value}</p>
+              <p className="text-2xl font-extrabold text-navy mt-1 font-lato">{value}</p>
             </div>
           ))}
         </div>
@@ -456,13 +456,13 @@ function PriceIntelligence({
 function SimilarDeals({ deals }: { deals: DealItem[] }) {
   return (
     <div>
-      <h2 className="text-xl font-extrabold text-navy mb-1" style={{ fontFamily: "var(--font-lato)" }}>
+      <h2 className="text-xl font-extrabold text-navy mb-1 font-lato">
         Similar Deals You Might Like
       </h2>
       <p className="text-sm text-body mb-5">Deals related to your current selection.</p>
       <div className="relative">
         <button type="button" aria-label="Scroll left"
-          className="hidden lg:flex absolute -left-5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white border border-[#E7E8E9] shadow items-center justify-center hover:border-badge-bg transition-colors">
+          className="hidden lg:flex absolute -left-5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-surface border border-border shadow items-center justify-center hover:border-badge-bg transition-colors">
           <ChevronLeft className="w-4 h-4 text-body" />
         </button>
         {/* 2 cols on mobile, 4 cols on lg+ */}
@@ -472,7 +472,7 @@ function SimilarDeals({ deals }: { deals: DealItem[] }) {
           ))}
         </div>
         <button type="button" aria-label="Scroll right"
-          className="hidden lg:flex absolute -right-5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-white border border-[#E7E8E9] shadow items-center justify-center hover:border-badge-bg transition-colors">
+          className="hidden lg:flex absolute -right-5 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-surface border border-border shadow items-center justify-center hover:border-badge-bg transition-colors">
           <ChevronRight className="w-4 h-4 text-body" />
         </button>
       </div>
@@ -519,7 +519,7 @@ export function DealDetailContent({
       {/* Stars + review count */}
       <StarRating score={rating} reviewCount={reviews} size="md" showPlus />
 
-      <h1 className="text-3xl font-extrabold text-navy leading-tight" style={{ fontFamily: "var(--font-lato)" }}>
+      <h1 className="text-3xl font-extrabold text-navy leading-tight font-lato">
         {deal.title}
       </h1>
 
@@ -533,14 +533,14 @@ export function DealDetailContent({
       </p>
 
       {/* CURRENT PRICE label */}
-      <p className="text-[10px] font-bold uppercase tracking-widest text-body pt-1">
+      <p className="text-2xs font-bold uppercase tracking-widest text-body pt-1">
         Current Price
       </p>
 
       {/* Price row: price + strikethrough + badge on left, share on right */}
       <div className="flex items-center justify-between gap-3 -mt-2">
         <div className="flex items-center gap-3 flex-wrap">
-          <span className="text-4xl font-extrabold text-navy leading-none" style={{ fontFamily: "var(--font-lato)" }}>
+          <span className="text-4xl font-extrabold text-navy leading-none font-lato">
             {formatUSD(deal.currentPrice)}
           </span>
           {deal.originalPrice > deal.currentPrice && (
@@ -549,13 +549,13 @@ export function DealDetailContent({
             </span>
           )}
           {deal.discountPercent > 0 && (
-            <span className="px-3 py-1 rounded-full text-xs font-bold" style={{ background: "#FFECEC", color: "#C82750" }}>
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-crimson/10 text-crimson">
               {deal.discountPercent}% OFF
             </span>
           )}
         </div>
         <button type="button" aria-label="Share"
-          className="shrink-0 w-8 h-8 rounded-full border border-[#E7E8E9] flex items-center justify-center text-body hover:text-navy hover:border-navy transition-colors">
+          className="shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-body hover:text-navy hover:border-navy transition-colors">
           <Share2 className="w-3.5 h-3.5" />
         </button>
       </div>
@@ -564,15 +564,15 @@ export function DealDetailContent({
       {deal.discountPercent >= 20 && (
         <div className="flex items-center gap-1.5 -mt-1">
           <span className="text-sm">🔥</span>
-          <p className="text-xs font-semibold text-[#22A45D]">Best price in last 60 days</p>
+          <p className="text-xs font-semibold text-best-price">Best price in last 60 days</p>
         </div>
       )}
 
       {/* DEALS END IN + AVAILABILITY — white card */}
-      <div className="bg-white rounded-2xl border border-[#E7E8E9] p-4 space-y-4">
+      <div className="bg-surface rounded-2xl border border-border p-4 space-y-4">
         {timer && (
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-body">Deals End In</p>
+            <p className="text-2xs font-bold uppercase tracking-widest text-body">Deals End In</p>
             <TimerBoxes timer={timer} />
           </div>
         )}
@@ -581,19 +581,19 @@ export function DealDetailContent({
           {deal.totalCount > 0 ? (
             <>
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-body">Availability</p>
+                <p className="text-2xs font-bold uppercase tracking-widest text-body">Availability</p>
                 <span className="text-xs font-bold text-badge-bg">{claimedPct}% claimed</span>
               </div>
-              <div className="h-2 rounded-full bg-[#F0F1F3] overflow-hidden">
+              <div className="h-2 rounded-full bg-surface-hover overflow-hidden">
                 <div className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${claimedPct}%`, background: "linear-gradient(to right, #FE9800, #E53935)" }} />
+                  style={{ width: `${claimedPct}%`, background: "linear-gradient(to right, var(--color-badge-bg), var(--color-claimed))" }} />
               </div>
-              <p className="text-xs font-semibold text-[#FF5733]">
+              <p className="text-xs font-semibold text-hot">
                 ▲ Only {dealsLeft} deals left — selling fast
               </p>
             </>
           ) : (
-            <p className="text-xs font-semibold text-[#FF5733]">⚡ Limited-time deal — while stocks last</p>
+            <p className="text-xs font-semibold text-hot">⚡ Limited-time deal — while stocks last</p>
           )}
         </div>
       </div>
@@ -604,8 +604,7 @@ export function DealDetailContent({
           href={deal.affiliateUrl}
           target="_blank"
           rel="noopener noreferrer sponsored"
-          className="flex-1 flex items-center justify-center gap-2 h-13 rounded-xl font-bold text-sm text-white bg-navy hover:opacity-90 transition-opacity"
-          style={{ fontFamily: "var(--font-lato)" }}
+          className="flex-1 flex items-center justify-center gap-2 h-13 rounded-xl font-bold text-sm text-surface bg-navy font-lato hover:opacity-90 transition-opacity"
         >
           View Deal on Amazon
           <ExternalLink className="w-4 h-4" />
@@ -638,15 +637,15 @@ export function DealDetailContent({
                 className={cn(
                   "shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border transition-all whitespace-nowrap",
                   activeTab === i
-                    ? "bg-badge-bg text-white border-badge-bg"
-                    : "bg-white text-body border-[#E7E8E9]"
+                    ? "bg-badge-bg text-surface border-badge-bg"
+                    : "bg-surface text-body border-border"
                 )}>
                 {tab}
               </button>
             ))}
           </div>
 
-          <div className="bg-white rounded-2xl border border-[#E7E8E9] p-5">
+          <div className="bg-surface rounded-2xl border border-border p-5">
             {activeTab === 0 && (
               <p className="text-sm text-body leading-relaxed">
                 {deal.brand && deal.brand !== "Unknown" ? `By ${deal.brand}. ` : ""}
@@ -661,13 +660,13 @@ export function DealDetailContent({
         </div>
 
         {/* Sticky CTA (mobile) */}
-        <div className="fixed bottom-16 left-0 right-0 z-40 px-4 py-3 bg-white border-t border-[#E7E8E9]">
+        <div className="fixed bottom-16 left-0 right-0 z-40 px-4 py-3 bg-surface border-t border-border">
           <div className="flex items-center gap-2.5">
             <a
               href={deal.affiliateUrl}
               target="_blank"
               rel="noopener noreferrer sponsored"
-              className="flex-1 flex items-center justify-center gap-2 h-12 rounded-xl font-bold text-sm text-white bg-navy hover:opacity-90 transition-opacity"
+              className="flex-1 flex items-center justify-center gap-2 h-12 rounded-xl font-bold text-sm text-surface bg-navy hover:opacity-90 transition-opacity"
             >
               View Deal on Amazon <ExternalLink className="w-4 h-4" />
             </a>
@@ -680,17 +679,17 @@ export function DealDetailContent({
       <div className="hidden lg:block max-w-350 mx-auto px-6 py-6 pb-16">
 
         {/* Breadcrumb: CATEGORY > BRAND > SHORT TITLE */}
-        <nav className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-body mb-6">
+        <nav className="flex items-center gap-2 text-2xs font-bold uppercase tracking-widest text-body mb-6">
           <Link href="/deals" className="hover:text-navy transition-colors">{deal.category}</Link>
           {breadcrumbMid && (
             <>
-              <span className="text-[#C4C6CE]">›</span>
+              <span className="text-border-mid">›</span>
               <Link href={`/deals?q=${encodeURIComponent(deal.brand ?? "")}`} className="hover:text-navy transition-colors">
                 {breadcrumbMid}
               </Link>
             </>
           )}
-          <span className="text-[#C4C6CE]">›</span>
+          <span className="text-border-mid">›</span>
           <span className="text-navy">{shortTitle}</span>
         </nav>
 

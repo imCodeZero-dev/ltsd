@@ -7,7 +7,7 @@ export function AnnouncementBar() {
     // overflow-hidden ensures text can never push past the bar width
     <div
       className="hidden md:flex w-full h-9 px-6 items-center overflow-hidden"
-      style={{ background: "#000A1E", fontFamily: "var(--font-inter)" }}
+      style={{ background: "#000A1E" }}
     >
       {/* Left spacer — mirrors right side so text stays centered */}
       <div className="flex-1 min-w-0" />

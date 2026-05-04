@@ -126,10 +126,8 @@ function FilterDropdown({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          "flex items-center gap-1.5 px-3.5 py-2 rounded-full border text-sm font-medium transition-all whitespace-nowrap cursor-pointer",
-          active
-            ? "bg-[#FFF8EE] border-badge-bg text-navy"
-            : "bg-white border-[#E7E8E9] text-body hover:border-badge-bg"
+          "cursor-pointer",
+          active ? "btn-ghost-active" : "btn-ghost"
         )}
       >
         {label}
@@ -151,10 +149,10 @@ function FilterDropdown({
               type="button"
               onClick={() => { onChange(opt.value); setOpen(false); }}
               className={cn(
-                "w-full text-left px-4 py-2.5 text-sm transition-colors cursor-pointer",
+                "w-full text-left px-4 py-2.5 transition-colors cursor-pointer type-body",
                 value === opt.value
                   ? "bg-[#FFF8EE] text-badge-bg font-semibold"
-                  : "text-body hover:bg-[#F5F6F7]"
+                  : "hover:bg-[#F5F6F7]"
               )}
             >
               {opt.label}

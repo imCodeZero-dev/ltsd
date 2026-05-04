@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { X, PlusCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { DealItem } from "@/lib/deal-api/types";
 
 interface WatchlistModalProps {
@@ -88,16 +89,13 @@ export function WatchlistModal({ deal, open, onClose, onConfirm }: WatchlistModa
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       {/* Modal panel */}
-      <div
-        className="relative w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden"
-        style={{ fontFamily: "var(--font-inter)" }}
-      >
+      <div className="relative w-full max-w-sm bg-surface rounded-2xl shadow-2xl overflow-hidden font-inter">
         {/* Close button */}
         <button
           type="button"
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full text-body hover:text-navy hover:bg-[#F5F6F7] transition-colors z-10"
+          className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-full text-body hover:text-navy hover:bg-surface-hover transition-colors z-10"
         >
           <X className="w-4 h-4" />
         </button>
@@ -106,7 +104,7 @@ export function WatchlistModal({ deal, open, onClose, onConfirm }: WatchlistModa
 
           {/* Heading */}
           <div>
-            <h2 className="text-lg font-extrabold text-navy" style={{ fontFamily: "var(--font-lato)" }}>
+            <h2 className="text-lg font-extrabold text-navy font-lato">
               Add to Watchlist
             </h2>
             <p className="text-xs text-body mt-0.5">
@@ -115,27 +113,27 @@ export function WatchlistModal({ deal, open, onClose, onConfirm }: WatchlistModa
           </div>
 
           {/* Product row */}
-          <div className="flex items-center gap-3 bg-[#F5F6F7] rounded-xl px-3 py-2.5">
-            <div className="w-10 h-10 shrink-0 relative rounded-lg overflow-hidden bg-white border border-[#E7E8E9]">
+          <div className="flex items-center gap-3 bg-surface-hover rounded-xl px-3 py-2.5">
+            <div className="w-10 h-10 shrink-0 relative rounded-lg overflow-hidden bg-surface border border-border">
               <Image src={deal.imageUrl} alt={deal.title} fill sizes="40px" className="object-contain p-1" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-navy line-clamp-1" style={{ fontFamily: "var(--font-lato)" }}>
+              <p className="text-xs font-semibold text-navy line-clamp-1 font-lato">
                 {deal.title}
               </p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-body mt-0.5">
+              <p className="text-2xs font-bold uppercase tracking-widest text-body mt-0.5">
                 {formatUSD(deal.currentPrice)}
-                <span className="ml-1.5 text-[#CBCBCB]">CURRENT PRICE</span>
+                <span className="ml-1.5 text-border-mid">CURRENT PRICE</span>
               </p>
             </div>
           </div>
 
           {/* Target price input */}
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-widest text-body">
+            <label className="text-2xs font-bold uppercase tracking-widest text-body">
               Target Price (USD)
             </label>
-            <div className="flex items-center border-2 rounded-xl px-3 py-2.5 transition-colors focus-within:border-badge-bg border-[#E7E8E9]">
+            <div className="flex items-center border-2 rounded-xl px-3 py-2.5 transition-colors focus-within:border-badge-bg border-border">
               <span className="text-sm font-semibold text-body mr-2">$</span>
               <input
                 ref={inputRef}
@@ -149,7 +147,7 @@ export function WatchlistModal({ deal, open, onClose, onConfirm }: WatchlistModa
               />
             </div>
             {dropPct !== null && (
-              <p className="text-xs font-semibold" style={{ color: "#FF5733" }}>
+              <p className="text-xs font-semibold text-hot">
                 🔥 You're aiming for a {dropPct}% drop
               </p>
             )}
@@ -162,7 +160,7 @@ export function WatchlistModal({ deal, open, onClose, onConfirm }: WatchlistModa
 
           {/* Minimum discount */}
           <div className="space-y-2">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-body">
+            <p className="text-2xs font-bold uppercase tracking-widest text-body">
               Minimum Discount
             </p>
             <div className="flex gap-2">
@@ -173,13 +171,12 @@ export function WatchlistModal({ deal, open, onClose, onConfirm }: WatchlistModa
                     key={opt.value}
                     type="button"
                     onClick={() => setMinDiscount(opt.value)}
-                    className="flex-1 py-2 rounded-lg border-2 text-xs font-bold transition-all"
-                    style={{
-                      borderColor:      active ? "#FE9800" : "#E7E8E9",
-                      color:            active ? "#FE9800" : "#44474E",
-                      background:       "white",
-                      fontFamily:       "var(--font-lato)",
-                    }}
+                    className={cn(
+                      "flex-1 py-2 rounded-lg border-2 text-xs font-bold font-lato transition-all bg-surface",
+                      active
+                        ? "border-badge-bg text-badge-bg"
+                        : "border-border text-body"
+                    )}
                   >
                     {opt.label}
                   </button>
@@ -208,14 +205,13 @@ export function WatchlistModal({ deal, open, onClose, onConfirm }: WatchlistModa
           <button
             type="button"
             onClick={handleConfirm}
-            className="w-full flex items-center justify-center gap-2 h-12 rounded-xl font-bold text-sm text-white transition-opacity hover:opacity-90"
-            style={{ background: "#000A1E", fontFamily: "var(--font-lato)" }}
+            className="w-full flex items-center justify-center gap-2 h-12 rounded-xl font-bold text-sm text-surface bg-navy font-lato transition-opacity hover:opacity-90"
           >
             <PlusCircle className="w-4 h-4" />
             Add to Watchlist
           </button>
 
-          <p className="text-center text-[10px] text-body -mt-2">
+          <p className="text-center text-2xs text-body -mt-2">
             You'll receive push and email notifications.
           </p>
         </div>
@@ -239,7 +235,7 @@ function Toggle({
   return (
     <div className="flex items-center justify-between gap-4">
       <div>
-        <p className="text-sm font-semibold text-navy" style={{ fontFamily: "var(--font-lato)" }}>{label}</p>
+        <p className="text-sm font-semibold text-navy font-lato">{label}</p>
         <p className="text-xs text-body mt-0.5">{sub}</p>
       </div>
       <button
@@ -248,10 +244,10 @@ function Toggle({
         aria-checked={checked}
         onClick={() => onChange(!checked)}
         className="shrink-0 w-11 h-6 rounded-full relative transition-colors"
-        style={{ background: checked ? "#FE9800" : "#CBCBCB" }}
+        style={{ background: checked ? "var(--color-badge-bg)" : "var(--color-border-mid)" }}
       >
         <span
-          className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+          className="absolute top-0.5 w-5 h-5 rounded-full bg-surface shadow transition-all"
           style={{ left: checked ? "calc(100% - 22px)" : "2px" }}
         />
       </button>

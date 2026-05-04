@@ -18,7 +18,7 @@ export function BottomTabNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t border-[#E7E8E9] flex items-stretch"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-border flex items-stretch"
       style={{ height: "calc(60px + env(safe-area-inset-bottom))" }}
       aria-label="Main navigation"
     >
@@ -30,7 +30,7 @@ export function BottomTabNav() {
             href={href}
             className={cn(
               "flex-1 flex flex-col items-center justify-center gap-1 pt-2 pb-1 text-[10px] font-medium transition-colors",
-              active ? "text-badge-bg" : "text-[#74777F]"
+              active ? "text-badge-bg" : "text-subtle"
             )}
             aria-current={active ? "page" : undefined}
           >

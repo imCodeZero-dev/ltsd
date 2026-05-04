@@ -45,9 +45,9 @@ export function WatchlistButton({ dealId, watchlistItemId, deal, className, size
         className={cn(
           "flex items-center justify-center bg-white transition-colors",
           size === "lg"
-            ? "w-12 h-12 rounded-xl border border-[#E7E8E9] shrink-0"
+            ? "w-12 h-12 rounded-xl border border-border shrink-0"
             : "w-6 h-6 rounded-full shadow-sm",
-          isWatched ? "text-badge-bg border-badge-bg" : "text-[#74777F] hover:text-badge-bg",
+          isWatched ? "text-badge-bg border-badge-bg" : "text-subtle hover:text-badge-bg",
           isPending && "opacity-50 cursor-not-allowed",
           className
         )}

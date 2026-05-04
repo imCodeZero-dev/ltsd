@@ -55,13 +55,11 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
 
           {/* ── Text content ── */}
           <div className="flex flex-col justify-center gap-2 md:gap-3 py-6 px-5 md:py-10 md:pl-4 md:pr-10 flex-1 md:flex-none md:w-95 shrink-0">
-            <p className="hidden md:block text-[10px] font-bold uppercase tracking-widest text-badge-bg">
-              PERSONALIZED FOR YOU
-            </p>
+            <p className="hidden md:block type-overline">PERSONALIZED FOR YOU</p>
 
             <h1
-              className="text-xl md:text-[36px] font-extrabold leading-tight md:leading-[1.15] text-navy"
-              style={{ letterSpacing: "-0.02em", fontFamily: "var(--font-dm-sans)" }}
+              className="font-dm-sans text-xl md:text-[36px] font-extrabold leading-tight md:leading-[1.15] text-navy"
+              style={{ letterSpacing: "-0.02em" }}
             >
               The best deals,<br />without the hunt
             </h1>
@@ -129,7 +127,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                 <svg
                   key={s}
                   viewBox="0 0 24 24"
-                  className={`w-2.5 h-2.5 ${s <= Math.round(slide.rating) ? "fill-badge-bg" : "fill-[#E7E8E9]"}`}
+                  className={`w-2.5 h-2.5 ${s <= Math.round(slide.rating) ? "fill-badge-bg" : "fill-border"}`}
                 >
                   <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
                 </svg>
@@ -156,7 +154,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
       {slides.length > 1 && (
         <button
           onClick={() => setActive((p) => (p + 1) % slides.length)}
-          className="absolute -right-5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-[#E7E8E9] shadow-md hidden md:flex items-center justify-center hover:shadow-lg transition-shadow z-10"
+          className="absolute -right-5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white border border-border shadow-md hidden md:flex items-center justify-center hover:shadow-lg transition-shadow z-10"
           aria-label="Next slide"
         >
           <ChevronRight className="w-4 h-4 text-navy" />

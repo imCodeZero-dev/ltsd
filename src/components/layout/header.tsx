@@ -26,7 +26,7 @@ export async function Header() {
     <>
       <AnnouncementBar />
 
-      <header className="sticky top-0 z-40 w-full bg-white border-b border-[#E7E8E9]">
+      <header className="sticky top-0 z-40 w-full bg-surface border-b border-border">
         {/* ── Desktop nav row ── */}
         <div className="max-w-350 mx-auto px-6 h-16 hidden md:grid items-center"
           style={{ gridTemplateColumns: "auto 1fr auto", gap: "24px" }}>
@@ -61,13 +61,13 @@ export async function Header() {
               href="/settings/profile"
               className="flex items-center gap-2 hover:opacity-80 transition-opacity"
             >
-              <div className="w-8 h-8 rounded-full border border-[#E7E8E9] flex items-center justify-center text-body shrink-0">
+              <div className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-body shrink-0">
                 <User className="w-4 h-4" />
               </div>
               <span className="text-sm font-medium text-navy">
                 Account
               </span>
-              <ChevronDown className="w-3.5 h-3.5 text-[#74777F]" />
+              <ChevronDown className="w-3.5 h-3.5 text-subtle" />
             </Link>
           </div>
         </div>
