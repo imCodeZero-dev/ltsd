@@ -1,12 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronDown, User } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AnnouncementBar } from "./announcement-bar";
 import { SearchBar, MobileSearchBar } from "./search-bar";
 import { HeaderNav } from "./header-nav";
 import { NotificationsBell } from "@/components/notifications/notifications-bell";
+import { AccountDropdown } from "./account-dropdown";
 
 async function getUnreadCount(userId: string): Promise<number> {
   try {
@@ -53,22 +53,13 @@ export async function Header() {
 
           {/* RIGHT: bell + account */}
           <div className="flex items-center gap-4 justify-end">
-            {/* Bell with notifications dropdown */}
             <NotificationsBell initialUnreadCount={unreadCount} />
-
-            {/* Account */}
-            <Link
-              href="/settings/profile"
-              className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-            >
-              <div className="w-8 h-8 rounded-full border border-border flex items-center justify-center text-body shrink-0">
-                <User className="w-4 h-4" />
-              </div>
-              <span className="text-sm font-medium text-navy">
-                Account
-              </span>
-              <ChevronDown className="w-3.5 h-3.5 text-subtle" />
-            </Link>
+            <AccountDropdown
+              name={session?.user?.name ?? null}
+              email={session?.user?.email ?? ""}
+              image={session?.user?.image ?? null}
+              role={session?.user?.role ?? "USER"}
+            />
           </div>
         </div>
 
@@ -86,13 +77,14 @@ export async function Header() {
 
           <div className="flex-1" />
 
-          <div className="p-1.5">
-            <NotificationsBell initialUnreadCount={unreadCount} />
-          </div>
+          <NotificationsBell initialUnreadCount={unreadCount} />
 
-          <Link href="/settings/profile" className="p-1.5 text-body">
-            <User className="w-5 h-5" />
-          </Link>
+          <AccountDropdown
+            name={session?.user?.name ?? null}
+            email={session?.user?.email ?? ""}
+            image={session?.user?.image ?? null}
+            role={session?.user?.role ?? "USER"}
+          />
         </div>
 
         {/* Mobile search */}

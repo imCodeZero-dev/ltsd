@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { User, Settings, HelpCircle, LogOut, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { LogoutModal } from "@/components/common/logout-modal";
 
 const NAV_ITEMS = [
   { label: "Profile",        href: "/settings/profile",       icon: User },
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
 export function SettingsSidebar() {
   const pathname = usePathname();
   const [promoDismissed, setPromoDismissed] = useState(false);
+  const [showLogout, setShowLogout] = useState(false);
 
   return (
     <div className="flex flex-col h-full">
@@ -34,7 +36,7 @@ export function SettingsSidebar() {
           <input
             type="text"
             placeholder="Search..."
-            className="w-full pl-9 pr-3 py-2 rounded-lg bg-[#F8F9FA] border border-[#E7E8E9] text-sm text-navy placeholder:text-body outline-none focus:border-navy transition-colors"
+            className="w-full pl-9 pr-3 py-2 rounded-lg bg-bg border border-[#E7E8E9] text-sm text-navy placeholder:text-body outline-none focus:border-navy transition-colors"
           />
         </div>
       </div>
@@ -51,7 +53,7 @@ export function SettingsSidebar() {
                 "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors",
                 active
                   ? "bg-[#F0F2F5] text-navy font-semibold"
-                  : "text-body hover:bg-[#F8F9FA] hover:text-navy",
+                  : "text-body hover:bg-bg hover:text-navy",
               )}
             >
               <Icon className={cn("w-4.5 h-4.5 shrink-0", active ? "text-navy" : "text-body")} />
@@ -63,7 +65,7 @@ export function SettingsSidebar() {
 
       {/* Promo card */}
       {!promoDismissed && (
-        <div className="mx-4 mb-4 p-3 rounded-xl bg-[#F8F9FA] border border-[#E7E8E9] relative">
+        <div className="mx-4 mb-4 p-3 rounded-xl bg-bg border border-[#E7E8E9] relative">
           <button
             type="button"
             onClick={() => setPromoDismissed(true)}
@@ -93,10 +95,17 @@ export function SettingsSidebar() {
           <p className="text-sm font-semibold text-navy leading-none">Azunyan U. Wu</p>
           <p className="text-[11px] text-body mt-0.5">Basic Member</p>
         </div>
-        <button type="button" className="text-body hover:text-navy transition-colors shrink-0" aria-label="Sign out">
+        <button
+          type="button"
+          onClick={() => setShowLogout(true)}
+          className="text-body hover:text-navy transition-colors shrink-0"
+          aria-label="Sign out"
+        >
           <LogOut className="w-4 h-4" />
         </button>
       </div>
+
+      <LogoutModal open={showLogout} onClose={() => setShowLogout(false)} />
     </div>
   );
 }

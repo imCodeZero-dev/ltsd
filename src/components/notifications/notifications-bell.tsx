@@ -1,30 +1,104 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Bell, X } from "lucide-react";
+import { Bell } from "lucide-react";
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 
-// ── Mock notifications ────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
+
 interface NotificationItem {
   id: string;
-  emoji: string;
-  title: string;
+  title: string;           // full title text
+  highlight?: string;      // substring to render in orange
   subtitle: string;
   timeAgo: string;
   isUnread: boolean;
   group: "TODAY" | "YESTERDAY" | "OLDER";
+  imageUrl: string;
 }
 
+// ── Mock data ─────────────────────────────────────────────────────────────────
+
 const NOTIFICATIONS: NotificationItem[] = [
-  { id: "n1", emoji: "🔥", title: "AirPods Pro (2nd Gen) Dropped 38%!", subtitle: "Quick, catch it before it sells out.", timeAgo: "5m ago", isUnread: true, group: "TODAY" },
-  { id: "n2", emoji: "📱", title: "Samsung Galaxy S23 Dropped 22%!", subtitle: "Now available at a lower price.", timeAgo: "1h ago", isUnread: true, group: "TODAY" },
-  { id: "n3", emoji: "💰", title: "Price Alert: Nike Air Max Hit Your Target.", subtitle: "Grab it before it goes up again.", timeAgo: "1h ago", isUnread: false, group: "YESTERDAY" },
-  { id: "n4", emoji: "🟢", title: "New Deal For Sony WH-1000XM5", subtitle: "Lowest price today.", timeAgo: "1h ago", isUnread: false, group: "YESTERDAY" },
-  { id: "n5", emoji: "⚡", title: "Flash Deal On Apple Watch Series 9", subtitle: "Limited stock available.", timeAgo: "1h ago", isUnread: false, group: "OLDER" },
-  { id: "n6", emoji: "💵", title: "Price Dropped Again For Dyson Vacuum", subtitle: "Even cheaper than before.", timeAgo: "1h ago", isUnread: false, group: "OLDER" },
+  {
+    id: "n1",
+    title: "AirPods Pro (2nd Gen) Dropped 38%!",
+    highlight: "38%!",
+    subtitle: "Quick, catch it before it sells out.",
+    timeAgo: "5m ago",
+    isUnread: true,
+    group: "TODAY",
+    imageUrl: "/images/landing/product-hero.jpg",
+  },
+  {
+    id: "n2",
+    title: "Samsung Galaxy S23 Dropped 22%!",
+    highlight: "22%!",
+    subtitle: "Now available at a lower price.",
+    timeAgo: "1h ago",
+    isUnread: true,
+    group: "TODAY",
+    imageUrl: "/images/landing/product-hero.jpg",
+  },
+  {
+    id: "n3",
+    title: "🎯 Price Alert! Nike Air Max Hit Your Target.",
+    subtitle: "Grab it before it goes up again.",
+    timeAgo: "1h ago",
+    isUnread: false,
+    group: "YESTERDAY",
+    imageUrl: "/images/landing/product-hero.jpg",
+  },
+  {
+    id: "n4",
+    title: "🟢 New Deal For Sony WH-1000XM5",
+    subtitle: "Lowest price today.",
+    timeAgo: "1h ago",
+    isUnread: false,
+    group: "YESTERDAY",
+    imageUrl: "/images/landing/product-hero.jpg",
+  },
+  {
+    id: "n5",
+    title: "⚡ Flash Deal On Apple Watch Series 9",
+    subtitle: "Limited stock available.",
+    timeAgo: "1h ago",
+    isUnread: false,
+    group: "OLDER",
+    imageUrl: "/images/landing/product-hero.jpg",
+  },
+  {
+    id: "n6",
+    title: "📉 Price Dropped Again For Dyson Vacuum",
+    subtitle: "Even cheaper than before.",
+    timeAgo: "1h ago",
+    isUnread: false,
+    group: "OLDER",
+    imageUrl: "/images/landing/product-hero.jpg",
+  },
 ];
 
 const GROUPS: NotificationItem["group"][] = ["TODAY", "YESTERDAY", "OLDER"];
+
+// ── Highlighted title renderer ─────────────────────────────────────────────────
+
+function HighlightedTitle({ title, highlight }: { title: string; highlight?: string }) {
+  if (!highlight) {
+    return <span>{title}</span>;
+  }
+  const idx = title.indexOf(highlight);
+  if (idx === -1) return <span>{title}</span>;
+  return (
+    <>
+      {title.slice(0, idx)}
+      <span className="text-badge-bg">{highlight}</span>
+      {title.slice(idx + highlight.length)}
+    </>
+  );
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: number }) {
   const [open, setOpen] = useState(false);
@@ -44,9 +118,7 @@ export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: 
       if (
         panelRef.current && !panelRef.current.contains(e.target as Node) &&
         buttonRef.current && !buttonRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
+      ) setOpen(false);
     }
     document.addEventListener("mousedown", handle);
     return () => document.removeEventListener("mousedown", handle);
@@ -78,7 +150,7 @@ export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: 
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-4.5 h-4.5 px-1 rounded-full text-[9px] font-bold leading-4.5 text-center text-white tabular-nums bg-crimson">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[9px] font-bold leading-[18px] text-center text-surface tabular-nums bg-crimson">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -88,98 +160,103 @@ export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: 
       {open && (
         <div
           ref={panelRef}
-          className="absolute right-0 top-full mt-3 w-[min(400px,calc(100vw-2rem))] bg-white rounded-2xl border border-[#E7E8E9] shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50 overflow-hidden"
+          className="absolute right-0 top-full mt-3 w-[min(400px,calc(100vw-2rem))] bg-surface rounded-2xl border border-border shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50 overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[#E7E8E9]">
-            <h3 className="text-base font-bold text-navy">Notifications</h3>
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <h3 className="text-base font-bold text-navy font-lato">Notifications</h3>
             <button
               type="button"
               onClick={markAllRead}
-              className="text-xs font-semibold text-body hover:text-navy transition-colors"
+              className="text-xs font-semibold text-badge-bg hover:opacity-75 transition-opacity"
             >
               Mark all as read
             </button>
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center gap-2 px-5 py-3 border-b border-[#F0F1F2]">
-            <button
-              type="button"
-              onClick={() => setTab("all")}
-              className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors",
-                tab === "all"
-                  ? "bg-navy text-white"
-                  : "bg-[#F5F6F7] text-body hover:bg-[#E7E8E9]",
-              )}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              onClick={() => setTab("unread")}
-              className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors",
-                tab === "unread"
-                  ? "bg-navy text-white"
-                  : "bg-[#F5F6F7] text-body hover:bg-[#E7E8E9]",
-              )}
-            >
-              Unread {unread.length > 0 && `(${unread.length})`}
-            </button>
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-border">
+            {[
+              { key: "all",    label: "All" },
+              { key: "unread", label: `Unread${unread.length > 0 ? ` (${unread.length})` : ""}` },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setTab(key as "all" | "unread")}
+                className={cn(
+                  "px-4 py-1.5 rounded-full text-xs font-semibold transition-colors",
+                  tab === key
+                    ? "bg-navy text-surface"
+                    : "bg-surface-hover text-body hover:bg-border"
+                )}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {/* Notification list */}
-          <div className="overflow-y-auto max-h-[400px]">
+          <div className="overflow-y-auto max-h-[420px]">
             {displayed.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-2">
-                <Bell className="w-8 h-8 text-[#CBCBCB]" />
+                <Bell className="w-8 h-8 text-border-mid" />
                 <p className="text-sm text-body">No notifications</p>
               </div>
             ) : (
-              <>
-                {GROUPS.map(group => {
-                  const groupItems = displayed.filter(n => n.group === group);
-                  if (groupItems.length === 0) return null;
-                  return (
-                    <div key={group}>
-                      <p className="px-5 py-2 text-[10px] font-bold uppercase tracking-widest text-body bg-[#F8F9FA] border-b border-[#F0F1F2]">
-                        {group}
-                      </p>
-                      {groupItems.map(n => (
-                        <div
-                          key={n.id}
-                          className={cn(
-                            "flex items-start gap-3 px-5 py-3.5 border-b border-[#F0F1F2] hover:bg-[#F8F9FA] transition-colors cursor-pointer",
-                          )}
-                        >
-                          {/* Icon */}
-                          <div className="shrink-0 w-9 h-9 rounded-lg bg-[#F5F6F7] flex items-center justify-center text-lg">
-                            {n.emoji}
-                          </div>
+              GROUPS.map(group => {
+                const groupItems = displayed.filter(n => n.group === group);
+                if (groupItems.length === 0) return null;
+                return (
+                  <div key={group}>
+                    {/* Section label */}
+                    <p className="px-5 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-subtle">
+                      {group}
+                    </p>
 
-                          {/* Content */}
-                          <div className="flex-1 min-w-0">
-                            <p className={cn("text-xs leading-snug", n.isUnread ? "font-semibold text-navy" : "font-medium text-carbon")}>
-                              {n.title}
-                            </p>
-                            <p className="text-[11px] text-body mt-0.5">{n.subtitle}</p>
-                          </div>
-
-                          {/* Right: time + unread dot */}
-                          <div className="shrink-0 flex flex-col items-end gap-1.5">
-                            <span className="text-[10px] text-body whitespace-nowrap">{n.timeAgo}</span>
-                            {n.isUnread && (
-                              <span className="w-2 h-2 rounded-full bg-badge-bg" />
-                            )}
-                          </div>
+                    {/* Items */}
+                    {groupItems.map((n, i) => (
+                      <div
+                        key={n.id}
+                        className={cn(
+                          "flex items-start gap-3 px-5 py-3.5 hover:bg-surface-hover transition-colors cursor-pointer",
+                          i < groupItems.length - 1 && "border-b border-border"
+                        )}
+                      >
+                        {/* Product thumbnail */}
+                        <div className="shrink-0 w-12 h-12 rounded-lg overflow-hidden border border-border bg-bg relative">
+                          <Image
+                            src={n.imageUrl}
+                            alt=""
+                            fill
+                            sizes="48px"
+                            className="object-contain p-1"
+                          />
                         </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <p className={cn(
+                            "text-xs leading-snug",
+                            n.isUnread ? "font-semibold text-navy" : "font-medium text-body"
+                          )}>
+                            <HighlightedTitle title={n.title} highlight={n.highlight} />
+                          </p>
+                          <p className="text-[11px] text-body mt-0.5 leading-snug">{n.subtitle}</p>
+                        </div>
+
+                        {/* Time + unread dot */}
+                        <div className="shrink-0 flex flex-col items-end gap-1.5 pt-0.5">
+                          <span className="text-[10px] text-subtle whitespace-nowrap">{n.timeAgo}</span>
+                          {n.isUnread && (
+                            <span className="w-2 h-2 rounded-full bg-badge-bg" />
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>

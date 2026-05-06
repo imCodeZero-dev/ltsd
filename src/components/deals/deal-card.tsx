@@ -47,12 +47,13 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
   return (
     <article
       className={cn(
-        "bg-surface rounded-2xl border border-border overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col",
+        "bg-surface/80 rounded-[6px] border border-border overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col",
         className
       )}
     >
       {/* ── Image area ─────────────────────────────── */}
       <div className="relative bg-bg">
+        {/* Share + watchlist — top-right overlay */}
         <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1">
           <button
             aria-label="Share deal"
@@ -64,7 +65,8 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
           <WatchlistButton dealId={deal.id} watchlistItemId={watchlistItemId} />
         </div>
 
-        <Link href={`/deals/${deal.slug ?? deal.id}`} className="block relative w-full aspect-4/3">
+        {/* 3:2 image — matches Figma 270×180 */}
+        <Link href={`/deals/${deal.slug ?? deal.id}`} className="block relative w-full aspect-[3/2]">
           <Image
             src={deal.imageUrl}
             alt={deal.title}
@@ -73,48 +75,63 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
             className="object-contain p-3"
             loading="lazy"
           />
-          <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap px-3 py-1 rounded-md bg-surface border border-border text-2xs font-semibold text-navy shadow-sm pointer-events-none">
-            ⊙ View Deal
-          </span>
         </Link>
       </div>
 
       {/* ── Info area ──────────────────────────────── */}
-      <div className="px-3 pt-2.5 pb-3 flex flex-col gap-1.5 flex-1">
-        <div className="flex items-center justify-between gap-1">
+      {/* pt-[22px] matches Figma gap between image bottom and brand row (y=202−180=22) */}
+      <div className="px-5 pt-[22px] pb-3 flex flex-col flex-1">
+
+        {/* Brand + badge — 20px tall row, matches Figma layout_LBLPEM h=20 */}
+        <div className="flex items-center justify-between gap-1 min-h-5">
           <p className="type-label truncate">{deal.brand || "\u00A0"}</p>
           {deal.discountPercent > 0 && (
-            <span className="type-badge px-1.5 py-0.5 rounded text-surface leading-none shrink-0 bg-badge-bg">
+            <span className="text-[11px] font-bold font-inter px-1.5 py-0.5 rounded text-surface leading-none shrink-0 bg-badge-bg">
               {deal.discountPercent}% OFF
             </span>
           )}
         </div>
 
-        <Link href={`/deals/${deal.slug ?? deal.id}`}>
-          <h3 className="type-card-title line-clamp-2 hover:text-badge-bg transition-colors">
+        {/* Title — 15px, Lato, SemiBold, Title Case, tracking 6.67% */}
+        {/* mt-[15px] matches Figma gap between brand row and title (y=237−222=15) */}
+        <Link href={`/deals/${deal.slug ?? deal.id}`} className="mt-[15px] block">
+          <h3 className="text-[15px] leading-[1.2] font-semibold font-lato text-navy capitalize tracking-[0.067em] line-clamp-2 hover:text-badge-bg transition-colors">
             {deal.title}
           </h3>
         </Link>
 
+        {/* Rating — mt-2 matches ~8px Figma gap */}
         {deal.rating > 0 && (
-          <StarRating score={deal.rating} reviewCount={deal.reviewCount} />
+          <div className="mt-2">
+            <StarRating score={deal.rating} reviewCount={deal.reviewCount} />
+          </div>
         )}
 
+        {/* Countdown (LIGHTNING_DEAL only) */}
         {countdown && (
-          <p className="text-2xs font-medium font-inter text-hot">
+          <p className="text-2xs font-medium font-inter text-hot mt-1.5">
             🔥 Selling fast • Ends in {countdown}
           </p>
         )}
 
-        <div className="flex items-baseline gap-1.5 flex-wrap mt-auto">
-          <span className="type-price">{formatUSD(deal.currentPrice)}</span>
+        {/* Price — centered column, pushed to bottom of info area */}
+        {/* matches Figma layout_TYYRFB: column, center, gap 4px at y=309 */}
+        <div className="flex flex-col items-center gap-1 mt-auto pt-4">
+          <span className="text-xl font-extrabold font-lato text-navy leading-none">
+            {formatUSD(deal.currentPrice)}
+          </span>
           {deal.originalPrice > deal.currentPrice && (
-            <span className="type-price-original">{formatUSD(deal.originalPrice)}</span>
+            <span className="text-sm font-inter text-subtle line-through">
+              {formatUSD(deal.originalPrice)}
+            </span>
           )}
         </div>
 
+        {/* Claim progress — bottom row, matches Figma layout_JFF0LF at y=344 */}
         {deal.dealType === "LIGHTNING_DEAL" && deal.totalCount > 0 && (
-          <ClaimProgress claimed={deal.claimedCount} total={deal.totalCount} />
+          <div className="mt-3">
+            <ClaimProgress claimed={deal.claimedCount} total={deal.totalCount} />
+          </div>
         )}
       </div>
     </article>
