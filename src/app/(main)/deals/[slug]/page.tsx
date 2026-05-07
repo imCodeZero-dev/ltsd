@@ -5,6 +5,7 @@ import { mapDeal, mapDeals, type RawDeal } from "@/lib/deal-mapper";
 import { DealDetailContent } from "./deal-detail-content";
 import type { DealItem, PriceStats } from "@/lib/deal-api/types";
 import { syncProductWithHistory } from "@/lib/deal-api/sync";
+import { getWatchlistMap } from "@/lib/get-watchlist-map";
 
 export const dynamic = "force-dynamic";
 
@@ -130,12 +131,18 @@ export default async function DealDetailPage({
 
   if (!deal) notFound();
 
+  const resolvedDeal = deal as DealItem;
+  const watchlistMap = await getWatchlistMap();
+  const watchlistItemId = watchlistMap.get(resolvedDeal.id);
+
   return (
     <DealDetailContent
-      deal={deal}
+      deal={resolvedDeal}
       similarDeals={similarDeals}
       priceHistory={priceHistory}
       priceStats={priceStats}
+      watchlistItemId={watchlistItemId}
+      watchlistMap={watchlistMap}
     />
   );
 }

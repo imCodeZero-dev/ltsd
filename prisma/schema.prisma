@@ -202,19 +202,25 @@ model PriceHistory {
 // ─────────────────────────────────────────
 
 model WatchlistItem {
-  id          String   @id @default(cuid())
-  userId      String
-  dealId      String
-  targetPrice Float?
-  note        String?
-  createdAt   DateTime @default(now())
+  id              String   @id @default(cuid())
+  userId          String
+  dealId          String
+  targetPrice     Float?   // stored in dollars (same unit as Deal.currentPrice)
+  minDiscount     Int      @default(0)   // 0 = none, 10/20/30 = threshold %
+  priceAlert      Boolean  @default(true)
+  discountAlert   Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  note            String?
+  createdAt       DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  deal Deal @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  // Restrict: refuse to delete a deal that has watchlist entries — prevents silent data loss
+  deal Deal @relation(fields: [dealId], references: [id], onDelete: Restrict)
 
   @@unique([userId, dealId])
   @@index([userId])
   @@index([dealId])
+  @@index([userId, isActive])
 }
 
 // ─────────────────────────────────────────

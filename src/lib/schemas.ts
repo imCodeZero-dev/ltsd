@@ -20,8 +20,19 @@ export const ProfileSchema = z.object({
 });
 
 export const WatchlistItemSchema = z.object({
-  dealId:      z.string().cuid(),
-  targetPrice: z.number().positive().optional(),
+  dealId:        z.string().cuid(),
+  targetPrice:   z.number().positive().optional(), // in cents from client — divided by 100 before DB save
+  minDiscount:   z.number().int().min(0).max(100).optional().default(0),
+  priceAlert:    z.boolean().optional().default(true),
+  discountAlert: z.boolean().optional().default(false),
+});
+
+export const WatchlistItemUpdateSchema = z.object({
+  targetPrice:   z.number().positive().optional(), // in cents from client
+  minDiscount:   z.number().int().min(0).max(100).optional(),
+  priceAlert:    z.boolean().optional(),
+  discountAlert: z.boolean().optional(),
+  isActive:      z.boolean().optional(),
 });
 
 export const NotificationPrefsSchema = z.object({

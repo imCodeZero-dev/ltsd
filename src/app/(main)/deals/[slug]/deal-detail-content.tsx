@@ -453,7 +453,7 @@ function PriceIntelligence({
 }
 
 // ── Similar Deals ─────────────────────────────────────────────────────────────
-function SimilarDeals({ deals }: { deals: DealItem[] }) {
+function SimilarDeals({ deals, watchlistMap }: { deals: DealItem[]; watchlistMap?: Map<string, string> }) {
   return (
     <div>
       <h2 className="text-xl font-extrabold text-navy mb-1 font-lato">
@@ -468,7 +468,7 @@ function SimilarDeals({ deals }: { deals: DealItem[] }) {
         {/* 2 cols on mobile, 4 cols on lg+ */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {deals.slice(0, 4).map((d) => (
-            <DealCard key={d.id} deal={d} />
+            <DealCard key={d.id} deal={d} watchlistItemId={watchlistMap?.get(d.id)} />
           ))}
         </div>
         <button type="button" aria-label="Scroll right"
@@ -486,11 +486,15 @@ export function DealDetailContent({
   similarDeals,
   priceHistory = [],
   priceStats = null,
+  watchlistItemId,
+  watchlistMap,
 }: {
   deal: DealItem;
   similarDeals: DealItem[];
   priceHistory?: { price: number; recordedAt: string }[];
   priceStats?: PriceStats | null;
+  watchlistItemId?: string;
+  watchlistMap?: Map<string, string>;
 }) {
   const chartData = buildChartData(priceHistory, priceStats);
   const images = deal.images?.length ? deal.images : [deal.imageUrl];
@@ -609,7 +613,7 @@ export function DealDetailContent({
           View Deal on Amazon
           <ExternalLink className="w-4 h-4" />
         </a>
-        <WatchlistButton dealId={deal.id} deal={deal} size="lg" />
+        <WatchlistButton dealId={deal.id} deal={deal} size="lg" watchlistItemId={watchlistItemId} />
       </div>
     </div>
   );
@@ -656,7 +660,7 @@ export function DealDetailContent({
             {activeTab === 2 && <PriceIntelligence range={chartRange} onRangeChange={setChartRange} chartData={chartData} />}
           </div>
 
-          {similarDeals.length > 0 && <SimilarDeals deals={similarDeals} />}
+          {similarDeals.length > 0 && <SimilarDeals deals={similarDeals} watchlistMap={watchlistMap} />}
         </div>
 
         {/* Sticky CTA (mobile) */}
@@ -670,7 +674,7 @@ export function DealDetailContent({
             >
               View Deal on Amazon <ExternalLink className="w-4 h-4" />
             </a>
-            <WatchlistButton dealId={deal.id} deal={deal} size="lg" />
+            <WatchlistButton dealId={deal.id} deal={deal} size="lg" watchlistItemId={watchlistItemId} />
           </div>
         </div>
       </div>

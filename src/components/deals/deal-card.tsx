@@ -62,7 +62,11 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
           >
             <Share2 className="w-3 h-3" />
           </button>
-          <WatchlistButton dealId={deal.id} watchlistItemId={watchlistItemId} />
+          <WatchlistButton
+            dealId={deal.id}
+            watchlistItemId={watchlistItemId}
+            deal={{ id: deal.id, title: deal.title, imageUrl: deal.imageUrl, currentPrice: deal.currentPrice }}
+          />
         </div>
 
         {/* 3:2 image — matches Figma 270×180 */}

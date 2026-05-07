@@ -10,28 +10,24 @@ import type { DealItem } from "@/lib/deal-api/types";
 interface WatchlistButtonProps {
   dealId: string;
   watchlistItemId?: string;
-  // Optional deal info — when provided, opens the full modal instead of instant-add
   deal?: Pick<DealItem, "id" | "title" | "imageUrl" | "currentPrice">;
   className?: string;
   size?: "sm" | "lg";
 }
 
 export function WatchlistButton({ dealId, watchlistItemId, deal, className, size = "sm" }: WatchlistButtonProps) {
-  const { isWatched, isPending, toggle } = useWatchlist(watchlistItemId);
+  const { isWatched, isPending, add, remove } = useWatchlist(watchlistItemId);
   const [modalOpen, setModalOpen] = useState(false);
 
   function handleClick() {
     if (isWatched) {
-      // Already watching — just toggle off
-      toggle(dealId);
+      remove();
       return;
     }
     if (deal) {
-      // Has deal info — open the full modal
       setModalOpen(true);
     } else {
-      // No deal info (e.g. in deal card) — instant add
-      toggle(dealId);
+      add({ dealId });
     }
   }
 
@@ -60,7 +56,16 @@ export function WatchlistButton({ dealId, watchlistItemId, deal, className, size
           deal={deal}
           open={modalOpen}
           onClose={() => setModalOpen(false)}
-          onConfirm={({ dealId, targetPrice }) => toggle(dealId, targetPrice)}
+          onConfirm={(payload) => {
+            add({
+              dealId:        payload.dealId,
+              targetPrice:   payload.targetPrice,
+              minDiscount:   payload.minDiscount,
+              priceAlert:    payload.priceAlert,
+              discountAlert: payload.discountAlert,
+            });
+            setModalOpen(false);
+          }}
         />
       )}
     </>

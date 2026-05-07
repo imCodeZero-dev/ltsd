@@ -6,6 +6,7 @@ import { DealGridSkeleton } from "@/components/deals/deal-card-skeleton";
 import { db } from "@/lib/db";
 import { mapDeals, type RawDeal } from "@/lib/deal-mapper";
 import type { DealItem } from "@/lib/deal-api/types";
+import { getWatchlistMap } from "@/lib/get-watchlist-map";
 
 export const metadata: Metadata = { title: "Deal Feed — LTSD" };
 export const dynamic = "force-dynamic";
@@ -79,7 +80,10 @@ interface DealsPageProps {
 
 export default async function DealsPage({ searchParams }: DealsPageProps) {
   const filters = await searchParams;
-  const { deals, total } = await getDeals(filters);
+  const [{ deals, total }, watchlistMap] = await Promise.all([
+    getDeals(filters),
+    getWatchlistMap(),
+  ]);
 
   return (
     <div className="max-w-350 mx-auto px-4 md:px-6 py-6 space-y-5">
@@ -97,7 +101,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
 
       {/* Grid */}
       <Suspense fallback={<DealGridSkeleton count={16} />}>
-        <DealGrid deals={deals} />
+        <DealGrid deals={deals} watchlistMap={watchlistMap} />
       </Suspense>
 
       {/* Load more */}

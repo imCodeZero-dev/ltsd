@@ -216,7 +216,7 @@ function getCatEmoji(slug: string): string {
 }
 
 // ── Deal of Week ───────────────────────────────────────────────────────────────
-function DealOfWeekSection({ deals }: { deals: DealItem[] }) {
+function DealOfWeekSection({ deals, watchlistMap }: { deals: DealItem[]; watchlistMap?: Map<string, string> }) {
   if (!deals.length) return null;
 
   return (
@@ -228,14 +228,14 @@ function DealOfWeekSection({ deals }: { deals: DealItem[] }) {
       <div className="md:hidden flex gap-3 overflow-x-auto scrollbar-none -mx-5 px-5 pb-1">
         {deals.map((deal) => (
           <div key={deal.id} className="shrink-0 w-[calc(50vw-16px)]">
-            <DealCard deal={deal} />
+            <DealCard deal={deal} watchlistItemId={watchlistMap?.get(deal.id)} />
           </div>
         ))}
       </div>
 
       <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 gap-3">
         {deals.map((deal) => (
-          <DealCard key={deal.id} deal={deal} />
+          <DealCard key={deal.id} deal={deal} watchlistItemId={watchlistMap?.get(deal.id)} />
         ))}
       </div>
     </section>
@@ -312,6 +312,7 @@ export default async function DashboardPage() {
   let watchlistItems: WatchlistDashItem[] = [];
   let categories: CategoryWithImage[] = [];
   let topBrands: string[] = [];
+  let watchlistMap = new Map<string, string>();
 
   try {
     // 1. Deal of Week — top 4 by highest discount
@@ -435,6 +436,9 @@ export default async function DashboardPage() {
         currentPrice: w.deal.currentPrice,
       },
     }));
+
+    // Build watchlist map for deal cards (dealId → watchlistItemId)
+    watchlistMap = new Map(wlRows.map((w) => [w.deal.id, w.id]));
   } catch (e) {
     console.error("[Dashboard] DB query failed:", e);
   }
@@ -452,7 +456,7 @@ export default async function DashboardPage() {
       <CategoriesRow categories={categories} />
 
       {/* Deal of Week */}
-      <DealOfWeekSection deals={dealOfWeekDeals} />
+      <DealOfWeekSection deals={dealOfWeekDeals} watchlistMap={watchlistMap} />
 
       {/* Live Watchlist */}
       {watchlistItems.length > 0 && (
@@ -483,7 +487,7 @@ export default async function DashboardPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
             {trendingDeals.map((deal) => (
-              <DealCard key={`t-${deal.id}`} deal={deal} />
+              <DealCard key={`t-${deal.id}`} deal={deal} watchlistItemId={watchlistMap.get(deal.id)} />
             ))}
           </div>
           <div className="flex justify-center mt-6">

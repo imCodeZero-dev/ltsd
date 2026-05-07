@@ -4,10 +4,11 @@ import { DealCard } from "./deal-card";
 
 interface DealGridProps {
   deals: DealItem[];
+  watchlistMap?: Map<string, string>; // Map<dealId, watchlistItemId>
   className?: string;
 }
 
-export function DealGrid({ deals, className }: DealGridProps) {
+export function DealGrid({ deals, watchlistMap, className }: DealGridProps) {
   return (
     <div
       className={cn(
@@ -16,7 +17,11 @@ export function DealGrid({ deals, className }: DealGridProps) {
       )}
     >
       {deals.map((deal) => (
-        <DealCard key={deal.id} deal={deal} />
+        <DealCard
+          key={deal.id}
+          deal={deal}
+          watchlistItemId={watchlistMap?.get(deal.id)}
+        />
       ))}
     </div>
   );
