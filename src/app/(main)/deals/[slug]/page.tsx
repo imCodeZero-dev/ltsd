@@ -6,6 +6,8 @@ import { DealDetailContent } from "./deal-detail-content";
 import type { DealItem, PriceStats } from "@/lib/deal-api/types";
 import { syncProductWithHistory } from "@/lib/deal-api/sync";
 import { getWatchlistMap } from "@/lib/get-watchlist-map";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -132,6 +134,11 @@ export default async function DealDetailPage({
   if (!deal) notFound();
 
   const resolvedDeal = deal as DealItem;
+
+  // Unauthenticated users → clean gate page (no header/nav)
+  const session = await auth();
+  if (!session) redirect(`/unlock/${resolvedDeal.slug ?? resolvedDeal.id}`);
+
   const watchlistMap = await getWatchlistMap();
   const watchlistItemId = watchlistMap.get(resolvedDeal.id);
 

@@ -4,10 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { ChevronLeft, ChevronRight, ExternalLink, Share2, TrendingDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, ExternalLink, TrendingDown } from "lucide-react";
 import { StarRating } from "@/components/common/star-rating";
 import { DealCard } from "@/components/deals/deal-card";
 import { WatchlistButton } from "@/components/deals/watchlist-button";
+import { ShareButton } from "@/components/common/share-button";
 import type { DealItem, PriceStats } from "@/lib/deal-api/types";
 import { useTick } from "./use-tick";
 
@@ -558,10 +559,11 @@ export function DealDetailContent({
             </span>
           )}
         </div>
-        <button type="button" aria-label="Share"
-          className="shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-body hover:text-navy hover:border-navy transition-colors">
-          <Share2 className="w-3.5 h-3.5" />
-        </button>
+        <ShareButton
+          slug={deal.slug ?? deal.id}
+          className="shrink-0 w-8 h-8 rounded-full border border-border flex items-center justify-center text-body hover:text-navy hover:border-navy transition-colors"
+          iconClassName="w-3.5 h-3.5"
+        />
       </div>
 
       {/* Best price indicator */}

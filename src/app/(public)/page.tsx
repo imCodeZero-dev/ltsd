@@ -385,7 +385,7 @@ function DealsSection({ deals }: { deals: ShowcaseDeal[] }) {
         {/* Deal cards */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
           {deals.map((deal) => (
-            <Link key={deal.id} href="/signup">
+            <Link key={deal.id} href={`/unlock/${deal.id}`}>
               <article className="bg-surface rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
                 {/* Product image */}
                 <div className="relative bg-bg w-full aspect-[4/3]">

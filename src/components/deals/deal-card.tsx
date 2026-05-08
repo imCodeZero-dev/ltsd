@@ -2,13 +2,13 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Share2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import type { DealItem } from "@/lib/deal-api/types";
 import { ClaimProgress } from "./claim-progress";
 import { WatchlistButton } from "./watchlist-button";
 import { StarRating } from "@/components/common/star-rating";
+import { ShareButton } from "@/components/common/share-button";
 
 interface DealCardProps {
   deal: DealItem;
@@ -55,13 +55,11 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
       <div className="relative bg-bg">
         {/* Share + watchlist — top-right overlay */}
         <div className="absolute top-2.5 right-2.5 z-10 flex items-center gap-1">
-          <button
-            aria-label="Share deal"
+          <ShareButton
+            slug={deal.slug ?? deal.id}
             className="w-6 h-6 rounded-full bg-surface shadow-sm flex items-center justify-center text-subtle hover:text-navy transition-colors"
-            onClick={(e) => e.preventDefault()}
-          >
-            <Share2 className="w-3 h-3" />
-          </button>
+            iconClassName="w-3 h-3"
+          />
           <WatchlistButton
             dealId={deal.id}
             watchlistItemId={watchlistItemId}

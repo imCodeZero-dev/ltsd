@@ -20,7 +20,7 @@ export function AccountDropdown({ name, email, image, role }: AccountDropdownPro
 
   const initials = name
     ? name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase()
-    : email[0].toUpperCase();
+    : (email?.[0] ?? "U").toUpperCase();
 
   // Close on outside click
   useEffect(() => {

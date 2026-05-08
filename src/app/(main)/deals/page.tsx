@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { DealFilters } from "@/components/deals/deal-filters";
 import { DealGrid } from "@/components/deals/deal-grid";
 import { DealGridSkeleton } from "@/components/deals/deal-card-skeleton";
@@ -7,6 +8,7 @@ import { db } from "@/lib/db";
 import { mapDeals, type RawDeal } from "@/lib/deal-mapper";
 import type { DealItem } from "@/lib/deal-api/types";
 import { getWatchlistMap } from "@/lib/get-watchlist-map";
+import { auth } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Deal Feed — LTSD" };
 export const dynamic = "force-dynamic";
@@ -79,6 +81,9 @@ interface DealsPageProps {
 }
 
 export default async function DealsPage({ searchParams }: DealsPageProps) {
+  const session = await auth();
+  if (!session) redirect("/");
+
   const filters = await searchParams;
   const [{ deals, total }, watchlistMap] = await Promise.all([
     getDeals(filters),
