@@ -30,7 +30,7 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
 
 function ChipGroup<T extends string>({
   options, value, onChange,
-}: { options: { label: string; value: T }[]; value: T; onChange: (v: T) => void }) {
+}: { options: readonly { label: string; value: T }[]; value: T; onChange: (v: T) => void }) {
   return (
     <div className="flex flex-wrap gap-2">
       {options.map(opt => (
