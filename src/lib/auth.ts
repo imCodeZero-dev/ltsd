@@ -50,6 +50,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
         if (!valid) return null;
 
+        if (!user.isActive) return null; // deactivated — treat same as wrong credentials
+
         return {
           id:                  user.id,
           email:               user.email,
@@ -78,14 +80,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         // Always fetch fresh name + image from DB so profile edits are
         // reflected immediately without requiring a new login.
+        // Also re-check isActive so deactivated users are booted on next request.
         const fresh = await db.user.findUnique({
           where:  { id: token.id as string },
-          select: { name: true, image: true },
+          select: { name: true, image: true, isActive: true },
         });
-        if (fresh) {
-          session.user.name  = fresh.name;
-          session.user.image = fresh.image;
-        }
+        if (!fresh || !fresh.isActive) return null as never; // kills the session
+        session.user.name  = fresh.name;
+        session.user.image = fresh.image;
       }
       return session;
     },

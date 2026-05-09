@@ -73,7 +73,7 @@ export default function AdminDashboardPage() {
   const [range, setRange] = useState("Monthly");
 
   return (
-    <div className="px-6 py-8 space-y-6">
+    <div className="px-3 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
       <div>
         <h1 className="text-2xl font-extrabold text-navy">Admin Dashboard</h1>
         <p className="text-sm text-body mt-1">Manage and audit the real-time deal feed across all platforms.</p>

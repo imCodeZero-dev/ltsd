@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { DealFilters } from "@/components/deals/deal-filters";
 import { DealGrid } from "@/components/deals/deal-grid";
+import { DealCard } from "@/components/deals/deal-card";
 import { DealGridSkeleton } from "@/components/deals/deal-card-skeleton";
 import { db } from "@/lib/db";
 import { mapDeals, type RawDeal } from "@/lib/deal-mapper";
@@ -85,13 +86,45 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   if (!session) redirect("/");
 
   const filters = await searchParams;
-  const [{ deals, total }, watchlistMap] = await Promise.all([
+
+  // Only show the weekly section when no filter is active
+  const hasFilter = filters.type || filters.category || filters.q || filters.sort;
+
+  const [{ deals, total }, watchlistMap, weeklyRows] = await Promise.all([
     getDeals(filters),
     getWatchlistMap(),
+    hasFilter ? Promise.resolve([]) : db.deal.findMany({
+      where:   { isWeeklyDeal: true, isActive: true, imageUrl: { not: null } },
+      orderBy: { weeklyDealSlot: "asc" },
+      take:    7,
+      include: { categories: { include: { category: { select: { name: true } } } } },
+    }),
   ]);
 
+  const weeklyDeals: DealItem[] = weeklyRows.length > 0
+    ? mapDeals(weeklyRows as RawDeal[])
+    : [];
+
   return (
-    <div className="max-w-350 mx-auto px-4 md:px-6 py-6 space-y-5">
+    <div className="max-w-350 mx-auto px-4 md:px-6 py-6 space-y-6">
+
+      {/* Weekly deals spotlight — shown only on unfiltered view */}
+      {weeklyDeals.length > 0 && (
+        <section>
+          <div className="flex items-end justify-between mb-3">
+            <div>
+              <h2 className="type-section-title">Deals of the Week</h2>
+              <p className="text-sm text-body mt-0.5">Handpicked every Monday by our team</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+            {weeklyDeals.map(deal => (
+              <DealCard key={deal.id} deal={deal} watchlistItemId={watchlistMap.get(deal.id)} />
+            ))}
+          </div>
+          <div className="mt-4 border-t border-[#E7E8E9]" />
+        </section>
+      )}
 
       {/* Filters */}
       <Suspense fallback={<div className="h-12 rounded-xl bg-bg animate-pulse" />}>
@@ -100,7 +133,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
 
       {/* Results heading */}
       <h1 className="type-section-title">
-        Results{" "}
+        {hasFilter ? "Results" : "All Deals"}{" "}
         <span className="text-sm font-normal text-body">({total}+ deals found)</span>
       </h1>
 

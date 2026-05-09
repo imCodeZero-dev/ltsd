@@ -1,6 +1,7 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { LogOut } from "lucide-react";
 import { logout } from "@/actions/auth";
 
@@ -11,8 +12,11 @@ interface LogoutModalProps {
 
 export function LogoutModal({ open, onClose }: LogoutModalProps) {
   const [isPending, startTransition] = useTransition();
+  const [mounted, setMounted] = useState(false);
 
-  if (!open) return null;
+  useEffect(() => { setMounted(true); }, []);
+
+  if (!open || !mounted) return null;
 
   function handleLogout() {
     startTransition(async () => {
@@ -20,9 +24,9 @@ export function LogoutModal({ open, onClose }: LogoutModalProps) {
     });
   }
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-9999 flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.45)" }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -70,6 +74,7 @@ export function LogoutModal({ open, onClose }: LogoutModalProps) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

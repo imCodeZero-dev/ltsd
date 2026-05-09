@@ -18,17 +18,21 @@ export async function login(_prevState: ActionResult, formData: FormData): Promi
   const password = formData.get("password") as string;
 
   try {
-    // Check onboarding status so we can route new users to onboarding
     const user = await db.user.findUnique({
       where:  { email },
-      select: { onboardingCompleted: true },
+      select: { onboardingCompleted: true, role: true },
     });
 
-    await nextAuthSignIn("credentials", {
-      email,
-      password,
-      redirectTo: user?.onboardingCompleted ? "/dashboard" : "/onboarding",
-    });
+    // Admins always go to the admin dashboard
+    // Regular users go to onboarding if not completed, otherwise dashboard
+    let redirectTo = "/dashboard";
+    if (user?.role === "ADMIN") {
+      redirectTo = "/admin/dashboard";
+    } else if (!user?.onboardingCompleted) {
+      redirectTo = "/onboarding";
+    }
+
+    await nextAuthSignIn("credentials", { email, password, redirectTo });
   } catch (e) {
     if (isRedirectError(e)) throw e;
     return { error: "Invalid email or password." };

@@ -25,28 +25,29 @@ interface ShowcaseDeal {
 
 async function getShowcaseDeals(): Promise<ShowcaseDeal[]> {
   try {
-    const rows = await db.deal.findMany({
-      where: { isActive: true, discountPercent: { gt: 0 } },
-      orderBy: { discountPercent: "desc" },
-      take: 3,
-      select: {
-        id: true,
-        brand: true,
-        title: true,
-        currentPrice: true,
-        originalPrice: true,
-        discountPercent: true,
-        imageUrl: true,
-      },
+    // Prefer admin-curated weekly deals (top 3 by slot), fallback to highest discount
+    const weeklyRows = await db.deal.findMany({
+      where:   { isWeeklyDeal: true, isActive: true, discountPercent: { gt: 0 }, imageUrl: { not: null } },
+      orderBy: { weeklyDealSlot: "asc" },
+      take:    3,
+      select:  { id: true, brand: true, title: true, currentPrice: true, originalPrice: true, discountPercent: true, imageUrl: true },
     });
+
+    const rows = weeklyRows.length >= 3 ? weeklyRows : await db.deal.findMany({
+      where:   { isActive: true, discountPercent: { gt: 0 } },
+      orderBy: { discountPercent: "desc" },
+      take:    3,
+      select:  { id: true, brand: true, title: true, currentPrice: true, originalPrice: true, discountPercent: true, imageUrl: true },
+    });
+
     return rows.map((r) => ({
-      id: r.id,
-      brand: r.brand ?? "Brand",
-      title: r.title,
-      price: Math.round(r.currentPrice),
+      id:       r.id,
+      brand:    r.brand ?? "Brand",
+      title:    r.title,
+      price:    Math.round(r.currentPrice),
       original: Math.round(r.originalPrice ?? r.currentPrice),
       discount: r.discountPercent ?? 0,
-      image: r.imageUrl ?? "/placeholder-product.png",
+      image:    r.imageUrl ?? "/placeholder-product.png",
     }));
   } catch { /* DB not seeded */ }
   return [];
@@ -373,13 +374,13 @@ function DealsSection({ deals }: { deals: ShowcaseDeal[] }) {
 
         {/* Heading */}
         <h2 className="text-3xl md:text-4xl lg:text-[44px] font-extrabold text-navy text-center leading-tight max-w-3xl mx-auto font-lato" style={{ letterSpacing: "-0.02em" }}>
-          Top Deals People Are Grabbing<br />
-          Right Now — Don't Miss Out
+          This Week's Top Deals —<br />
+          Handpicked Just for You
         </h2>
 
         {/* Subtitle */}
         <p className="mt-4 text-base text-body text-center max-w-md mx-auto font-lato">
-          Live deals updated daily — prices change fast, don't miss your chance
+          Our team picks the best 7 deals every Monday — updated weekly, gone fast
         </p>
 
         {/* Deal cards */}

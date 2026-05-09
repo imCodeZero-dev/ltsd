@@ -31,6 +31,27 @@ async function main() {
     });
   }
   console.log(`Seeded ${categories.length} categories.`);
+
+  // Admin account
+  const bcrypt = await import("bcryptjs");
+  const passwordHash = await bcrypt.hash("Abc123!@#", 12);
+  await db.user.upsert({
+    where:  { email: "admin@ltsd.com" },
+    create: {
+      email:               "admin@ltsd.com",
+      name:                "LTSD Admin",
+      passwordHash,
+      role:                "ADMIN",
+      onboardingCompleted: true,
+    },
+    update: {
+      name:                "LTSD Admin",
+      passwordHash,
+      role:                "ADMIN",
+      onboardingCompleted: true,
+    },
+  });
+  console.log("Admin account upserted: admin@ltsd.com");
 }
 
 main()

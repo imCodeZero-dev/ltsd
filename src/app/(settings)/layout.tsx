@@ -14,7 +14,7 @@ export default async function SettingsLayout({ children }: { children: React.Rea
     name: session.user?.name ?? null,
     email: session.user?.email ?? "",
     image: session.user?.image ?? null,
-    role: (session.user as { role?: string })?.role ?? "USER",
+    role: (session.user?.role ?? "USER") as "USER" | "ADMIN",
   };
 
   return (

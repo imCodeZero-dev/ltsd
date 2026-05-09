@@ -48,7 +48,7 @@ export default function AdminAlertsPage() {
     : ALERTS;
 
   return (
-    <div className="px-6 py-8 space-y-6">
+    <div className="px-3 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>

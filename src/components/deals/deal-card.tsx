@@ -116,9 +116,8 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
           </p>
         )}
 
-        {/* Price — centered column, pushed to bottom of info area */}
-        {/* matches Figma layout_TYYRFB: column, center, gap 4px at y=309 */}
-        <div className="flex flex-col items-center gap-1 mt-auto pt-4">
+        {/* Price — inline row, left-aligned, pushed to bottom of info area */}
+        <div className="flex items-baseline gap-2 mt-auto pt-4">
           <span className="text-xl font-extrabold font-lato text-navy leading-none">
             {formatUSD(deal.currentPrice)}
           </span>

@@ -7,6 +7,7 @@ import { requireAuth } from "@/lib/auth-guard";
 import { mapDeals, mapDeal, type RawDeal } from "@/lib/deal-mapper";
 import { DealCard } from "@/components/deals/deal-card";
 import { HeroCarousel, type HeroSlide } from "@/components/dashboard/hero-carousel";
+import { WeeklyDealsSlider } from "@/components/dashboard/weekly-deals-slider";
 import { SectionHeading } from "@/components/common/section-heading";
 import type { DealItem } from "@/lib/deal-api/types";
 
@@ -223,21 +224,8 @@ function DealOfWeekSection({ deals, watchlistMap }: { deals: DealItem[]; watchli
     <section className="relative lg:p-5">
       <div className="pointer-events-none hidden md:block absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-[#E8C4C4] rounded-tl-2xl" />
       <div className="pointer-events-none hidden md:block absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-[#E8C4C4] rounded-br-2xl" />
-      <SectionHeading title="Deal Of Week" subtitle="Based on your interests and activity" viewAllHref="/deals" />
-
-      <div className="md:hidden flex gap-3 overflow-x-auto scrollbar-none -mx-5 px-5 pb-1">
-        {deals.map((deal) => (
-          <div key={deal.id} className="shrink-0 w-[calc(50vw-16px)]">
-            <DealCard deal={deal} watchlistItemId={watchlistMap?.get(deal.id)} />
-          </div>
-        ))}
-      </div>
-
-      <div className="hidden md:grid grid-cols-3 lg:grid-cols-4 gap-3">
-        {deals.map((deal) => (
-          <DealCard key={deal.id} deal={deal} watchlistItemId={watchlistMap?.get(deal.id)} />
-        ))}
-      </div>
+      <SectionHeading title="Deals of the Week" subtitle="Handpicked by our team — updated every Monday" viewAllHref="/deals" />
+      <WeeklyDealsSlider deals={deals} watchlistMap={watchlistMap} />
     </section>
   );
 }
@@ -304,6 +292,13 @@ function WatchlistCard({ item }: { item: WatchlistDashItem }) {
 // ── Page ───────────────────────────────────────────────────────────────────────
 export default async function DashboardPage() {
   const session = await requireAuth();
+
+  // Admins must use the admin panel — redirect them out of the main app
+  if (session.user.role === "ADMIN") {
+    const { redirect } = await import("next/navigation");
+    redirect("/admin/dashboard");
+  }
+
   const userName = session.user.name ?? session.user.email ?? "there";
 
   let heroSlides: HeroSlide[] = [];
@@ -315,20 +310,36 @@ export default async function DashboardPage() {
   let watchlistMap = new Map<string, string>();
 
   try {
-    // 1. Deal of Week — top 4 by highest discount
-    const dealOfWeekRows = await db.deal.findMany({
+    // 1. Deals of the Week — admin-curated weekly 7 (fallback: top discount)
+    let dealOfWeekRows = await db.deal.findMany({
       where: {
-        isActive: true,
-        currentPrice: { gt: 0 },
-        discountPercent: { gt: 0 },
-        imageUrl: { not: null },
+        isWeeklyDeal: true,
+        isActive:     true,
+        imageUrl:     { not: null },
       },
-      orderBy: { discountPercent: "desc" },
-      take: 4,
+      orderBy: { weeklyDealSlot: "asc" },
+      take: 7,
       include: {
         categories: { include: { category: { select: { name: true } } } },
       },
     });
+
+    // Fallback if admin hasn't set weekly deals yet
+    if (dealOfWeekRows.length === 0) {
+      dealOfWeekRows = await db.deal.findMany({
+        where: {
+          isActive:        true,
+          currentPrice:    { gt: 0 },
+          discountPercent: { gt: 0 },
+          imageUrl:        { not: null },
+        },
+        orderBy: { discountPercent: "desc" },
+        take: 7,
+        include: {
+          categories: { include: { category: { select: { name: true } } } },
+        },
+      });
+    }
 
     dealOfWeekDeals = mapDeals(dealOfWeekRows as RawDeal[]);
     const dealOfWeekIds = dealOfWeekRows.map((d) => d.id);
