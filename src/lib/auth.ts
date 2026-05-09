@@ -75,6 +75,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id                  = token.id as string;
         session.user.role                = token.role as "USER" | "ADMIN";
         session.user.onboardingCompleted = token.onboardingCompleted as boolean;
+
+        // Always fetch fresh name + image from DB so profile edits are
+        // reflected immediately without requiring a new login.
+        const fresh = await db.user.findUnique({
+          where:  { id: token.id as string },
+          select: { name: true, image: true },
+        });
+        if (fresh) {
+          session.user.name  = fresh.name;
+          session.user.image = fresh.image;
+        }
       }
       return session;
     },

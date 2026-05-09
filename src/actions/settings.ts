@@ -13,11 +13,8 @@ export interface ActionResult {
   error?: string;
 }
 
-export async function updateProfile(
-  _prevState: ActionResult,
-  formData: FormData,
-): Promise<ActionResult> {
-  const parsed = ProfileSchema.safeParse({ name: formData.get("name") });
+export async function updateProfile(name: string): Promise<ActionResult> {
+  const parsed = ProfileSchema.safeParse({ name });
   if (!parsed.success) return { error: "Name must be 2–50 characters." };
 
   const session = await requireAuth();
@@ -29,6 +26,23 @@ export async function updateProfile(
 
   revalidatePath("/settings/profile");
   return {};
+}
+
+export async function updateAvatar(dataUrl: string): Promise<ActionResult & { imageUrl?: string }> {
+  const session = await requireAuth();
+
+  const { uploadAvatar } = await import("@/lib/cloudinary");
+  const result = await uploadAvatar(dataUrl, session.user.id);
+
+  await db.user.update({
+    where: { id: session.user.id },
+    data:  { image: result.url },
+  });
+
+  // Revalidate layout so sidebar + dropdown pick up new image
+  revalidatePath("/settings", "layout");
+  revalidatePath("/", "layout");
+  return { imageUrl: result.url };
 }
 
 export async function changePassword(
