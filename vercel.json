@@ -2,19 +2,23 @@
   "crons": [
     {
       "path": "/api/cron/deal-sync",
-      "schedule": "0 */6 * * *"
+      "schedule": "0 6 * * *"
     },
     {
       "path": "/api/cron/deal-sync?mode=bestsellers",
-      "schedule": "0 3 * * *"
+      "schedule": "0 7 * * *"
     },
     {
       "path": "/api/cron/lightning-sync",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/price-check",
-      "schedule": "0 2,8,14,20 * * *"
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/weekly-deals",
+      "schedule": "0 0 * * 1"
     }
   ]
 }
