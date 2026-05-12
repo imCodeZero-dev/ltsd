@@ -145,11 +145,23 @@ function GuestHeader() {
 function HeroSection() {
   return (
     <section
-      className="relative overflow-hidden"
+      className="relative"
       style={{
         background: "radial-gradient(ellipse 100% 80% at 50% 100%, #FFE4A0 0%, #FFF9EE 40%, #FFFFFF 70%)",
       }}
     >
+      {/* CSS-only float animations — no JS, no client component needed */}
+      <style>{`
+        @keyframes heroFloat {
+          0%, 100% { transform: translateY(0px); }
+          50%       { transform: translateY(-10px); }
+        }
+        .hero-float-1 { animation: heroFloat 3.2s ease-in-out infinite; }
+        .hero-float-2 { animation: heroFloat 4.0s ease-in-out infinite 0.7s; }
+        .hero-float-3 { animation: heroFloat 3.6s ease-in-out infinite 1.2s; }
+        .hero-float-4 { animation: heroFloat 4.4s ease-in-out infinite 0.4s; }
+      `}</style>
+
       <div className="max-w-350 mx-auto px-4 sm:px-6 pt-16 pb-0 text-center">
         {/* Badge */}
         <div className="flex justify-center mb-6">
@@ -176,178 +188,78 @@ function HeroSection() {
           <Link href="/deals" className="btn-dark">Explore Deals</Link>
         </div>
 
-        {/* Phone mockup + floating elements */}
+        {/* ── Phone + floating cards ──────────────────────────────── */}
+        {/*
+          Layout:
+          - Outer flex centers the phone wrapper
+          - Phone wrapper is `relative` — positioning context for the overlay
+          - Inner clip div: overflow-hidden + explicit height = 60% of phone's
+            natural height at each breakpoint, so the bottom 40% is cut off
+          - Gradient fade smooths the clip edge
+          - Overlay div (absolute inset-0, overflow-visible) holds the 4 float
+            cards, positioned with negative left/right to float beside the phone
+            without being caught by the clip div's overflow:hidden
+        */}
         <div className="relative mt-14 flex justify-center">
+          <div className="relative w-[260px] sm:w-[300px] md:w-[340px]">
 
-          {/* Floating: 2,341 Deals Bought — TOP LEFT */}
-          <div className="absolute left-4 md:left-10 top-4 z-10 bg-surface rounded-2xl shadow-md px-3 py-2 flex items-center gap-2 hidden sm:flex">
-            <span className="text-badge-bg text-base">🔥</span>
-            <p className="text-xs font-bold text-navy font-lato">
-              2,341 Deals Bought
-            </p>
-          </div>
-
-          {/* Floating: PRICE DROPPED — LEFT MIDDLE */}
-          <div
-            className="absolute left-0 md:left-4 top-36 md:top-40 z-10 bg-surface rounded-2xl shadow-lg px-3 py-2.5 text-left hidden sm:block"
-            style={{ minWidth: 190 }}
-          >
-            <p className="text-2xs font-semibold uppercase tracking-wide text-body mb-1 font-inter">
-              Price Dropped
-            </p>
-            <p className="text-xs font-bold text-navy mb-1 font-lato">
-              Gaming Ultra Promax Headphones
-            </p>
-            <div className="flex items-center gap-1.5">
-              <span className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-surface"><path d="M12 16l-6-6h12z"/></svg>
-              </span>
-              <span className="font-extrabold text-sm text-navy font-lato">$298</span>
-              <span className="text-xs line-through text-body">$399</span>
+            {/* Phone image — bottom 40% clipped */}
+            {/* Natural height: 260×(726/544)≈347 → 60%=208 | 300→401→240 | 340→454→272 */}
+            <div className="overflow-hidden h-[208px] sm:h-[240px] md:h-[272px]">
+              <Image
+                src="/images/landing/landing.png"
+                alt="LTSD App"
+                width={544}
+                height={726}
+                className="w-full h-auto"
+                priority
+              />
             </div>
-          </div>
 
-          {/* Floating: TRENDING NOW — TOP RIGHT */}
-          <div className="absolute right-4 md:right-8 top-10 z-10 bg-surface rounded-2xl shadow-md px-3 py-2 hidden sm:block">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-body font-inter">
-              Trending Now
-            </p>
-            <div className="flex items-center gap-1.5 mt-0.5">
-              <span className="w-5 h-5 rounded-full bg-badge-bg flex items-center justify-center">
-                <svg viewBox="0 0 24 24" className="w-3 h-3 fill-surface"><path d="M12 16l-6-6h12z"/></svg>
-              </span>
-              <span className="font-extrabold text-sm text-navy font-lato">$298</span>
-              <span className="text-xs line-through text-body">$399</span>
-            </div>
-          </div>
+            {/* Gradient fade at clip edge — z-[1] so cards render above it */}
+            <div
+              className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none z-[1]"
+              style={{ background: "linear-gradient(to top, #FFF9EE 0%, transparent 100%)" }}
+            />
 
-          {/* Avatar + count — MIDDLE RIGHT */}
-          <div className="absolute right-2 md:right-8 top-60 md:top-72 z-10 flex items-center gap-2 hidden md:flex">
-            <div className="flex -space-x-2">
-              {[
-                "https://i.pravatar.cc/72?img=32",
-                "https://i.pravatar.cc/72?img=44",
-                "https://i.pravatar.cc/72?img=68",
-              ].map((src, i) => (
-                <div key={i} className="relative w-8 h-8 rounded-full border-2 border-surface overflow-hidden">
-                  <Image src={src} alt="" fill sizes="32px" className="object-cover" />
-                </div>
-              ))}
-            </div>
-            <span className="text-sm font-bold text-navy font-lato">10k+</span>
-          </div>
+            {/* Floating cards — absolute overlay, overflow visible.
+                Mobile: cards pushed to viewport edges (outside phone bounds).
+                  Left cards:  left = -(natural_width × 0.6) so right edge = phone left edge.
+                  Right cards: right = -(natural_width × 0.6) so left edge = phone right edge.
+                  This shows ~57% of each card peeking in from the viewport edges.
+                sm+: full-size float positions beside the phone. */}
+            <div className="absolute inset-0 overflow-visible pointer-events-none">
 
-          {/* Phone frame */}
-          <div
-            className="relative w-[300px] md:w-[340px] rounded-[40px] overflow-hidden shadow-2xl border-[10px] border-[#1A1A1A]"
-            style={{ aspectRatio: "9/19" }}
-          >
-            {/* Dynamic Island */}
-            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-[88px] h-[25px] bg-[#1A1A1A] rounded-full z-10" />
-
-            {/* Phone screen */}
-            <div className="w-full h-full bg-bg overflow-hidden">
-              {/* Status bar */}
-              <div className="bg-surface px-4 pt-7 pb-0.5 flex items-center justify-between">
-                <span className="text-[9px] font-bold text-navy font-lato">9:41</span>
-                <div className="flex items-center gap-1">
-                  {/* Signal bars */}
-                  <div className="flex items-end gap-px h-2.5">
-                    {[40, 60, 80, 100].map((pct, i) => (
-                      <div key={i} className="w-[3px] rounded-sm bg-navy" style={{ height: `${pct}%` }} />
-                    ))}
-                  </div>
-                  {/* Wifi */}
-                  <svg viewBox="0 0 20 14" className="w-3 h-2.5" fill="none">
-                    <path d="M10 10.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3zm0-4A5.5 5.5 0 0 1 13.9 8L12.5 9.4A3.5 3.5 0 0 0 10 8a3.5 3.5 0 0 0-2.5 1.4L6.1 8A5.5 5.5 0 0 1 10 6.5zm0-4a9.5 9.5 0 0 1 6.7 2.8l-1.4 1.4A7.5 7.5 0 0 0 10 4.5a7.5 7.5 0 0 0-5.3 2.2L3.3 5.3A9.5 9.5 0 0 1 10 2.5z" fill="#000A1E"/>
-                  </svg>
-                  {/* Battery */}
-                  <div className="flex items-center">
-                    <div className="w-4 h-2 rounded-sm border border-navy p-px">
-                      <div className="h-full w-3/4 bg-navy rounded-[1px]" />
-                    </div>
-                    <div className="w-0.5 h-1 bg-navy rounded-r-full" />
-                  </div>
-                </div>
+              {/* Deals Bought (190×46) — top-left */}
+              {/* mobile: 190×0.6=114px → left:-114px puts right edge at phone left */}
+              <div className="absolute z-10 hero-float-1 pointer-events-auto drop-shadow-lg
+                              left-[-114px] top-[12px] scale-[0.6] origin-top-left
+                              sm:left-[-155px] sm:top-[12px] sm:scale-100">
+                <Image src="/images/landing/deals-bought.png" alt="2,341 Deals Bought" width={190} height={46} />
               </div>
 
-              {/* App nav bar — hamburger + bag */}
-              <div className="bg-surface px-3 pt-1 pb-2 flex items-center justify-between">
-                <svg viewBox="0 0 24 24" className="w-5 h-5 text-body" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                  <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
-                </svg>
-                <svg viewBox="0 0 24 24" className="w-5 h-5 text-body" fill="none" stroke="currentColor" strokeWidth={1.5}>
-                  <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
-                </svg>
+              {/* Price Dropped (237×133) — left-middle */}
+              {/* mobile: 237×0.6=142px → left:-142px puts right edge at phone left */}
+              <div className="absolute z-10 hero-float-2 pointer-events-auto drop-shadow-xl
+                              left-[-142px] top-[88px] scale-[0.6] origin-top-left
+                              sm:left-[-210px] sm:top-[88px] sm:scale-100">
+                <Image src="/images/landing/price-dropped.png" alt="Price Dropped" width={237} height={133} />
               </div>
 
-              {/* Search bar */}
-              <div className="bg-surface px-3 pb-2 border-b border-border">
-                <div className="h-7 rounded-full bg-bg border border-border flex items-center px-2.5 gap-1.5">
-                  <svg viewBox="0 0 24 24" className="w-3 h-3 text-body" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                  </svg>
-                  <span className="text-2xs text-body font-inter">Search categories...</span>
-                </div>
+              {/* Trending Now (228×80) — top-right */}
+              {/* mobile: 228×0.6=137px → right:-137px puts left edge at phone right */}
+              <div className="absolute z-10 hero-float-3 pointer-events-auto drop-shadow-lg
+                              right-[-137px] top-[18px] scale-[0.6] origin-top-right
+                              sm:right-[-200px] sm:top-[18px] sm:scale-100">
+                <Image src="/images/landing/trending-now.png" alt="Trending Now" width={228} height={80} />
               </div>
 
-              {/* Mini hero banner */}
-              <div
-                className="mx-2 mt-2 rounded-xl p-3 relative overflow-hidden"
-                style={{ background: "linear-gradient(135deg, #FF9500 0%, #FFBE00 100%)" }}
-              >
-                <p className="text-[8px] font-bold text-white/80 uppercase tracking-wide font-inter">
-                  Top Deals for you today
-                </p>
-                <p className="text-[7px] text-white/70 mt-0.5 leading-tight font-inter">
-                  Handpicked deals based on your<br/>interest and recent activity
-                </p>
-                <div className="mt-2 bg-surface rounded-md px-2 py-1 w-fit">
-                  <span className="text-[7px] font-bold" style={{ color: "#FF7043" }}>View Deals</span>
-                </div>
-                {/* AirPods image */}
-                <div className="absolute right-1 -bottom-1 w-14 h-14">
-                  <Image
-                    src="https://m.media-amazon.com/images/I/51aXvjzcukL._AC_SL1500_.jpg"
-                    alt=""
-                    fill
-                    sizes="56px"
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-
-              {/* Mini categories */}
-              <div className="px-3 mt-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] font-bold text-navy font-lato">Browse Categories</span>
-                  <span className="text-[8px] text-badge-bg font-semibold">See All</span>
-                </div>
-                <div className="flex gap-3 overflow-hidden">
-                  {["Electronic", "Fashion", "Shoes", "Furniture"].map((cat) => (
-                    <div key={cat} className="shrink-0 flex flex-col items-center gap-1">
-                      <div className="w-9 h-9 rounded-full bg-[#DBEAFE]" />
-                      <span className="text-[7px] text-navy font-medium font-lato">{cat}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Mini deal of week */}
-              <div className="px-3 mt-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[9px] font-bold text-navy font-lato">Deal Of Week</span>
-                  <span className="text-[8px] text-badge-bg font-semibold">See All</span>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {[0, 1].map((i) => (
-                    <div key={i} className="bg-surface rounded-lg p-1.5 border border-border">
-                      <div className="w-full aspect-square bg-bg rounded mb-1" />
-                      <div className="h-1.5 bg-border rounded w-3/4 mb-1" />
-                      <div className="h-2 bg-navy rounded w-1/2" />
-                    </div>
-                  ))}
-                </div>
+              {/* Avatar Group (171×52) — right-middle */}
+              {/* mobile: 171×0.6=103px → right:-103px puts left edge at phone right */}
+              <div className="absolute z-10 hero-float-4 pointer-events-auto drop-shadow-lg
+                              right-[-103px] top-[160px] scale-[0.6] origin-top-right
+                              sm:right-[-155px] sm:top-[160px] sm:scale-100">
+                <Image src="/images/landing/avatar-group.png" alt="10k+ users" width={171} height={52} />
               </div>
             </div>
           </div>
@@ -849,74 +761,60 @@ function GuestFooter() {
   return (
     <footer className="bg-bg border-t border-border">
       <div className="max-w-350 mx-auto px-6 py-12">
-        <div className="flex flex-col md:flex-row gap-10">
+        {/* 3-col grid: brand ~40%, Product ~35%, Support ~25% */}
+        <div className="grid grid-cols-1 md:grid-cols-[2fr_1.5fr_1fr] gap-10">
+
           {/* Brand */}
-          <div className="md:w-56 shrink-0 space-y-4">
+          <div className="space-y-4 max-w-[280px]">
             <div className="flex items-center gap-3">
-              <Image
-                src="/images/ltsd-logo.png"
-                alt="LTSD"
-                width={44}
-                height={44}
-                className="rounded-full"
-              />
-              <span className="text-xl font-extrabold text-navy font-lato">
-                LTSD
-              </span>
+              <Image src="/images/ltsd-logo.png" alt="LTSD" width={44} height={44} className="rounded-full" />
+              <span className="text-xl font-extrabold text-navy font-lato">LTSD</span>
             </div>
             <p className="text-sm text-body leading-relaxed font-lato">
               Smart deal discovery powered by your preferences.
             </p>
-            {/* Social icons */}
             <div className="flex items-center gap-3 pt-1">
               {SOCIAL_SVGS.map(({ label, d }) => (
-                <button
-                  key={label}
-                  type="button"
-                  aria-label={label}
-                  className="text-body hover:text-navy transition-colors"
-                >
-                  <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="currentColor">
-                    <path d={d} />
-                  </svg>
+                <button key={label} type="button" aria-label={label} className="text-body hover:text-navy transition-colors">
+                  <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="currentColor"><path d={d} /></svg>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Link columns */}
-          <div className="flex flex-1 gap-10 flex-wrap">
-            {/* Product */}
-            <div className="space-y-4 min-w-[120px]">
-              <p className="text-sm font-bold text-navy font-lato">Product</p>
-              {[
-                { label: "Deals",       href: "/deals" },
-                { label: "Watchlist",   href: "/signup" },
-                { label: "Alerts",      href: "/signup" },
-                { label: "Preferences", href: "/signup" },
-              ].map((l) => (
-                <p key={l.label}>
-                  <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity font-lato">
-                    {l.label}
-                  </Link>
-                </p>
-              ))}
+          {/* Product — heading + 2 sub-columns */}
+          <div>
+            <p className="text-sm font-bold text-navy font-lato mb-5">Product</p>
+            <div className="flex gap-10">
+              <div className="space-y-4">
+                {[{ label: "Deals", href: "/deals" }, { label: "Watchlist", href: "/signup" }].map((l) => (
+                  <p key={l.label}>
+                    <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity font-lato">{l.label}</Link>
+                  </p>
+                ))}
+              </div>
+              <div className="space-y-4">
+                {[{ label: "Alerts", href: "/signup" }, { label: "Preferences", href: "/signup" }].map((l) => (
+                  <p key={l.label}>
+                    <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity font-lato">{l.label}</Link>
+                  </p>
+                ))}
+              </div>
             </div>
-            {/* Support */}
-            <div className="space-y-4 min-w-[120px]">
-              <p className="text-sm font-bold text-navy font-lato">Support</p>
-              {[
-                { label: "FAQs",         href: "#" },
-                { label: "Report Issue", href: "#" },
-              ].map((l) => (
+          </div>
+
+          {/* Support */}
+          <div>
+            <p className="text-sm font-bold text-navy font-lato mb-5">Support</p>
+            <div className="space-y-4">
+              {[{ label: "FAQs", href: "#" }, { label: "Report Issue", href: "#" }].map((l) => (
                 <p key={l.label}>
-                  <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity font-lato">
-                    {l.label}
-                  </Link>
+                  <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity font-lato">{l.label}</Link>
                 </p>
               ))}
             </div>
           </div>
+
         </div>
 
         {/* Bottom bar */}
