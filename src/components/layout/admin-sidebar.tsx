@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Tag, Bell, Settings, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Tag, Bell, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { LogoutModal } from "@/components/common/logout-modal";
@@ -14,7 +14,6 @@ const NAV = [
   { label: "Users",      href: "/admin/users",     icon: Users },
   { label: "Deals",      href: "/admin/deals",     icon: Tag },
   { label: "Alert Logs", href: "/admin/alerts",    icon: Bell },
-  { label: "Settings",   href: "/settings",        icon: Settings },
 ];
 
 interface AdminSidebarProps {

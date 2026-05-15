@@ -45,14 +45,15 @@ export function AccountDropdown({ name, email, image, role }: AccountDropdownPro
     return () => document.removeEventListener("keydown", handle);
   }, [open]);
 
-  const menuItems = [
-    { icon: User,          label: "My Profile",               href: "/settings/profile" },
-    { icon: Bookmark,      label: "Watchlist",                 href: "/watchlist" },
-    { icon: Bell,          label: "Notification Preferences",  href: "/settings/notifications" },
-    ...(role === "ADMIN"
-      ? [{ icon: LayoutDashboard, label: "Admin Panel", href: "/admin/dashboard" }]
-      : []),
-  ];
+  const menuItems = role === "ADMIN"
+    ? [
+        { icon: LayoutDashboard, label: "Admin Dashboard", href: "/admin/dashboard" },
+      ]
+    : [
+        { icon: User,     label: "My Profile",              href: "/settings/profile" },
+        { icon: Bookmark, label: "Watchlist",                href: "/watchlist" },
+        { icon: Bell,     label: "Notification Preferences", href: "/settings/notifications" },
+      ];
 
   return (
     <>

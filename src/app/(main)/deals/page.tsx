@@ -3,13 +3,13 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { DealFilters } from "@/components/deals/deal-filters";
 import { DealGrid } from "@/components/deals/deal-grid";
-import { DealCard } from "@/components/deals/deal-card";
 import { DealGridSkeleton } from "@/components/deals/deal-card-skeleton";
 import { db } from "@/lib/db";
 import { mapDeals, type RawDeal } from "@/lib/deal-mapper";
 import type { DealItem } from "@/lib/deal-api/types";
 import { getWatchlistMap } from "@/lib/get-watchlist-map";
 import { auth } from "@/lib/auth";
+import { DealOfWeekSection } from "@/components/dashboard/deal-of-week-section";
 
 export const metadata: Metadata = { title: "Deal Feed — LTSD" };
 export const dynamic = "force-dynamic";
@@ -108,22 +108,9 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   return (
     <div className="max-w-350 mx-auto px-4 md:px-6 py-6 space-y-6">
 
-      {/* Weekly deals spotlight — shown only on unfiltered view */}
-      {weeklyDeals.length > 0 && (
-        <section>
-          <div className="flex items-end justify-between mb-3">
-            <div>
-              <h2 className="type-section-title">Deals of the Week</h2>
-              <p className="text-sm text-body mt-0.5">Handpicked every Monday by our team</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-            {weeklyDeals.map(deal => (
-              <DealCard key={deal.id} deal={deal} watchlistItemId={watchlistMap.get(deal.id)} />
-            ))}
-          </div>
-          <div className="mt-4 border-t border-[#E7E8E9]" />
-        </section>
+      {/* Spotlight — shown only on unfiltered view */}
+      {!hasFilter && (
+        <DealOfWeekSection deals={weeklyDeals} watchlistMap={watchlistMap} />
       )}
 
       {/* Filters */}

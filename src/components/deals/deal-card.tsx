@@ -38,7 +38,13 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
 
   useEffect(() => {
     if (deal.dealType !== "LIGHTNING_DEAL" || !deal.expiresAt) return;
-    const tick = () => setCountdown(fmtCountdown(deal.expiresAt!));
+    // Don't show countdown if already expired
+    if (new Date(deal.expiresAt).getTime() <= Date.now()) return;
+    const tick = () => {
+      const remaining = new Date(deal.expiresAt!).getTime() - Date.now();
+      if (remaining <= 0) { setCountdown(null); clearInterval(id); return; }
+      setCountdown(fmtCountdown(deal.expiresAt!));
+    };
     tick();
     const id = setInterval(tick, 1_000);
     return () => clearInterval(id);

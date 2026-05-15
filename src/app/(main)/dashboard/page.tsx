@@ -7,8 +7,8 @@ import { requireAuth } from "@/lib/auth-guard";
 import { mapDeals, mapDeal, type RawDeal } from "@/lib/deal-mapper";
 import { DealCard } from "@/components/deals/deal-card";
 import { HeroCarousel, type HeroSlide } from "@/components/dashboard/hero-carousel";
-import { WeeklyDealsSlider } from "@/components/dashboard/weekly-deals-slider";
 import { SectionHeading } from "@/components/common/section-heading";
+import { DealOfWeekSection } from "@/components/dashboard/deal-of-week-section";
 import type { DealItem } from "@/lib/deal-api/types";
 
 export const metadata: Metadata = { title: "Dashboard — LTSD" };
@@ -216,20 +216,6 @@ function getCatEmoji(slug: string): string {
   return "🛍️";
 }
 
-// ── Deal of Week ───────────────────────────────────────────────────────────────
-function DealOfWeekSection({ deals, watchlistMap }: { deals: DealItem[]; watchlistMap?: Map<string, string> }) {
-  if (!deals.length) return null;
-
-  return (
-    <section className="relative lg:p-5">
-      <div className="pointer-events-none hidden md:block absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-[#E8C4C4] rounded-tl-2xl" />
-      <div className="pointer-events-none hidden md:block absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-[#E8C4C4] rounded-br-2xl" />
-      <SectionHeading title="Deals of the Week" subtitle="Handpicked by our team — updated every Monday" viewAllHref="/deals" />
-      <WeeklyDealsSlider deals={deals} watchlistMap={watchlistMap} />
-    </section>
-  );
-}
-
 // ── Watchlist card ─────────────────────────────────────────────────────────────
 function WatchlistCard({ item }: { item: WatchlistDashItem }) {
   const isHit = item.targetPrice != null && item.deal.currentPrice <= item.targetPrice;
@@ -310,8 +296,8 @@ export default async function DashboardPage() {
   let watchlistMap = new Map<string, string>();
 
   try {
-    // 1. Deals of the Week — admin-curated weekly 7 (fallback: top discount)
-    let dealOfWeekRows = await db.deal.findMany({
+    // 1. Deals of the Week — admin-curated spotlight only, no fallback
+    const dealOfWeekRows = await db.deal.findMany({
       where: {
         isWeeklyDeal: true,
         isActive:     true,
@@ -323,23 +309,6 @@ export default async function DashboardPage() {
         categories: { include: { category: { select: { name: true } } } },
       },
     });
-
-    // Fallback if admin hasn't set weekly deals yet
-    if (dealOfWeekRows.length === 0) {
-      dealOfWeekRows = await db.deal.findMany({
-        where: {
-          isActive:        true,
-          currentPrice:    { gt: 0 },
-          discountPercent: { gt: 0 },
-          imageUrl:        { not: null },
-        },
-        orderBy: { discountPercent: "desc" },
-        take: 7,
-        include: {
-          categories: { include: { category: { select: { name: true } } } },
-        },
-      });
-    }
 
     dealOfWeekDeals = mapDeals(dealOfWeekRows as RawDeal[]);
     const dealOfWeekIds = dealOfWeekRows.map((d) => d.id);

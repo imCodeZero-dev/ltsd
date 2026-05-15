@@ -147,6 +147,7 @@ model Deal {
   isWeeklyDeal        Boolean   @default(false)
   weeklyDealSlot      Int?      // 1–7, display order in "Deals of the Week"
   weeklyDealSetAt     DateTime?
+  spotlightExpiresAt  DateTime? // null = no expiry, set = auto-expires
   isActive            Boolean   @default(true)
   claimedCount        Int       @default(0)
   totalSlots          Int?

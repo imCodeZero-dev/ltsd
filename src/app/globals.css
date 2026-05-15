@@ -102,6 +102,14 @@
   /* ── Shadows ─────────────────────────────────────*/
   --shadow-card:  0 1px 4px 0 rgba(0, 0, 0, 0.08);
   --shadow-modal: 0 8px 24px 0 rgba(0, 0, 0, 0.12);
+
+  /* ── Animations ──────────────────────────────────*/
+  --animate-deals-glow: deals-glow 3s ease-in-out infinite;
+
+  @keyframes deals-glow {
+    0%, 100% { box-shadow: 0 0 8px 0 rgba(254, 152, 0, 0.15), 0 0 0 1px #E8C4C4; }
+    50%       { box-shadow: 0 0 22px 6px rgba(254, 152, 0, 0.30), 0 0 0 1px #f5b8a0; }
+  }
 }
 
 /* ═══════════════════════════════════════════════════
