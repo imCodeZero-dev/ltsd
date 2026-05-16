@@ -3,7 +3,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Search, RefreshCw, ChevronLeft, ChevronRight,
-  MoreVertical, Pencil, Star, Trash2, Loader2, X,
+  MoreVertical, Star, Trash2, Loader2, X,
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -307,10 +307,6 @@ function ActionsMenu({ deal, onSpotlight, onRemoveSpot, onDelete }: ActionsMenuP
 
       {open && (
         <div className="absolute right-0 top-full mt-1 z-30 bg-white border border-[#E7E8E9] rounded-xl shadow-xl overflow-hidden min-w-40">
-          <button type="button" onClick={() => { setOpen(false); }}
-            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-navy hover:bg-bg transition-colors text-left">
-            <Pencil className="w-3.5 h-3.5 text-body" /> Edit Deal
-          </button>
           {deal.isWeeklyDeal ? (
             <button type="button" onClick={() => { setOpen(false); onRemoveSpot(); }}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[#E65100] hover:bg-bg transition-colors text-left">
@@ -391,21 +387,46 @@ export function DealsClient({ initialDeals, initialMeta }: Props) {
   const [meta,      setMeta]      = useState(initialMeta);
   const [selected,  setSelected]  = useState<Set<string>>(new Set());
   const [query,     setQuery]     = useState("");
-  const [filterType,     setFilterType]     = useState("");  // dealType
-  const [filterStatus,   setFilterStatus]   = useState("");  // active|expired
-  const [filterSpotlight, setFilterSpotlight] = useState(""); // "1" or ""
+  const [filterType,      setFilterType]      = useState("");
+  const [filterStatus,    setFilterStatus]    = useState("");
+  const [filterSpotlight, setFilterSpotlight] = useState("");
   const [loading,  setLoading]  = useState(false);
   const [syncing,  setSyncing]  = useState(false);
 
   // Spotlight modal state
   const [spotlightDeal, setSpotlightDeal] = useState<AdminDeal | null>(null);
 
+  // All currently spotlighted deals — fetched once and kept across pagination
+  const [spotlightedDeals, setSpotlightedDeals] = useState<{ id: string; weeklyDealSlot: number }[]>(
+    initialDeals
+      .filter(d => d.isWeeklyDeal && d.weeklyDealSlot)
+      .map(d => ({ id: d.id, weeklyDealSlot: d.weeklyDealSlot as number }))
+  );
+
+  // Fetch all spotlight deals from API (not paginated — max 7 exist)
+  useEffect(() => {
+    async function loadSpotlights() {
+      try {
+        const res  = await fetch("/api/admin/deals?spotlight=1&page=1");
+        const json = await res.json();
+        if (res.ok && Array.isArray(json.data)) {
+          setSpotlightedDeals(
+            json.data
+              .filter((d: AdminDeal) => d.isWeeklyDeal && d.weeklyDealSlot)
+              .map((d: AdminDeal) => ({ id: d.id, weeklyDealSlot: d.weeklyDealSlot as number }))
+          );
+        }
+      } catch { /* silent */ }
+    }
+    loadSpotlights();
+  }, []);
+
   const page = meta.page;
 
-  // Which slots 1–7 are already occupied (excluding the deal being spotlighted)
-  const occupiedSlots = deals
-    .filter(d => d.isWeeklyDeal && d.weeklyDealSlot && d.id !== spotlightDeal?.id)
-    .map(d => d.weeklyDealSlot as number);
+  // Which slots 1–7 are occupied — from global spotlightedDeals, not current page
+  const occupiedSlots = spotlightedDeals
+    .filter(d => d.id !== spotlightDeal?.id)
+    .map(d => d.weeklyDealSlot);
 
   const fetchPage = useCallback(async (
     p: number, q: string,
@@ -455,7 +476,7 @@ export function DealsClient({ initialDeals, initialMeta }: Props) {
       const json = await res.json();
       if (!res.ok) { toast.error(json.error?.message ?? "Failed to spotlight"); return; }
 
-      // Optimistic update — clear old occupant of this slot, set new spotlight
+      // Optimistic update — current page deals
       setDeals(prev => prev.map(d => {
         if (d.weeklyDealSlot === slot && d.id !== spotlightDeal.id)
           return { ...d, isWeeklyDeal: false, weeklyDealSlot: null, spotlightExpiresAt: null };
@@ -463,6 +484,12 @@ export function DealsClient({ initialDeals, initialMeta }: Props) {
           return { ...d, isWeeklyDeal: true, weeklyDealSlot: slot, spotlightExpiresAt: json.data.expiresAt };
         return d;
       }));
+
+      // Keep global spotlight state in sync
+      setSpotlightedDeals(prev => [
+        ...prev.filter(d => d.weeklyDealSlot !== slot && d.id !== spotlightDeal.id),
+        { id: spotlightDeal.id, weeklyDealSlot: slot },
+      ]);
 
       toast.success(`Spotlighted in Slot ${slot}`);
       setSpotlightDeal(null);
@@ -476,6 +503,7 @@ export function DealsClient({ initialDeals, initialMeta }: Props) {
       setDeals(prev => prev.map(d =>
         d.id === id ? { ...d, isWeeklyDeal: false, weeklyDealSlot: null, spotlightExpiresAt: null } : d
       ));
+      setSpotlightedDeals(prev => prev.filter(d => d.id !== id));
       toast.success("Spotlight removed");
     } catch { toast.error("Request failed"); }
   }

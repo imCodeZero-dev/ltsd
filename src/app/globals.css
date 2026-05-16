@@ -4,6 +4,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Outside any @layer — overrides Tailwind preflight's cursor:default on buttons */
+button, [role="button"], [role="tab"], [role="switch"] { cursor: pointer; }
+
 /* ═══════════════════════════════════════════════════
    LTSD DESIGN TOKENS
    Single source of truth — sourced from Figma

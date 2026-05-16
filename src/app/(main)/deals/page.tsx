@@ -129,10 +129,12 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
         <DealGrid deals={deals} watchlistMap={watchlistMap} />
       </Suspense>
 
-      {/* Load more */}
-      <div className="flex justify-center pt-2">
-        <button type="button" className="btn-more">Load More</button>
-      </div>
+      {/* Load more — only when there are more results than the current page */}
+      {total > PAGE_SIZE && deals.length > 0 && (
+        <div className="flex justify-center pt-2">
+          <button type="button" className="btn-more">Load More</button>
+        </div>
+      )}
     </div>
   );
 }

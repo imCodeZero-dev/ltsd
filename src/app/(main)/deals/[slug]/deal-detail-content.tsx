@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -116,6 +116,85 @@ function formatUSD(cents: number) {
 }
 
 // ── Image carousel ────────────────────────────────────────────────────────────
+function ThumbnailStrip({ images, activeImg, onSelect }: {
+  images: string[];
+  activeImg: number;
+  onSelect: (i: number) => void;
+}) {
+  const stripRef = useRef<HTMLDivElement>(null);
+  const [canLeft,  setCanLeft]  = useState(false);
+  const [canRight, setCanRight] = useState(false);
+  const THUMB = 64 + 10; // w-16 (64px) + gap-2.5 (10px)
+
+  // Check scroll position to enable/disable arrows
+  function updateArrows() {
+    const el = stripRef.current;
+    if (!el) return;
+    const atStart = el.scrollLeft <= 2;
+    const atEnd   = el.scrollLeft + el.clientWidth >= el.scrollWidth - 2;
+    setCanLeft(!atStart);
+    setCanRight(!atEnd);
+  }
+
+  // After mount, check if scrollable at all
+  useEffect(() => { updateArrows(); }, [images]);
+
+  function scrollBy(dir: 1 | -1) {
+    stripRef.current?.scrollBy({ left: dir * THUMB * 3, behavior: "smooth" });
+  }
+
+  // No arrows at all if everything fits (canLeft and canRight both false on mount)
+  const showArrows = canLeft || canRight || (() => {
+    const el = stripRef.current;
+    return el ? el.scrollWidth > el.clientWidth : false;
+  })();
+
+  return (
+    <div className="flex items-center gap-1.5 mt-3">
+      {/* Left arrow — hidden when not scrollable, disabled at start */}
+      {showArrows && (
+        <button
+          type="button"
+          onClick={() => scrollBy(-1)}
+          disabled={!canLeft}
+          className="shrink-0 w-7 h-7 rounded-full bg-surface border border-border shadow flex items-center justify-center transition-colors disabled:opacity-30 hover:enabled:border-badge-bg"
+          aria-label="Scroll thumbnails left"
+        >
+          <ChevronLeft className="w-3.5 h-3.5 text-body" />
+        </button>
+      )}
+
+      {/* Scrollable strip — centered when content fits, scrollable when it overflows */}
+      <div ref={stripRef} className="overflow-x-auto scrollbar-none flex-1" onScroll={updateArrows}>
+        <div className="flex gap-2.5 w-fit mx-auto px-0.5">
+          {images.map((img, i) => (
+            <button key={i} type="button" onClick={() => onSelect(i)}
+              className={cn(
+                "w-16 h-16 rounded-xl border-2 bg-surface overflow-hidden shrink-0 transition-all",
+                activeImg === i ? "border-badge-bg" : "border-border hover:border-border-mid"
+              )}>
+              <Image src={img} alt="" width={64} height={64} className="object-contain p-1.5 w-full h-full mix-blend-multiply" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Right arrow — hidden when not scrollable, disabled at end */}
+      {showArrows && (
+        <button
+          type="button"
+          onClick={() => scrollBy(1)}
+          disabled={!canRight}
+          className="shrink-0 w-7 h-7 rounded-full bg-surface border border-border shadow flex items-center justify-center transition-colors disabled:opacity-30 hover:enabled:border-badge-bg"
+          aria-label="Scroll thumbnails right"
+        >
+          <ChevronRight className="w-3.5 h-3.5 text-body" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 function ImageCarousel({
   images,
   activeImg,
@@ -140,7 +219,7 @@ function ImageCarousel({
       <div className={cn(
         "relative w-full bg-surface overflow-hidden",
         mobile
-          ? "aspect-square border-b border-border"
+          ? "aspect-square rounded-2xl border border-border"
           : stretch
             ? "flex-1 min-h-0 rounded-2xl border border-border"
             : "aspect-[4/3] rounded-2xl border border-border"
@@ -150,7 +229,7 @@ function ImageCarousel({
           alt="Product"
           fill
           sizes={mobile ? "100vw" : "600px"}
-          className="object-contain p-8"
+          className="object-contain p-8 mix-blend-multiply"
           priority
         />
 
@@ -184,17 +263,7 @@ function ImageCarousel({
 
       {/* Desktop thumbnails */}
       {!mobile && (
-        <div className="flex gap-2.5 mt-3">
-          {images.map((img, i) => (
-            <button key={i} type="button" onClick={() => onDot(i)}
-              className={cn(
-                "w-[72px] h-[72px] rounded-xl border-2 bg-surface overflow-hidden shrink-0 transition-all",
-                activeImg === i ? "border-badge-bg" : "border-border hover:border-border-mid"
-              )}>
-              <Image src={img} alt="" width={72} height={72} className="object-contain p-2 w-full h-full" />
-            </button>
-          ))}
-        </div>
+        <ThumbnailStrip images={images} activeImg={activeImg} onSelect={onDot} />
       )}
     </div>
   );
@@ -500,9 +569,11 @@ export function DealDetailContent({
   const chartData = buildChartData(priceHistory, priceStats);
   const images = deal.images?.length ? deal.images : [deal.imageUrl];
 
-  const [activeImg, setActiveImg]   = useState(0);
-  const [activeTab, setActiveTab]   = useState(0);
-  const [chartRange, setChartRange] = useState(0);
+  const [activeImg,      setActiveImg]      = useState(0);
+  const [activeTab,      setActiveTab]      = useState(0);
+  const [chartRange,     setChartRange]     = useState(0);
+  const [expandedDesc,   setExpandedDesc]   = useState(false);
+  const [expandedTitle,  setExpandedTitle]  = useState(false);
   const timer = useTick(deal.expiresAt);
 
   const claimedPct = deal.totalCount > 0
@@ -519,23 +590,53 @@ export function DealDetailContent({
 
   // ── Product info panel ────────────────────────────────────────────────────
   const productInfo = (
-    <div className="space-y-4">
+    <div className="space-y-3 md:space-y-4">
 
       {/* Stars + review count */}
       <StarRating score={rating} reviewCount={reviews} size="md" showPlus />
 
-      <h1 className="text-3xl font-extrabold text-navy leading-tight font-lato">
-        {deal.title}
-      </h1>
+      {/* Title — clamped to 2 lines on mobile, full on desktop */}
+      <div>
+        <h1 className={cn(
+          "text-lg md:text-3xl font-extrabold text-navy leading-tight font-lato",
+          "md:line-clamp-none",
+          !expandedTitle && "line-clamp-2 md:line-clamp-none"
+        )}>
+          {deal.title}
+        </h1>
+        <button
+          type="button"
+          onClick={() => setExpandedTitle(v => !v)}
+          className="md:hidden text-xs font-semibold text-navy underline-offset-2 hover:underline mt-1"
+        >
+          {expandedTitle ? "Show less" : "Show more"}
+        </button>
+      </div>
 
-      {/* Subtitle — real description if available, else brand · category */}
-      <p className="text-sm text-body leading-relaxed -mt-1">
-        {deal.description
+      {/* Description — 2 lines collapsed, expandable */}
+      {(() => {
+        const text = deal.description
           ? deal.description
           : deal.brand && deal.brand !== "Unknown"
             ? `${deal.brand} · ${deal.category}`
-            : deal.category}
-      </p>
+            : deal.category;
+        return (
+          <div className="-mt-1">
+            <p className={cn("text-sm text-body leading-relaxed", !expandedDesc && "line-clamp-2")}>
+              {text}
+            </p>
+            {text.length > 120 && (
+              <button
+                type="button"
+                onClick={() => setExpandedDesc(v => !v)}
+                className="text-xs font-semibold text-navy underline-offset-2 hover:underline mt-1"
+              >
+                {expandedDesc ? "Show less" : "Show more"}
+              </button>
+            )}
+          </div>
+        );
+      })()}
 
       {/* CURRENT PRICE label */}
       <p className="text-2xs font-bold uppercase tracking-widest text-body pt-1">
@@ -652,12 +753,29 @@ export function DealDetailContent({
           </div>
 
           <div className="bg-surface rounded-2xl border border-border p-5">
-            {activeTab === 0 && (
-              <p className="text-sm text-body leading-relaxed">
-                {deal.brand && deal.brand !== "Unknown" ? `By ${deal.brand}. ` : ""}
-                {deal.title}. Check the latest pricing and deals on Amazon.
-              </p>
-            )}
+            {activeTab === 0 && (() => {
+              const text = deal.description
+                ? deal.description
+                : deal.brand && deal.brand !== "Unknown"
+                  ? `${deal.brand} · ${deal.category}`
+                  : deal.category;
+              return (
+                <div>
+                  <p className={cn("text-sm text-body leading-relaxed", !expandedDesc && "line-clamp-2")}>
+                    {text}
+                  </p>
+                  {text.length > 120 && (
+                    <button
+                      type="button"
+                      onClick={() => setExpandedDesc(v => !v)}
+                      className="text-xs font-semibold text-navy underline-offset-2 hover:underline mt-1"
+                    >
+                      {expandedDesc ? "Show less" : "Show more"}
+                    </button>
+                  )}
+                </div>
+              );
+            })()}
             {activeTab === 1 && <CustomerRatings deal={deal} />}
             {activeTab === 2 && <PriceIntelligence range={chartRange} onRangeChange={setChartRange} chartData={chartData} />}
           </div>
@@ -715,7 +833,7 @@ export function DealDetailContent({
           </div>
 
           {/* Right: product info */}
-          <div className="max-w-lg">
+          <div className="">
             {productInfo}
           </div>
         </div>

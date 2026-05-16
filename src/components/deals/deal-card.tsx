@@ -80,7 +80,7 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
             alt={deal.title}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-contain p-3"
+            className="object-contain p-3 mix-blend-multiply"
             loading="lazy"
           />
         </Link>

@@ -69,20 +69,19 @@ export async function POST(
     const notifBody  = `${deal.title}${discount} is now featured. Grab it before it's gone!`;
     const dealUrl    = `/deals/${deal.slug ?? deal.id}`;
 
-    // Fan out: get all users with push subscriptions and create in-app notifications
-    const allUsers = await db.pushSubscription.findMany({
+    // In-app: ALL users get a notification regardless of push subscription
+    const allUserIds = await db.user.findMany({ select: { id: true } });
+
+    // Web push: only users who granted browser push permission
+    const pushSubscribers = await db.pushSubscription.findMany({
       select: { userId: true },
       distinct: ["userId"],
     });
 
     await Promise.allSettled([
-      // Web push to all subscribed users
-      ...allUsers.map(({ userId }) =>
-        sendPushToUser(userId, { title: notifTitle, body: notifBody, url: dealUrl })
-      ),
-      // In-app notifications for all users (createMany is efficient)
+      // In-app notifications for every user
       db.notification.createMany({
-        data: allUsers.map(({ userId }) => ({
+        data: allUserIds.map(({ id: userId }) => ({
           userId,
           dealId: deal.id,
           type:   "SYSTEM" as const,
@@ -91,6 +90,10 @@ export async function POST(
         })),
         skipDuplicates: true,
       }),
+      // Web push only to subscribed users
+      ...pushSubscribers.map(({ userId }) =>
+        sendPushToUser(userId, { title: notifTitle, body: notifBody, url: dealUrl })
+      ),
     ]);
   }
 

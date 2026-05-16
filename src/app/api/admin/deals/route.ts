@@ -19,7 +19,7 @@ export async function GET(req: Request): Promise<Response> {
   if (dealType)  where.dealType = dealType;
   if (status === "active")  where.isActive = true;
   if (status === "expired") where.isActive = false;
-  if (spotlight) where.isWeeklyDeal = true;
+  if (spotlight) { where.isWeeklyDeal = true; where.weeklyDealSlot = { not: null }; }
 
   try {
     const [deals, total, active, expired, featured, lastSynced] = await Promise.all([
