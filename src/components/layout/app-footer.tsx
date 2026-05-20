@@ -1,25 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 
-const FOOTER_COLS = [
-  {
-    heading: "Product",
-    links: [
-      { label: "Deals",       href: "/deals" },
-      { label: "Watchlist",   href: "/watchlist" },
-      { label: "Alerts",      href: "/notifications" },
-      { label: "Preferences", href: "/settings" },
-    ],
-  },
-  {
-    heading: "Support",
-    links: [
-      { label: "FAQs",         href: "#" },
-      { label: "Report Issue", href: "#" },
-    ],
-  },
-];
-
 const SOCIAL_PATHS = [
   { label: "Facebook",  d: "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" },
   { label: "Twitter",   d: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L2.012 2.25h6.962l4.264 5.633L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" },
@@ -30,16 +11,20 @@ const SOCIAL_PATHS = [
 
 export function AppFooter() {
   return (
-    <footer className="bg-surface border-t border-border">
+    <footer className="bg-[#F5F3EE]">
       <div className="max-w-350 mx-auto px-6 py-12">
-        <div className="flex flex-col md:flex-row gap-10">
+        {/* 3-col grid: brand ~40%, Product ~35%, Support ~25% */}
+        <div className="grid grid-cols-1 md:grid-cols-[2fr_1.5fr_1fr] gap-10">
+
           {/* Brand */}
-          <div className="md:w-56 shrink-0 space-y-4">
+          <div className="space-y-4 max-w-70">
             <div className="flex items-center gap-3">
               <Image src="/images/ltsd-logo.png" alt="LTSD" width={44} height={44} className="rounded-full" />
-              <span className="font-lato text-xl font-extrabold text-navy">LTSD</span>
+              <span className="text-xl font-extrabold text-navy font-lato">LTSD</span>
             </div>
-            <p className="type-body leading-relaxed">Smart deal discovery powered by your preferences.</p>
+            <p className="text-sm text-body leading-relaxed font-lato">
+              Smart deal discovery powered by your preferences.
+            </p>
             <div className="flex items-center gap-3 pt-1">
               {SOCIAL_PATHS.map(({ label, d }) => (
                 <button key={label} type="button" aria-label={label} className="text-body hover:text-navy transition-colors">
@@ -51,29 +36,47 @@ export function AppFooter() {
             </div>
           </div>
 
-          {/* Link columns */}
-          <div className="flex flex-1 gap-10 flex-wrap">
-            {FOOTER_COLS.map((col) => (
-              <div key={col.heading} className="space-y-3 min-w-30">
-                <p className="font-lato text-sm font-bold text-navy">{col.heading}</p>
-                {col.links.map((l) => (
+          {/* Product — heading + 2 sub-columns */}
+          <div>
+            <p className="text-sm font-bold text-navy font-lato mb-5">Product</p>
+            <div className="flex gap-10">
+              <div className="space-y-4">
+                {[{ label: "Deals", href: "/deals" }, { label: "Watchlist", href: "/watchlist" }].map((l) => (
                   <p key={l.label}>
-                    <Link href={l.href} className="font-lato text-sm text-body hover:text-navy transition-colors">
-                      {l.label}
-                    </Link>
+                    <Link href={l.href} className="text-sm text-body hover:text-navy transition-colors font-lato">{l.label}</Link>
                   </p>
                 ))}
               </div>
-            ))}
+              <div className="space-y-4">
+                {[{ label: "Alerts", href: "/notifications" }, { label: "Preferences", href: "/settings" }].map((l) => (
+                  <p key={l.label}>
+                    <Link href={l.href} className="text-sm text-body hover:text-navy transition-colors font-lato">{l.label}</Link>
+                  </p>
+                ))}
+              </div>
+            </div>
           </div>
+
+          {/* Support */}
+          <div>
+            <p className="text-sm font-bold text-navy font-lato mb-5">Support</p>
+            <div className="space-y-4">
+              {[{ label: "FAQs", href: "#" }, { label: "Report Issue", href: "#" }].map((l) => (
+                <p key={l.label}>
+                  <Link href={l.href} className="text-sm text-body hover:text-navy transition-colors font-lato">{l.label}</Link>
+                </p>
+              ))}
+            </div>
+          </div>
+
         </div>
 
         {/* Bottom bar */}
         <div className="border-t border-border mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="font-lato text-xs text-body">
+          <p className="text-xs text-body font-lato">
             Copyright © {new Date().getFullYear()} LTSD. All Rights Reserved.
           </p>
-          <div className="flex items-center gap-2 font-lato text-xs">
+          <div className="flex items-center gap-2 text-xs font-lato">
             <Link href="#" className="text-badge-bg hover:underline">Terms and Conditions</Link>
             <span className="text-body">|</span>
             <Link href="#" className="text-badge-bg hover:underline">Privacy Policy</Link>

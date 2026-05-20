@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown, ArrowUpRight, Layers } from "lucide-react";
+import { NewsletterSection } from "@/components/landing/newsletter-section";
+import { AppFooter } from "@/components/layout/app-footer";
 import { db } from "@/lib/db";
 
 export const metadata: Metadata = {
@@ -747,94 +749,6 @@ function CTASection() {
   );
 }
 
-// ── Footer ─────────────────────────────────────────────────────────────────────
-
-const SOCIAL_SVGS = [
-  { label: "Facebook", d: "M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" },
-  { label: "Twitter",  d: "M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L2.012 2.25h6.962l4.264 5.633L18.244 2.25Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z" },
-  { label: "Instagram", d: "M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069Zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0Zm0 5.838a6.162 6.162 0 1 0 0 12.324 6.162 6.162 0 0 0 0-12.324ZM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm6.406-11.845a1.44 1.44 0 1 0 0 2.881 1.44 1.44 0 0 0 0-2.881Z" },
-  { label: "LinkedIn", d: "M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6zM2 9h4v12H2z M4 6a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" },
-  { label: "YouTube", d: "M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46a2.78 2.78 0 0 0-1.95 1.96A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z" },
-];
-
-function GuestFooter() {
-  return (
-    <footer className="bg-bg border-t border-border">
-      <div className="max-w-350 mx-auto px-6 py-12">
-        {/* 3-col grid: brand ~40%, Product ~35%, Support ~25% */}
-        <div className="grid grid-cols-1 md:grid-cols-[2fr_1.5fr_1fr] gap-10">
-
-          {/* Brand */}
-          <div className="space-y-4 max-w-[280px]">
-            <div className="flex items-center gap-3">
-              <Image src="/images/ltsd-logo.png" alt="LTSD" width={44} height={44} className="rounded-full" />
-              <span className="text-xl font-extrabold text-navy font-lato">LTSD</span>
-            </div>
-            <p className="text-sm text-body leading-relaxed font-lato">
-              Smart deal discovery powered by your preferences.
-            </p>
-            <div className="flex items-center gap-3 pt-1">
-              {SOCIAL_SVGS.map(({ label, d }) => (
-                <button key={label} type="button" aria-label={label} className="text-body hover:text-navy transition-colors">
-                  <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="currentColor"><path d={d} /></svg>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Product — heading + 2 sub-columns */}
-          <div>
-            <p className="text-sm font-bold text-navy font-lato mb-5">Product</p>
-            <div className="flex gap-10">
-              <div className="space-y-4">
-                {[{ label: "Deals", href: "/deals" }, { label: "Watchlist", href: "/signup" }].map((l) => (
-                  <p key={l.label}>
-                    <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity font-lato">{l.label}</Link>
-                  </p>
-                ))}
-              </div>
-              <div className="space-y-4">
-                {[{ label: "Alerts", href: "/signup" }, { label: "Preferences", href: "/signup" }].map((l) => (
-                  <p key={l.label}>
-                    <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity font-lato">{l.label}</Link>
-                  </p>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Support */}
-          <div>
-            <p className="text-sm font-bold text-navy font-lato mb-5">Support</p>
-            <div className="space-y-4">
-              {[{ label: "FAQs", href: "#" }, { label: "Report Issue", href: "#" }].map((l) => (
-                <p key={l.label}>
-                  <Link href={l.href} className="text-sm text-navy hover:opacity-70 transition-opacity font-lato">{l.label}</Link>
-                </p>
-              ))}
-            </div>
-          </div>
-
-        </div>
-
-        {/* Bottom bar */}
-        <div className="border-t border-border mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <p className="text-xs text-body font-lato">
-            Copyright © {new Date().getFullYear()} LTSD.
-          </p>
-          <div className="flex items-center gap-2 text-xs font-lato">
-            <span className="text-body">All Rights Reserved</span>
-            <span className="text-body">|</span>
-            <Link href="#" className="text-badge-bg hover:underline">Terms and Conditions</Link>
-            <span className="text-body">|</span>
-            <Link href="#" className="text-badge-bg hover:underline">Privacy Policy</Link>
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
 // ── Page ───────────────────────────────────────────────────────────────────────
 
 export default async function GuestHomePage() {
@@ -848,7 +762,8 @@ export default async function GuestHomePage() {
       <FeaturesSection />
       <HowItWorksSection />
       <CTASection />
-      <GuestFooter />
+      <NewsletterSection />
+      <AppFooter />
     </div>
   );
 }
