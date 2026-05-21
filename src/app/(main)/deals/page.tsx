@@ -150,7 +150,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
 
       {/* Hot Price Drops */}
       {!hasFilter && limitedDeals.length > 0 && (
-        <LimitedTimeSection deals={limitedDeals} />
+        <LimitedTimeSection deals={limitedDeals} watchlistMap={watchlistMap} />
       )}
 
       {/* Filters */}

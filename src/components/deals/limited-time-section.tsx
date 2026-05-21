@@ -1,97 +1,20 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { ChevronLeft, ChevronRight, TrendingDown, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, TrendingDown } from "lucide-react";
+import { DealCard } from "./deal-card";
 import type { DealItem } from "@/lib/deal-api/types";
 
 interface Props {
   deals: DealItem[];
+  watchlistMap?: Map<string, string> | Record<string, string>;
 }
 
-function formatUSD(cents: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(cents / 100);
+function getWlId(map: Map<string, string> | Record<string, string>, key: string): string | undefined {
+  return map instanceof Map ? map.get(key) : map[key];
 }
 
-function timeAgo(date: Date): string {
-  const ms = Date.now() - new Date(date).getTime();
-  const mins  = Math.floor(ms / 60_000);
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function LimitedTimeCard({ deal }: { deal: DealItem }) {
-  return (
-    <Link
-      href={`/deals/${deal.slug ?? deal.id}`}
-      className="flex flex-col bg-surface rounded-xl border border-border overflow-hidden hover:shadow-md transition-shadow"
-    >
-      {/* Image */}
-      <div className="relative bg-bg w-full aspect-[4/3]">
-        {/* Discount badge */}
-        {deal.discountPercent > 0 && (
-          <span className="absolute top-2.5 left-2.5 z-10 px-2 py-0.5 rounded-md text-xs font-bold text-surface bg-best-price">
-            -{deal.discountPercent}%
-          </span>
-        )}
-        <Image
-          src={deal.imageUrl}
-          alt={deal.title}
-          fill
-          sizes="(max-width:640px) 70vw, 260px"
-          className="object-contain p-4 mix-blend-multiply"
-          loading="lazy"
-        />
-      </div>
-
-      {/* Info */}
-      <div className="px-4 py-3 flex flex-col flex-1 gap-1.5">
-        {/* Time ago */}
-        {deal.createdAt && (
-          <div className="flex items-center gap-1 text-best-price">
-            <Clock className="w-3 h-3" />
-            <span className="text-xs font-semibold">Dropped {timeAgo(deal.createdAt)}</span>
-          </div>
-        )}
-
-        {/* Title */}
-        <h3 className="text-sm font-semibold text-navy leading-snug line-clamp-2 font-lato">
-          {deal.title}
-        </h3>
-
-        {/* Price row */}
-        <div className="flex items-baseline gap-2 mt-auto pt-1">
-          <span className="text-lg font-extrabold text-navy font-lato">
-            {formatUSD(deal.currentPrice)}
-          </span>
-          {deal.originalPrice > deal.currentPrice && (
-            <span className="text-xs text-subtle line-through">
-              {formatUSD(deal.originalPrice)}
-            </span>
-          )}
-        </div>
-
-        {/* Savings chip */}
-        {deal.originalPrice > deal.currentPrice && (
-          <p className="text-xs font-medium text-best-price">
-            You save {formatUSD(deal.originalPrice - deal.currentPrice)}
-          </p>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-export function LimitedTimeSection({ deals }: Props) {
+export function LimitedTimeSection({ deals, watchlistMap }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
@@ -161,7 +84,7 @@ export function LimitedTimeSection({ deals }: Props) {
       >
         {deals.map((deal) => (
           <div key={deal.id} className="shrink-0 w-52 sm:w-60">
-            <LimitedTimeCard deal={deal} />
+            <DealCard deal={deal} watchlistItemId={watchlistMap ? getWlId(watchlistMap, deal.id) : undefined} />
           </div>
         ))}
       </div>

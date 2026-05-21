@@ -9,6 +9,7 @@ import { DealCard } from "@/components/deals/deal-card";
 import { HeroCarousel, type HeroSlide } from "@/components/dashboard/hero-carousel";
 import { SectionHeading } from "@/components/common/section-heading";
 import { DealOfWeekSection } from "@/components/dashboard/deal-of-week-section";
+import { TrendingDealsSection } from "@/components/dashboard/trending-deals-section";
 import type { DealItem } from "@/lib/deal-api/types";
 
 export const metadata: Metadata = { title: "Dashboard — LTSD" };
@@ -289,7 +290,9 @@ export default async function DashboardPage() {
 
   let heroSlides: HeroSlide[] = [];
   let dealOfWeekDeals: DealItem[] = [];
-  let trendingDeals: DealItem[] = [];
+  let trendingLightning: DealItem[] = [];
+  let trendingPriceDrops: DealItem[] = [];
+  let trendingBestDeals: DealItem[] = [];
   let watchlistItems: WatchlistDashItem[] = [];
   let categories: CategoryWithImage[] = [];
   let topBrands: string[] = [];
@@ -313,22 +316,36 @@ export default async function DashboardPage() {
     dealOfWeekDeals = mapDeals(dealOfWeekRows as RawDeal[]);
     const dealOfWeekIds = dealOfWeekRows.map((d) => d.id);
 
-    // 2. Trending — top 4 by most reviews, excluding Deal of Week items
-    const trendingRows = await db.deal.findMany({
-      where: {
-        isActive: true,
-        currentPrice: { gt: 0 },
-        imageUrl: { not: null },
-        id: { notIn: dealOfWeekIds },
-      },
-      orderBy: { reviewCount: "desc" },
-      take: 4,
-      include: {
-        categories: { include: { category: { select: { name: true } } } },
-      },
-    });
-
-    trendingDeals = mapDeals(trendingRows as RawDeal[]);
+    // 2. Trending — fetch 3 types for tabbed section
+    const trendingBase = {
+      isActive: true,
+      currentPrice: { gt: 0 },
+      imageUrl: { not: null },
+      id: { notIn: dealOfWeekIds },
+    };
+    const [lightningRows, priceDropRows, bestDealRows] = await Promise.all([
+      db.deal.findMany({
+        where: { ...trendingBase, dealType: "LIGHTNING_DEAL" },
+        orderBy: { reviewCount: "desc" },
+        take: 4,
+        include: { categories: { include: { category: { select: { name: true } } } } },
+      }),
+      db.deal.findMany({
+        where: { ...trendingBase, dealType: { in: ["PRICE_DROP", "LIMITED_TIME"] } },
+        orderBy: { discountPercent: "desc" },
+        take: 4,
+        include: { categories: { include: { category: { select: { name: true } } } } },
+      }),
+      db.deal.findMany({
+        where: { ...trendingBase, discountPercent: { gte: 20 } },
+        orderBy: { discountPercent: "desc" },
+        take: 4,
+        include: { categories: { include: { category: { select: { name: true } } } } },
+      }),
+    ]);
+    trendingLightning = mapDeals(lightningRows as RawDeal[]);
+    trendingPriceDrops = mapDeals(priceDropRows as RawDeal[]);
+    trendingBestDeals = mapDeals(bestDealRows as RawDeal[]);
 
     // 3. Hero slides — top 3 deals with images for the carousel
     const heroRows = await db.deal.findMany({
@@ -450,31 +467,13 @@ export default async function DashboardPage() {
         </section>
       )}
 
-      {/* Trending Deals */}
-      {trendingDeals.length > 0 && (
-        <section>
-          <SectionHeading title="Trending Deals" viewAllHref="/deals" />
-          <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1 mb-4 -mx-4 px-4 md:mx-0 md:px-0 md:overflow-visible">
-            {[
-              { label: "Lightning Deals", href: "/deals?type=LIGHTNING_DEAL",  active: true },
-              { label: "Price Drops",     href: "/deals?type=PRICE_DROP",      active: false },
-              { label: "Prime Day",       href: "/deals?type=PRIME_EXCLUSIVE", active: false },
-            ].map(({ label, href, active }) => (
-              <Link key={label} href={href} className={active ? "btn-ghost-active" : "btn-ghost"}>
-                {label}
-              </Link>
-            ))}
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {trendingDeals.map((deal) => (
-              <DealCard key={`t-${deal.id}`} deal={deal} watchlistItemId={watchlistMap.get(deal.id)} />
-            ))}
-          </div>
-          <div className="flex justify-center mt-6">
-            <Link href="/deals" className="btn-more">More Deals</Link>
-          </div>
-        </section>
-      )}
+      {/* Trending Deals — tabbed inline filter */}
+      <TrendingDealsSection
+        lightning={trendingLightning}
+        priceDrops={trendingPriceDrops}
+        bestDeals={trendingBestDeals}
+        watchlistMap={watchlistMap}
+      />
 
       {/* Shop by Top Brands — only shown when DB has brands */}
       {topBrands.length > 0 && (

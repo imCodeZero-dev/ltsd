@@ -27,7 +27,7 @@ const DEAL_TYPES = [
   { value: "",                label: "All Types" },
   { value: "LIGHTNING_DEAL",  label: "Lightning Deals" },
   { value: "PRICE_DROP",      label: "Price Drops" },
-  { value: "PRIME_EXCLUSIVE", label: "Prime Day" },
+  { value: "LIMITED_TIME",    label: "Limited Time" },
 ];
 
 const SORT_OPTIONS = [

@@ -73,6 +73,44 @@ export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: 
     if (open && notifications.length === 0) fetchNotifications();
   }, [open, notifications.length, fetchNotifications]);
 
+  // Smart polling: only poll when user is actually looking at the page
+  useEffect(() => {
+    let intervalId: ReturnType<typeof setInterval> | null = null;
+
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/notifications/unread-count");
+        const json = await res.json();
+        if (res.ok && typeof json.data?.count === "number") {
+          setUnreadCount(json.data.count);
+        }
+      } catch { /* silent — next poll will retry */ }
+    };
+
+    const start = () => {
+      if (intervalId) return; // already running
+      poll(); // check immediately when tab becomes visible
+      intervalId = setInterval(poll, 30_000);
+    };
+
+    const stop = () => {
+      if (intervalId) { clearInterval(intervalId); intervalId = null; }
+    };
+
+    const onVisibility = () => {
+      document.hidden ? stop() : start();
+    };
+
+    // Start if page is visible right now
+    if (!document.hidden) start();
+
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
   // Close on outside click
   useEffect(() => {
     if (!open) return;

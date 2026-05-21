@@ -25,6 +25,16 @@ function formatUSD(cents: number) {
   }).format(cents / 100);
 }
 
+function timeAgo(date: Date): string {
+  const ms = Date.now() - new Date(date).getTime();
+  const mins = Math.floor(ms / 60_000);
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 function fmtCountdown(expiresAt: Date): string {
   const diff = Math.max(0, new Date(expiresAt).getTime() - Date.now());
   const h = Math.floor(diff / 3_600_000);
@@ -34,6 +44,7 @@ function fmtCountdown(expiresAt: Date): string {
 }
 
 export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
+  const imageUrl = deal.imageUrl || "/placeholder-product.png";
   const [countdown, setCountdown] = useState<string | null>(null);
 
   useEffect(() => {
@@ -69,14 +80,14 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
           <WatchlistButton
             dealId={deal.id}
             watchlistItemId={watchlistItemId}
-            deal={{ id: deal.id, title: deal.title, imageUrl: deal.imageUrl, currentPrice: deal.currentPrice }}
+            deal={{ id: deal.id, title: deal.title, imageUrl, currentPrice: deal.currentPrice }}
           />
         </div>
 
         {/* 3:2 image — matches Figma 270×180 */}
         <Link href={`/deals/${deal.slug ?? deal.id}`} className="block relative w-full aspect-[3/2]">
           <Image
-            src={deal.imageUrl}
+            src={imageUrl}
             alt={deal.title}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -119,6 +130,13 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
         {countdown && (
           <p className="text-2xs font-medium font-inter text-hot mt-1.5">
             🔥 Selling fast • Ends in {countdown}
+          </p>
+        )}
+
+        {/* Price drop info (PRICE_DROP / LIMITED_TIME only) */}
+        {(deal.dealType === "PRICE_DROP" || deal.dealType === "LIMITED_TIME") && deal.createdAt && (
+          <p className="text-2xs font-medium font-inter text-best-price mt-1.5">
+            Dropped {timeAgo(deal.createdAt)} {deal.originalPrice > deal.currentPrice && `• Save ${formatUSD(deal.originalPrice - deal.currentPrice)}`}
           </p>
         )}
 

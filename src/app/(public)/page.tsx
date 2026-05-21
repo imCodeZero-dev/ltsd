@@ -16,44 +16,28 @@ export const metadata: Metadata = {
 };
 export const revalidate = 300;
 
-// ── Showcase deal shape (simple — just what the landing cards need) ───────────
+// ── Showcase deals — uses same DealItem shape as DealCard ────────────────────
 
-interface ShowcaseDeal {
-  id: string;
-  brand: string;
-  title: string;
-  price: number;   // dollars
-  original: number; // dollars
-  discount: number;
-  image: string;
-}
+import type { DealItem } from "@/lib/deal-api/types";
+import { DealCard } from "@/components/deals/deal-card";
 
-async function getShowcaseDeals(): Promise<ShowcaseDeal[]> {
+async function getShowcaseDeals(): Promise<DealItem[]> {
   try {
-    // Prefer admin-curated weekly deals (top 3 by slot), fallback to highest discount
     const weeklyRows = await db.deal.findMany({
       where:   { isWeeklyDeal: true, isActive: true, discountPercent: { gt: 0 }, imageUrl: { not: null } },
       orderBy: { weeklyDealSlot: "asc" },
       take:    3,
-      select:  { id: true, brand: true, title: true, currentPrice: true, originalPrice: true, discountPercent: true, imageUrl: true },
+      include: { categories: { include: { category: { select: { name: true } } } } },
     });
 
     const rows = weeklyRows.length >= 3 ? weeklyRows : await db.deal.findMany({
-      where:   { isActive: true, discountPercent: { gt: 0 } },
+      where:   { isActive: true, discountPercent: { gt: 0 }, imageUrl: { not: null } },
       orderBy: { discountPercent: "desc" },
       take:    3,
-      select:  { id: true, brand: true, title: true, currentPrice: true, originalPrice: true, discountPercent: true, imageUrl: true },
+      include: { categories: { include: { category: { select: { name: true } } } } },
     });
 
-    return rows.map((r) => ({
-      id:       r.id,
-      brand:    r.brand ?? "Brand",
-      title:    r.title,
-      price:    Math.round(r.currentPrice),
-      original: Math.round(r.originalPrice ?? r.currentPrice),
-      discount: r.discountPercent ?? 0,
-      image:    r.imageUrl ?? "/placeholder-product.png",
-    }));
+    return rows.length > 0 ? mapDeals(rows as RawDeal[]) : [];
   } catch { /* DB not seeded */ }
   return [];
 }
@@ -276,7 +260,7 @@ function HeroSection() {
 
 // ── Deals Section ──────────────────────────────────────────────────────────────
 
-function DealsSection({ deals }: { deals: ShowcaseDeal[] }) {
+function DealsSection({ deals }: { deals: DealItem[] }) {
   if (!deals.length) return null;
   return (
     <section className="bg-bg py-20">
@@ -300,44 +284,10 @@ function DealsSection({ deals }: { deals: ShowcaseDeal[] }) {
           Our team picks the best 7 deals every Monday — updated weekly, gone fast
         </p>
 
-        {/* Deal cards */}
+        {/* Deal cards — same DealCard used everywhere */}
         <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
           {deals.map((deal) => (
-            <Link key={deal.id} href={`/unlock/${deal.id}`}>
-              <article className="bg-surface rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
-                {/* Product image */}
-                <div className="relative bg-bg w-full aspect-[4/3]">
-                  <Image
-                    src={deal.image}
-                    alt={deal.title}
-                    fill
-                    sizes="(max-width:768px) 90vw, 33vw"
-                    className="object-contain p-6"
-                  />
-                </div>
-
-                {/* Info */}
-                <div className="px-5 py-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-widest text-body font-inter">
-                      {deal.brand}
-                    </span>
-                    <span className="px-2.5 py-1 rounded text-[11px] font-bold text-surface bg-badge-bg">
-                      {deal.discount}% Off
-                    </span>
-                  </div>
-                  <h3 className="text-base font-bold text-navy leading-snug mb-3 font-lato">
-                    {deal.title}
-                  </h3>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-extrabold text-navy font-lato">
-                      ${deal.price}
-                    </span>
-                    <span className="text-sm line-through text-body">${deal.original}</span>
-                  </div>
-                </div>
-              </article>
-            </Link>
+            <DealCard key={deal.id} deal={deal} />
           ))}
         </div>
 
