@@ -420,7 +420,7 @@ export default async function DashboardPage() {
     // Build watchlist map for deal cards (dealId → watchlistItemId)
     watchlistMap = new Map(wlRows.map((w) => [w.deal.id, w.id]));
   } catch (e) {
-    console.error("[Dashboard] DB query failed:", e);
+    void e;
   }
 
   return (

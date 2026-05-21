@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { ok, err } from "@/lib/api";
 import { requireAuthOrThrow } from "@/lib/auth-guard";
+import { rateLimitByUser } from "@/lib/rate-limit";
 
 interface PushSubscriptionBody {
   endpoint: string;
@@ -17,6 +18,10 @@ export async function POST(req: Request): Promise<Response> {
   } catch (e) {
     return e as Response;
   }
+
+  // Moderate: 10/min per user — happens rarely
+  const blocked = await rateLimitByUser(session.user.id, "push-subscribe", 10);
+  if (blocked) return blocked;
 
   try {
     const { endpoint, keys } = await req.json() as PushSubscriptionBody;

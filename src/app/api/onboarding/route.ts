@@ -89,7 +89,7 @@ export async function POST(req: Request): Promise<Response> {
 
     return ok({ ok: true });
   } catch (e) {
-    console.error("[onboarding] save failed:", e);
+    void e;
     return err("Failed to save preferences", 500);
   }
 }

@@ -72,6 +72,24 @@ export const OnboardingSchema = z.object({
 
 export type OnboardingInput = z.infer<typeof OnboardingSchema>;
 
+// Admin deal creation/update — whitelist only safe fields
+export const AdminDealSchema = z.object({
+  title:           z.string().min(1).max(500),
+  asin:            z.string().min(1).max(20),
+  affiliateUrl:    z.string().url(),
+  currentPrice:    z.number().positive(),
+  originalPrice:   z.number().positive().optional(),
+  discountPercent: z.number().int().min(0).max(100).optional(),
+  brand:           z.string().max(200).optional(),
+  imageUrl:        z.string().url().optional(),
+  dealType:        z.enum(["PRICE_DROP", "LIGHTNING_DEAL", "LIMITED_TIME", "COUPON", "DEAL_OF_DAY", "PRIME_EXCLUSIVE"]).optional(),
+  isActive:        z.boolean().optional(),
+  isFeatured:      z.boolean().optional(),
+});
+
+export const AdminDealUpdateSchema = AdminDealSchema.partial();
+
+export type AdminDealInput       = z.infer<typeof AdminDealSchema>;
 export type SignUpInput           = z.infer<typeof SignUpSchema>;
 export type LoginInput            = z.infer<typeof LoginSchema>;
 export type ProfileInput          = z.infer<typeof ProfileSchema>;

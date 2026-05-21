@@ -57,8 +57,21 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${inter.variable} ${lato.variable} ${dmSans.variable} h-full`}>
       <body className="min-h-full antialiased overflow-x-hidden">
+        {/* Skip-to-content link — visible only on keyboard focus */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-9999 focus:px-4 focus:py-2 focus:rounded-lg focus:bg-navy focus:text-surface focus:text-sm focus:font-bold focus:outline-none"
+        >
+          Skip to main content
+        </a>
         {children}
         <Toaster position="top-center" richColors closeButton />
+        {/* Register service worker for PWA + push notifications */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if("serviceWorker"in navigator){window.addEventListener("load",function(){navigator.serviceWorker.register("/sw.js")})}`,
+          }}
+        />
       </body>
     </html>
   );

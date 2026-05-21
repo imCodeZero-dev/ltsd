@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { KeepaProvider } from "@/lib/deal-api/providers/keepa";
+import { requireAdminOrThrow } from "@/lib/auth-guard";
 
 const keepa = new KeepaProvider();
 
@@ -12,6 +13,9 @@ const keepa = new KeepaProvider();
  * GET /api/test-keepa?endpoint=deals&category=Electronics
  */
 export async function GET(req: Request) {
+  // Protected: admin only
+  try { await requireAdminOrThrow(); } catch (e) { return e as Response; }
+
   const { searchParams } = new URL(req.url);
   const endpoint = searchParams.get("endpoint");
 

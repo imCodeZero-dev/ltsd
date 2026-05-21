@@ -76,7 +76,7 @@ export function AdminLayoutShell({ name, email, image, role, children }: Props) 
       </header>
 
       {/* Page content */}
-      <main className="flex-1 overflow-auto">
+      <main id="main-content" className="flex-1 overflow-auto">
         {children}
       </main>
     </div>

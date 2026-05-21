@@ -7,6 +7,7 @@ import {
   seedDeals,
 } from "@/lib/deal-api/sync";
 import { db } from "@/lib/db";
+import { requireAdminOrThrow } from "@/lib/auth-guard";
 
 /**
  * DEV-ONLY sync endpoint — no auth required.
@@ -23,6 +24,7 @@ import { db } from "@/lib/db";
  * GET /api/test-keepa/sync → DB status (counts, last sync time)
  */
 export async function POST(req: Request) {
+  try { await requireAdminOrThrow(); } catch (e) { return e as Response; }
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "Not available in production" }, { status: 403 });
   }
@@ -81,6 +83,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
+  try { await requireAdminOrThrow(); } catch (e) { return e as Response; }
   if (process.env.NODE_ENV === "production") {
     return NextResponse.json({ error: "Not available in production" }, { status: 403 });
   }

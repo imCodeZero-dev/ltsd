@@ -11,7 +11,9 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-// ── Dynamic metadata ──────────────────────────────────────────────────────────
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://ltsd.deals";
+
+// ── Dynamic metadata with OpenGraph ──────────────────────────────────────────
 export async function generateMetadata({
   params,
 }: {
@@ -21,9 +23,24 @@ export async function generateMetadata({
   try {
     const deal = await db.deal.findUnique({
       where: { slug },
-      select: { title: true },
+      select: { title: true, imageUrl: true, currentPrice: true, brand: true, slug: true },
     });
-    if (deal) return { title: `${deal.title} — LTSD` };
+    if (deal) {
+      const description = deal.brand
+        ? `${deal.brand} — $${deal.currentPrice.toFixed(2)} on LTSD`
+        : `$${deal.currentPrice.toFixed(2)} — Find this deal on LTSD`;
+      return {
+        title: `${deal.title} — LTSD`,
+        description,
+        openGraph: {
+          title: deal.title,
+          description,
+          url: `${BASE_URL}/deals/${deal.slug}`,
+          type: "website",
+          ...(deal.imageUrl && { images: [{ url: deal.imageUrl, width: 600, height: 600, alt: deal.title }] }),
+        },
+      };
+    }
   } catch { /* fallback */ }
   return { title: "Deal Detail — LTSD" };
 }
@@ -85,7 +102,7 @@ export default async function DealDetailPage({
           row = await fetchDealRow({ slug });
           hydrateFromRow(row);
         } catch (e) {
-          console.error("[DealDetail] On-demand sync failed:", e);
+          void e;
         }
       }
 
@@ -110,7 +127,7 @@ export default async function DealDetailPage({
         similarDeals = mapDeals(similarRows as RawDeal[]);
       }
     }
-  } catch (e) { console.error("[DealDetail] DB query failed:", e); }
+  } catch (e) { void e; }
 
   // Fallback 2: try ASIN-based lookup (slug ends with the ASIN)
   if (!deal) {
@@ -142,14 +159,44 @@ export default async function DealDetailPage({
   const watchlistMap = await getWatchlistMap();
   const watchlistItemId = watchlistMap.get(resolvedDeal.id);
 
+  // JSON-LD structured data for Google rich results
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: resolvedDeal.title,
+    image: resolvedDeal.imageUrl,
+    brand: resolvedDeal.brand ? { "@type": "Brand", name: resolvedDeal.brand } : undefined,
+    offers: {
+      "@type": "Offer",
+      price: (resolvedDeal.currentPrice / 100).toFixed(2),
+      priceCurrency: "USD",
+      availability: "https://schema.org/InStock",
+      url: resolvedDeal.affiliateUrl,
+    },
+    ...(resolvedDeal.rating > 0 && {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: resolvedDeal.rating,
+        bestRating: 5,
+        reviewCount: resolvedDeal.reviewCount || 1,
+      },
+    }),
+  };
+
   return (
-    <DealDetailContent
-      deal={resolvedDeal}
-      similarDeals={similarDeals}
-      priceHistory={priceHistory}
-      priceStats={priceStats}
-      watchlistItemId={watchlistItemId}
-      watchlistMap={watchlistMap}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <DealDetailContent
+        deal={resolvedDeal}
+        similarDeals={similarDeals}
+        priceHistory={priceHistory}
+        priceStats={priceStats}
+        watchlistItemId={watchlistItemId}
+        watchlistMap={watchlistMap}
+      />
+    </>
   );
 }

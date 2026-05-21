@@ -343,9 +343,14 @@ export function mapLightningDeal(d: KeepaLightningDeal): DealItem | null {
 
   // dealPrice is -1 if deal not started yet — fall back to currentPrice
   const currentCents  = keepaPriceToCents(d.dealPrice > 0 ? d.dealPrice : d.currentPrice);
-  const originalCents = keepaPriceToCents(d.currentPrice > 0 ? d.currentPrice : d.dealPrice);
+  let   originalCents = keepaPriceToCents(d.currentPrice > 0 ? d.currentPrice : d.dealPrice);
 
   if (currentCents <= 0) return null;
+
+  // When dealPrice == currentPrice (no discount visible), reconstruct original from percentOff
+  if (originalCents <= currentCents && d.percentOff > 0) {
+    originalCents = Math.round(currentCents / (1 - d.percentOff / 100));
+  }
 
   const discountPercent = originalCents > currentCents
     ? Math.round(((originalCents - currentCents) / originalCents) * 100)

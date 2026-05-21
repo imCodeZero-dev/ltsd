@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
+import { requireAdminOrThrow } from "@/lib/auth-guard";
 
 const ACCESS_KEY    = process.env.AMAZON_PA_ACCESS_KEY    ?? "";
 const SECRET_KEY    = process.env.AMAZON_PA_SECRET_KEY    ?? "";
@@ -67,6 +68,9 @@ const BASE_RESOURCES = [
 ];
 
 export async function GET(req: NextRequest) {
+  // Protected: admin only
+  try { await requireAdminOrThrow(); } catch (e) { return e as Response; }
+
   const endpoint = req.nextUrl.searchParams.get("endpoint") ?? "search";
 
   try {

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { ok, err } from "@/lib/api";
-import { requireAuthOrThrow, requireAdminOrThrow } from "@/lib/auth-guard";
+import { requireAdminOrThrow } from "@/lib/auth-guard";
+import { AdminDealSchema } from "@/lib/schemas";
 
 const PAGE_SIZE = 20;
 
@@ -40,15 +41,22 @@ export async function GET(req: Request): Promise<Response> {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  try {
-    await requireAdminOrThrow();
-  } catch (e) {
-    return e as Response;
-  }
+  try { await requireAdminOrThrow(); } catch (e) { return e as Response; }
 
   try {
-    const body = await req.json() as Record<string, unknown>;
-    const deal = await db.deal.create({ data: body as never });
+    const body   = await req.json();
+    const parsed = AdminDealSchema.safeParse(body);
+    if (!parsed.success) {
+      return err(parsed.error.issues[0]?.message ?? "Invalid input", 400);
+    }
+
+    const slug = parsed.data.title
+      .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 80)
+      + "-" + parsed.data.asin.toLowerCase();
+
+    const deal = await db.deal.create({
+      data: { ...parsed.data, slug },
+    });
     return Response.json({ data: deal }, { status: 201 });
   } catch {
     return err("Failed to create deal", 500);

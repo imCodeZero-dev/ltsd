@@ -11,9 +11,6 @@ function createTransport() {
   const user = process.env.EMAIL_USER?.trim() ?? "";
   const pass = process.env.EMAIL_PASS?.trim() ?? "";
 
-  console.log("[email] transport config — host:", process.env.EMAIL_HOST?.trim(),
-    "port:", port, "secure:", secure, "user:", user, "passLength:", pass.length);
-
   return nodemailer.createTransport({
     host:   process.env.EMAIL_HOST?.trim(),
     port,
@@ -32,8 +29,7 @@ export interface EmailPayload {
 
 export async function sendEmail(payload: EmailPayload): Promise<void> {
   if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER) {
-    console.log("[email] EMAIL_HOST not set — skipping send to", payload.to, "|", payload.subject);
-    return;
+    return; // EMAIL_HOST not configured — skip silently
   }
 
   const transport = createTransport();
@@ -46,11 +42,8 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
       html:    payload.html,
       text:    payload.text,
     });
-    console.log("[email] sent to", payload.to, "— messageId:", info.messageId);
+    void info;
   } catch (err) {
-    // Log the real error so it appears in server stdout
-    console.error("[email] FAILED to send to", payload.to, "|", payload.subject);
-    console.error("[email] Error:", err instanceof Error ? err.message : err);
     throw err; // re-throw so caller decides whether to swallow
   }
 }

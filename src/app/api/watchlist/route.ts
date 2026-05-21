@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { ok, err } from "@/lib/api";
 import { requireAuthOrThrow } from "@/lib/auth-guard";
 import { WatchlistItemSchema } from "@/lib/schemas";
+import { rateLimitByUser } from "@/lib/rate-limit";
 
 export async function GET(): Promise<Response> {
   let session;
@@ -36,6 +37,10 @@ export async function POST(req: Request): Promise<Response> {
   } catch (e) {
     return e as Response;
   }
+
+  // Relaxed: 60/min per user — fast add/remove won't be blocked
+  const blocked = await rateLimitByUser(session.user.id, "watchlist", 60);
+  if (blocked) return blocked;
 
   try {
     const body   = await req.json();

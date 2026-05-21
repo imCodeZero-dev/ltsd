@@ -12,6 +12,7 @@ import { auth } from "@/lib/auth";
 import { DealOfWeekSection } from "@/components/dashboard/deal-of-week-section";
 import { LightningDealsSection } from "@/components/deals/lightning-deals-section";
 import { LimitedTimeSection } from "@/components/deals/limited-time-section";
+import { LoadMoreButton } from "@/components/deals/load-more-button";
 
 export const metadata: Metadata = { title: "Deal Feed — LTSD" };
 export const dynamic = "force-dynamic";
@@ -70,7 +71,7 @@ async function getDeals(filters: {
     }
     return { deals: [], total: 0 };
   } catch (e) {
-    console.error("[Deals] DB query failed:", e);
+    void e;
   }
   return { deals: [], total: 0 };
 }
@@ -168,12 +169,18 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
         <DealGrid deals={deals} watchlistMap={watchlistMap} />
       </Suspense>
 
-      {/* Load more — only when there are more results than the current page */}
-      {total > PAGE_SIZE && deals.length > 0 && (
-        <div className="flex justify-center pt-2">
-          <button type="button" className="btn-more">Load More</button>
-        </div>
-      )}
+      {/* Load more */}
+      <LoadMoreButton
+        filters={{
+          type: filters.type,
+          category: filters.category,
+          q: filters.q,
+          sort: filters.sort,
+        }}
+        initialPage={1}
+        total={total}
+        pageSize={PAGE_SIZE}
+      />
     </div>
   );
 }
