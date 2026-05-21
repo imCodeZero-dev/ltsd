@@ -7,6 +7,7 @@ import type { DealItem, DealType } from "@/lib/deal-api/types";
 type PrismaDealType =
   | "PRICE_DROP"
   | "LIGHTNING_DEAL"
+  | "LIMITED_TIME"
   | "COUPON"
   | "DEAL_OF_DAY"
   | "PRIME_EXCLUSIVE"
@@ -14,6 +15,7 @@ type PrismaDealType =
 
 function mapDealType(prismaType: PrismaDealType): DealType {
   if (prismaType === "LIGHTNING_DEAL") return "LIGHTNING_DEAL";
+  if (prismaType === "LIMITED_TIME") return "LIMITED_TIME";
   if (prismaType === "PRIME_EXCLUSIVE") return "PRIME_EXCLUSIVE";
   if (prismaType === "COUPON") return "COUPON";
   if (prismaType === "DEAL_OF_DAY") return "DEAL_OF_DAY";
@@ -36,6 +38,7 @@ export interface RawDeal {
   reviewCount: number | null;
   dealType: string;
   expiresAt: Date | null;
+  createdAt: Date;
   claimedCount: number;
   totalSlots: number | null;
   monthlySold?: number | null;
@@ -60,6 +63,7 @@ export function mapDeal(raw: RawDeal): DealItem {
     discountPercent: raw.discountPercent ?? 0,
     dealType: mapDealType(raw.dealType),
     expiresAt: raw.expiresAt,
+    createdAt: raw.createdAt,
     claimedCount: raw.claimedCount,
     totalCount: raw.totalSlots ?? 0,
     rating: raw.rating ?? 0,

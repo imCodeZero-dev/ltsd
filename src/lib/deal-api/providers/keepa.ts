@@ -215,6 +215,8 @@ interface KeepaDealRecord {
   brand?: string;
   images?: KeepaImage[];
   dealType?: number;
+  lightningEnd?: number;     // Keepa time minutes — end time for lightning deals, 0 otherwise
+  creationDate?: number[];   // Keepa time minutes per price type — when last price change happened
   categoryTree?: { catId: number; name: string }[];
   csv?: (number[] | null)[];
   stats?: { current?: number[] };
@@ -423,11 +425,11 @@ export class KeepaProvider implements DealApiProvider {
     const dealRecords = data.deals?.dr ?? [];
     if (!dealRecords.length) return [];
 
-    const dealTypeMap = new Map<string, number | undefined>();
+    const dealInfoMap = new Map<string, { dealType?: number; lightningEnd?: number }>();
     for (const d of dealRecords.slice(0, limit)) {
-      if (d.asin) dealTypeMap.set(d.asin, d.dealType);
+      if (d.asin) dealInfoMap.set(d.asin, { dealType: d.dealType, lightningEnd: d.lightningEnd });
     }
-    const asins = [...dealTypeMap.keys()];
+    const asins = [...dealInfoMap.keys()];
     if (!asins.length) return [];
 
     // Enrich with /product for images, ratings, description
@@ -444,8 +446,12 @@ export class KeepaProvider implements DealApiProvider {
       .map((p) => {
         const item = mapProduct(p);
         if (!item) return null;
-        const dealType = dealTypeMap.get(p.asin);
-        if (dealType !== undefined) item.dealType = mapDealType(dealType);
+        const info = dealInfoMap.get(p.asin);
+        if (info?.dealType !== undefined) item.dealType = mapDealType(info.dealType);
+        // Set expiresAt from lightningEnd for lightning deals
+        if (info?.lightningEnd && info.lightningEnd > 0) {
+          item.expiresAt = keepaTimeToDate(info.lightningEnd);
+        }
         return item;
       })
       .filter((d): d is DealItem => d !== null);

@@ -10,6 +10,8 @@ import type { DealItem } from "@/lib/deal-api/types";
 import { getWatchlistMap } from "@/lib/get-watchlist-map";
 import { auth } from "@/lib/auth";
 import { DealOfWeekSection } from "@/components/dashboard/deal-of-week-section";
+import { LightningDealsSection } from "@/components/deals/lightning-deals-section";
+import { LimitedTimeSection } from "@/components/deals/limited-time-section";
 
 export const metadata: Metadata = { title: "Deal Feed — LTSD" };
 export const dynamic = "force-dynamic";
@@ -20,6 +22,7 @@ const PAGE_SIZE = 20;
 const VALID_DEAL_TYPES = new Set([
   "PRICE_DROP",
   "LIGHTNING_DEAL",
+  "LIMITED_TIME",
   "COUPON",
   "DEAL_OF_DAY",
   "PRIME_EXCLUSIVE",
@@ -90,7 +93,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   // Only show the weekly section when no filter is active
   const hasFilter = filters.type || filters.category || filters.q || filters.sort;
 
-  const [{ deals, total }, watchlistMap, weeklyRows] = await Promise.all([
+  const [{ deals, total }, watchlistMap, weeklyRows, lightningRows, limitedRows] = await Promise.all([
     getDeals(filters),
     getWatchlistMap(),
     hasFilter ? Promise.resolve([]) : db.deal.findMany({
@@ -99,10 +102,36 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
       take:    7,
       include: { categories: { include: { category: { select: { name: true } } } } },
     }),
+    // Lightning deals — active with future expiry
+    hasFilter ? Promise.resolve([]) : db.deal.findMany({
+      where:   { dealType: "LIGHTNING_DEAL", isActive: true, expiresAt: { gt: new Date() } },
+      orderBy: { expiresAt: "asc" },
+      take:    12,
+      include: { categories: { include: { category: { select: { name: true } } } } },
+    }),
+    // Hot price drops — high discount, recently synced (last 48h)
+    hasFilter ? Promise.resolve([]) : db.deal.findMany({
+      where: {
+        isActive: true,
+        discountPercent: { gte: 20 },
+        imageUrl: { not: null },
+        dealType: { in: ["LIMITED_TIME", "PRICE_DROP"] },
+        createdAt: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) },
+      },
+      orderBy: { discountPercent: "desc" },
+      take:    12,
+      include: { categories: { include: { category: { select: { name: true } } } } },
+    }),
   ]);
 
   const weeklyDeals: DealItem[] = weeklyRows.length > 0
     ? mapDeals(weeklyRows as RawDeal[])
+    : [];
+  const lightningDeals: DealItem[] = lightningRows.length > 0
+    ? mapDeals(lightningRows as RawDeal[])
+    : [];
+  const limitedDeals: DealItem[] = limitedRows.length > 0
+    ? mapDeals(limitedRows as RawDeal[])
     : [];
 
   return (
@@ -111,6 +140,16 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
       {/* Spotlight — shown only on unfiltered view */}
       {!hasFilter && (
         <DealOfWeekSection deals={weeklyDeals} watchlistMap={watchlistMap} />
+      )}
+
+      {/* Lightning Deals */}
+      {!hasFilter && lightningDeals.length > 0 && (
+        <LightningDealsSection deals={lightningDeals} watchlistMap={watchlistMap} />
+      )}
+
+      {/* Hot Price Drops */}
+      {!hasFilter && limitedDeals.length > 0 && (
+        <LimitedTimeSection deals={limitedDeals} />
       )}
 
       {/* Filters */}

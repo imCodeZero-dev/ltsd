@@ -46,6 +46,7 @@ export interface DealItem {
   dealType: DealType;
   dealState?: DealState;   // lightning deal state: AVAILABLE | SOLDOUT | WAITLIST etc.
   expiresAt: Date | null;  // from lightning deal endTime
+  createdAt?: Date;        // when deal was first detected (for "dropped X ago" display)
 
   // Availability — only populated for lightning deals (percentClaimed → claimedCount)
   claimedCount: number;    // 0 when unknown

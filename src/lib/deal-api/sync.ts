@@ -22,7 +22,10 @@ import type { DealType as PrismaDealType, Prisma } from "@prisma/client";
 function mapDealType(dt: string): PrismaDealType {
   switch (dt) {
     case "LIGHTNING_DEAL":  return "LIGHTNING_DEAL";
+    case "LIMITED_TIME":    return "LIMITED_TIME";
     case "PRIME_EXCLUSIVE": return "PRIME_EXCLUSIVE";
+    case "COUPON":          return "COUPON";
+    case "DEAL_OF_DAY":     return "DEAL_OF_DAY";
     default:                return "PRICE_DROP";
   }
 }

@@ -4,7 +4,10 @@ import Link from "next/link";
 import { ChevronDown, ArrowUpRight, Layers } from "lucide-react";
 import { NewsletterSection } from "@/components/landing/newsletter-section";
 import { AppFooter } from "@/components/layout/app-footer";
+import { LightningDealsSection } from "@/components/deals/lightning-deals-section";
+import { LimitedTimeSection } from "@/components/deals/limited-time-section";
 import { db } from "@/lib/db";
+import { mapDeals, type RawDeal } from "@/lib/deal-mapper";
 
 export const metadata: Metadata = {
   title: "LTSD — Hunt Deals Smarter. Save More.",
@@ -751,14 +754,59 @@ function CTASection() {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
+async function getLightningDeals() {
+  try {
+    const rows = await db.deal.findMany({
+      where:   { dealType: "LIGHTNING_DEAL", isActive: true, expiresAt: { gt: new Date() } },
+      orderBy: { expiresAt: "asc" },
+      take:    8,
+      include: { categories: { include: { category: { select: { name: true } } } } },
+    });
+    return rows.length > 0 ? mapDeals(rows as RawDeal[]) : [];
+  } catch { return []; }
+}
+
+async function getHotPriceDrops() {
+  try {
+    const rows = await db.deal.findMany({
+      where: {
+        isActive: true,
+        discountPercent: { gte: 20 },
+        imageUrl: { not: null },
+        dealType: { in: ["LIMITED_TIME", "PRICE_DROP"] },
+        createdAt: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) },
+      },
+      orderBy: { discountPercent: "desc" },
+      take:    8,
+      include: { categories: { include: { category: { select: { name: true } } } } },
+    });
+    return rows.length > 0 ? mapDeals(rows as RawDeal[]) : [];
+  } catch { return []; }
+}
+
 export default async function GuestHomePage() {
-  const showcaseDeals = await getShowcaseDeals();
+  const [showcaseDeals, lightningDeals, hotDrops] = await Promise.all([
+    getShowcaseDeals(),
+    getLightningDeals(),
+    getHotPriceDrops(),
+  ]);
 
   return (
     <div className="min-h-screen flex flex-col">
       <GuestHeader />
       <HeroSection />
       <DealsSection deals={showcaseDeals} />
+
+      {/* Lightning Deals + Hot Price Drops */}
+      {(lightningDeals.length > 0 || hotDrops.length > 0) && (
+        <section className="bg-surface py-16">
+          <div className="max-w-350 mx-auto px-4 sm:px-6 space-y-10">
+            {lightningDeals.length > 0 && <LightningDealsSection deals={lightningDeals} />}
+            {hotDrops.length > 0 && <LimitedTimeSection deals={hotDrops} />}
+          </div>
+        </section>
+      )}
+
       <FeaturesSection />
       <HowItWorksSection />
       <CTASection />
