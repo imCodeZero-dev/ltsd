@@ -67,6 +67,9 @@ async function upsertDeal(
     ? (metadataPayload as Prisma.InputJsonValue)
     : undefined;
 
+  // Soft expiry: if the avg90-based discountPercent < 5%, price has returned to normal
+  const priceReturnedToNormal = item.discountPercent < 5;
+
   const data = {
     title:             item.title,
     slug,
@@ -82,10 +85,17 @@ async function upsertDeal(
     isFeaturedDayDeal: item.isFeaturedDayDeal,
     dealType:          mapDealType(item.dealType),
     expiresAt:         item.expiresAt,
+    hasEndTime:        item.hasEndTime ?? item.expiresAt != null,
+    isAllTimeLow:      item.isAllTimeLow ?? false,
     claimedCount:      item.claimedCount,
     totalSlots:        item.totalCount > 0 ? item.totalCount : null,
-    isActive:          item.dealState !== "EXPIRED" && item.dealState !== "SUPPRESSED",
-    lastSyncedAt:      new Date(),
+    // Seen in this sync — reset missed counter
+    missedSyncCount: 0,
+    // Deactivate if expired, suppressed, or price returned to normal baseline
+    isActive: item.dealState !== "EXPIRED"
+           && item.dealState !== "SUPPRESSED"
+           && !priceReturnedToNormal,
+    lastSyncedAt: new Date(),
     ...(metadataValue !== undefined && { metadata: metadataValue }),
   };
 
@@ -362,4 +372,35 @@ export async function cleanupInvalidDeals(): Promise<number> {
     data:  { isActive: false },
   });
   return result.count;
+}
+
+/**
+ * Soft expiry — "not seen in 3 consecutive syncs".
+ * Call this at the end of each sync run, passing the ASINs that WERE seen.
+ * Deals not in the seen set get missedSyncCount++.
+ * At missedSyncCount >= 3 they are deactivated.
+ *
+ * Only applied to non-lightning, non-weekly deals (lightning deals have real expiresAt).
+ */
+export async function markMissedDeals(seenAsins: string[]): Promise<{ incremented: number; deactivated: number }> {
+  if (!seenAsins.length) return { incremented: 0, deactivated: 0 };
+
+  // Increment missedSyncCount for active deals NOT seen in this sync
+  const incremented = await db.deal.updateMany({
+    where: {
+      isActive:  true,
+      asin:      { notIn: seenAsins },
+      dealType:  { notIn: ["LIGHTNING_DEAL"] },
+      isWeeklyDeal: false,
+    },
+    data: { missedSyncCount: { increment: 1 } },
+  });
+
+  // Deactivate those that have now missed 3+ syncs
+  const deactivated = await db.deal.updateMany({
+    where: { isActive: true, missedSyncCount: { gte: 3 } },
+    data:  { isActive: false },
+  });
+
+  return { incremented: incremented.count, deactivated: deactivated.count };
 }

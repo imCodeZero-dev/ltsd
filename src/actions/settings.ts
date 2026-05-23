@@ -90,6 +90,61 @@ export async function updateNotificationPreferences(
   return {};
 }
 
+export async function updateDealPreferences(input: {
+  categorySlugs: string[];
+  minDiscount:   number;
+  maxPrice:      number | null;
+  brands:        string[];
+}): Promise<ActionResult> {
+  const session = await requireAuth();
+  const userId  = session.user.id;
+
+  try {
+    // Resolve category ids from slugs
+    const categoryRecords = input.categorySlugs.length
+      ? await db.category.findMany({
+          where:  { slug: { in: input.categorySlugs } },
+          select: { id: true },
+        })
+      : [];
+
+    await db.$transaction([
+      // Replace category preferences
+      db.userCategoryPreference.deleteMany({ where: { userId } }),
+      // Upsert deal prefs
+      db.userPreferences.upsert({
+        where:  { userId },
+        create: {
+          userId,
+          minDiscountPercent: input.minDiscount,
+          maxPrice:           input.maxPrice,
+          brandPreferences:   input.brands,
+        },
+        update: {
+          minDiscountPercent: input.minDiscount,
+          maxPrice:           input.maxPrice,
+          brandPreferences:   input.brands,
+        },
+      }),
+    ]);
+
+    // Insert new category prefs (after delete — outside transaction constraint)
+    if (categoryRecords.length) {
+      await db.userCategoryPreference.createMany({
+        data:           categoryRecords.map((c) => ({ userId, categoryId: c.id })),
+        skipDuplicates: true,
+      });
+    }
+
+    revalidatePath("/settings/preferences");
+    revalidatePath("/deals");
+    revalidatePath("/dashboard");
+    return {};
+  } catch {
+    return { error: "Failed to save deal preferences." };
+  }
+}
+
 export async function deleteAccount(): Promise<void> {
   const session = await requireAuth();
 

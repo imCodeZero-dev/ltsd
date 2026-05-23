@@ -43,6 +43,8 @@ export interface RawDeal {
   totalSlots: number | null;
   monthlySold?: number | null;
   isFeaturedDayDeal: boolean;
+  hasEndTime: boolean;
+  isAllTimeLow: boolean;
   categories?: { category: { name: string } }[];
 }
 
@@ -71,6 +73,8 @@ export function mapDeal(raw: RawDeal): DealItem {
     affiliateUrl: raw.affiliateUrl,
     isFeaturedDayDeal: raw.isFeaturedDayDeal,
     monthlySold: raw.monthlySold ?? undefined,
+    hasEndTime: raw.hasEndTime,
+    isAllTimeLow: raw.isAllTimeLow,
   };
 }
 

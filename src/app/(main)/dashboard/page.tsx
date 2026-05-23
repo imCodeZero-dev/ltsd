@@ -10,6 +10,8 @@ import { HeroCarousel, type HeroSlide } from "@/components/dashboard/hero-carous
 import { SectionHeading } from "@/components/common/section-heading";
 import { DealOfWeekSection } from "@/components/dashboard/deal-of-week-section";
 import { TrendingDealsSection } from "@/components/dashboard/trending-deals-section";
+import { LightningDealsSection } from "@/components/deals/lightning-deals-section";
+import { TopPicksSection } from "@/components/deals/top-picks-section";
 import type { DealItem } from "@/lib/deal-api/types";
 
 export const metadata: Metadata = { title: "Dashboard — LTSD" };
@@ -286,10 +288,13 @@ export default async function DashboardPage() {
     redirect("/admin/dashboard");
   }
 
+
   const userName = session.user.name ?? session.user.email ?? "there";
 
   let heroSlides: HeroSlide[] = [];
   let dealOfWeekDeals: DealItem[] = [];
+  let lightningDeals: DealItem[] = [];
+  let topPicksDeals: DealItem[] = [];
   let trendingLightning: DealItem[] = [];
   let trendingPriceDrops: DealItem[] = [];
   let trendingBestDeals: DealItem[] = [];
@@ -316,7 +321,41 @@ export default async function DashboardPage() {
     dealOfWeekDeals = mapDeals(dealOfWeekRows as RawDeal[]);
     const dealOfWeekIds = dealOfWeekRows.map((d) => d.id);
 
-    // 2. Trending — fetch 3 types for tabbed section
+    // 2. Lightning Deals + Top Picks for dedicated sections
+    const [liveRows, topPicksRows] = await Promise.all([
+      db.deal.findMany({
+        where: { dealType: "LIGHTNING_DEAL", isActive: true, expiresAt: { gt: new Date() } },
+        orderBy: { expiresAt: "asc" },
+        take: 30,
+        include: { categories: { include: { category: { select: { name: true } } } } },
+      }),
+      db.deal.findMany({
+        where: {
+          isActive: true, imageUrl: { not: null },
+          dealType: { not: "LIGHTNING_DEAL" },
+          rating: { gte: 4.2 }, reviewCount: { gte: 250 },
+          currentPrice: { gte: 15 }, discountPercent: { gte: 25, lte: 60 },
+        },
+        orderBy: { discountPercent: "desc" },
+        take: 12,
+        include: { categories: { include: { category: { select: { name: true } } } } },
+      }),
+    ]);
+
+    // Deduplicate lightning deals by title prefix
+    const lightningMapped = mapDeals(liveRows as RawDeal[]);
+    const lightningSeenTitles = new Map<string, DealItem>();
+    for (const deal of lightningMapped) {
+      const key = deal.title.slice(0, 40).toLowerCase();
+      const existing = lightningSeenTitles.get(key);
+      if (!existing || deal.currentPrice < existing.currentPrice) {
+        lightningSeenTitles.set(key, deal);
+      }
+    }
+    lightningDeals = Array.from(lightningSeenTitles.values());
+    topPicksDeals = mapDeals(topPicksRows as RawDeal[]);
+
+    // 4. Trending — fetch 3 types for tabbed section
     const trendingBase = {
       isActive: true,
       currentPrice: { gt: 0 },
@@ -347,7 +386,7 @@ export default async function DashboardPage() {
     trendingPriceDrops = mapDeals(priceDropRows as RawDeal[]);
     trendingBestDeals = mapDeals(bestDealRows as RawDeal[]);
 
-    // 3. Hero slides — top 3 deals with images for the carousel
+    // 5. Hero slides — top 3 deals with images for the carousel
     const heroRows = await db.deal.findMany({
       where: {
         isActive: true,
@@ -454,6 +493,16 @@ export default async function DashboardPage() {
 
       {/* Deal of Week */}
       <DealOfWeekSection deals={dealOfWeekDeals} watchlistMap={watchlistMap} />
+
+      {/* Lightning Deals */}
+      {lightningDeals.length > 0 && (
+        <LightningDealsSection deals={lightningDeals} watchlistMap={watchlistMap} />
+      )}
+
+      {/* Top Picks */}
+      {topPicksDeals.length > 0 && (
+        <TopPicksSection deals={topPicksDeals} watchlistMap={watchlistMap} />
+      )}
 
       {/* Live Watchlist */}
       {watchlistItems.length > 0 && (

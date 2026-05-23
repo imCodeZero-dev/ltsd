@@ -20,6 +20,8 @@ const makeRaw = (overrides: Partial<RawDeal> = {}): RawDeal => ({
   claimedCount: 0,
   totalSlots: null,
   isFeaturedDayDeal: false,
+  hasEndTime: false,
+  isAllTimeLow: false,
   ...overrides,
 });
 

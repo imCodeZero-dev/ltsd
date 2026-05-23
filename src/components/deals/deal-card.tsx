@@ -43,6 +43,17 @@ function fmtCountdown(expiresAt: Date): string {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+/** "Ends in X days" for deals with real but non-lightning end times (7-Day, Best Deal) */
+function daysUntil(expiresAt: Date): string {
+  const diff = Math.max(0, new Date(expiresAt).getTime() - Date.now());
+  const days  = Math.floor(diff / 86_400_000);
+  const hours = Math.floor((diff % 86_400_000) / 3_600_000);
+  if (days >= 2) return `Ends in ${days} days`;
+  if (days === 1) return `Ends tomorrow`;
+  if (hours > 0) return `Ends in ${hours}h`;
+  return `Ending soon`;
+}
+
 export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
   const imageUrl = deal.imageUrl || "/placeholder-product.png";
   const [countdown, setCountdown] = useState<string | null>(null);
@@ -64,7 +75,7 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
   return (
     <article
       className={cn(
-        "bg-surface/80 rounded-[6px] border border-border overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col",
+        "bg-surface/80 rounded-[6px] border border-border overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col h-full",
         className
       )}
     >
@@ -99,16 +110,24 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
 
       {/* ── Info area ──────────────────────────────── */}
       {/* pt-[22px] matches Figma gap between image bottom and brand row (y=202−180=22) */}
-      <div className="px-5 pt-[22px] pb-3 flex flex-col flex-1">
+      <div className="px-5 pt-[22px] pb-3 flex flex-col flex-1 overflow-hidden">
 
         {/* Brand + badge — 20px tall row, matches Figma layout_LBLPEM h=20 */}
         <div className="flex items-center justify-between gap-1 min-h-5">
           <p className="type-label truncate">{deal.brand || "\u00A0"}</p>
-          {deal.discountPercent > 0 && (
-            <span className="text-[11px] font-bold font-inter px-1.5 py-0.5 rounded text-surface leading-none shrink-0 bg-badge-bg">
-              {deal.discountPercent}% OFF
-            </span>
-          )}
+          <div className="flex items-center gap-1 shrink-0">
+            {/* Featured badge: 40%+ off, 4.2★+, 500+ reviews */}
+            {deal.discountPercent >= 40 && deal.rating >= 4.2 && deal.reviewCount >= 500 && (
+              <span className="text-2xs font-bold font-inter px-1.5 py-0.5 rounded text-surface leading-none bg-best-price">
+                FEATURED
+              </span>
+            )}
+            {deal.discountPercent > 0 && (
+              <span className="text-[11px] font-bold font-inter px-1.5 py-0.5 rounded text-surface leading-none bg-badge-bg">
+                {deal.discountPercent}% OFF
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Title — 15px, Lato, SemiBold, Title Case, tracking 6.67% */}
@@ -133,10 +152,35 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
           </p>
         )}
 
-        {/* Price drop info (PRICE_DROP / LIMITED_TIME only) */}
-        {(deal.dealType === "PRICE_DROP" || deal.dealType === "LIMITED_TIME") && deal.createdAt && (
-          <p className="text-2xs font-medium font-inter text-best-price mt-1.5">
-            Dropped {timeAgo(deal.createdAt)} {deal.originalPrice > deal.currentPrice && `• Save ${formatUSD(deal.originalPrice - deal.currentPrice)}`}
+        {/* 7-Day / Best Deal — has real end time, not a lightning deal */}
+        {deal.hasEndTime && deal.dealType !== "LIGHTNING_DEAL" && deal.expiresAt &&
+          new Date(deal.expiresAt).getTime() > Date.now() && (
+          <p className="text-2xs font-medium font-inter text-hot mt-1.5">
+            🗓 {daysUntil(new Date(deal.expiresAt))}
+          </p>
+        )}
+
+        {/* Price drop info — LIMITED_TIME / PRICE_DROP with no real end time */}
+        {(deal.dealType === "PRICE_DROP" ||
+          (deal.dealType === "LIMITED_TIME" && !deal.hasEndTime)) &&
+          deal.createdAt && (
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            <p className="text-2xs font-medium font-inter text-best-price">
+              Dropped {timeAgo(deal.createdAt)}
+              {deal.originalPrice > deal.currentPrice && ` • Save ${formatUSD(deal.originalPrice - deal.currentPrice)}`}
+            </p>
+            {deal.dealType === "LIMITED_TIME" && (
+              <span className="text-2xs font-bold font-inter px-1 py-0.5 rounded bg-badge-bg/10 text-badge-bg leading-none shrink-0">
+                Limited time
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* All-time-low badge */}
+        {deal.isAllTimeLow && (
+          <p className="text-2xs font-bold font-inter text-best-price mt-1">
+            ★ Lowest price in 90 days
           </p>
         )}
 
@@ -153,7 +197,7 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
         </div>
 
         {/* Claim progress — bottom row, matches Figma layout_JFF0LF at y=344 */}
-        {deal.dealType === "LIGHTNING_DEAL" && deal.totalCount > 0 && (
+        {deal.dealType === "LIGHTNING_DEAL" && deal.totalCount > 0 && deal.claimedCount > 0 && (
           <div className="mt-3">
             <ClaimProgress claimed={deal.claimedCount} total={deal.totalCount} />
           </div>

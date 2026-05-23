@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, Settings, HelpCircle, LogOut, X, AlertTriangle } from "lucide-react";
+import { User, Settings, SlidersHorizontal, HelpCircle, LogOut, X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { LogoutModal } from "@/components/common/logout-modal";
@@ -17,9 +17,10 @@ interface SettingsSidebarProps {
 }
 
 const NAV_ITEMS = [
-  { label: "Profile",        href: "/settings/profile",       icon: User },
-  { label: "Settings",       href: "/settings",               icon: Settings },
-  { label: "Help & Support", href: "/settings/help",          icon: HelpCircle },
+  { label: "Profile",          href: "/settings/profile",       icon: User },
+  { label: "Notifications",    href: "/settings",               icon: Settings },
+  { label: "Deal Preferences", href: "/settings/preferences",   icon: SlidersHorizontal },
+  { label: "Help & Support",   href: "/settings/help",          icon: HelpCircle },
 ];
 
 function roleLabel(role: string) {

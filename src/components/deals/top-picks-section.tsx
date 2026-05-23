@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, TrendingDown } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { DealCard } from "./deal-card";
 import type { DealItem } from "@/lib/deal-api/types";
 
@@ -14,9 +14,9 @@ function getWlId(map: Map<string, string> | Record<string, string>, key: string)
   return map instanceof Map ? map.get(key) : map[key];
 }
 
-export function LimitedTimeSection({ deals, watchlistMap }: Props) {
+export function TopPicksSection({ deals, watchlistMap }: Props) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [canLeft, setCanLeft] = useState(false);
+  const [canLeft, setCanLeft]   = useState(false);
   const [canRight, setCanRight] = useState(false);
 
   function updateArrows() {
@@ -46,12 +46,12 @@ export function LimitedTimeSection({ deals, watchlistMap }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-best-price/10 flex items-center justify-center">
-            <TrendingDown className="w-4 h-4 text-best-price" />
+          <div className="w-8 h-8 rounded-lg bg-badge-bg/10 flex items-center justify-center">
+            <Star className="w-4 h-4 text-badge-bg" />
           </div>
           <div>
-            <h2 className="type-section-title">Hot Price Drops</h2>
-            <p className="text-xs text-body mt-0.5">Huge recent discounts — prices may revert anytime</p>
+            <h2 className="type-section-title">Top Picks</h2>
+            <p className="text-xs text-body mt-0.5">Highly rated · 4.2★+ · 250+ reviews · genuine discounts</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
@@ -59,7 +59,7 @@ export function LimitedTimeSection({ deals, watchlistMap }: Props) {
             type="button"
             onClick={() => scroll(-1)}
             disabled={!canLeft}
-            className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-body disabled:opacity-30 hover:bg-bg transition-colors"
+            className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-body disabled:opacity-30 hover:bg-bg transition-colors cursor-pointer"
             aria-label="Scroll left"
           >
             <ChevronLeft className="w-4 h-4" />
@@ -68,7 +68,7 @@ export function LimitedTimeSection({ deals, watchlistMap }: Props) {
             type="button"
             onClick={() => scroll(1)}
             disabled={!canRight}
-            className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-body disabled:opacity-30 hover:bg-bg transition-colors"
+            className="w-7 h-7 rounded-lg border border-border flex items-center justify-center text-body disabled:opacity-30 hover:bg-bg transition-colors cursor-pointer"
             aria-label="Scroll right"
           >
             <ChevronRight className="w-4 h-4" />

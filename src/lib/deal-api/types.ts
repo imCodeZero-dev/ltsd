@@ -60,6 +60,10 @@ export interface DealItem {
   monthlySold?: number;    // "bought past month" Amazon metric (e.g. 1000 = "1000+")
 
   isFeaturedDayDeal: boolean;
+
+  // Quality signals (from Keepa stats — undefined for deals without this data)
+  hasEndTime?: boolean;    // true when a real expiry exists (Lightning, 7-Day)
+  isAllTimeLow?: boolean;  // true when current price is at or within 2% of all-time-low
 }
 
 // ── Supporting types ──────────────────────────────────────────────────────────

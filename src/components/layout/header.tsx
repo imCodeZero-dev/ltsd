@@ -1,10 +1,13 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { AnnouncementBar } from "./announcement-bar";
 import { SearchBar, MobileSearchBar } from "./search-bar";
 import { HeaderNav } from "./header-nav";
+import { CategoryNavDropdown } from "./category-nav-dropdown";
+import { CategoryMobileStrip } from "./category-mobile-strip";
 import { NotificationsBell } from "@/components/notifications/notifications-bell";
 import { AccountDropdown } from "./account-dropdown";
 
@@ -44,6 +47,9 @@ export async function Header() {
               />
             </Link>
             <HeaderNav />
+            <Suspense fallback={null}>
+              <CategoryNavDropdown />
+            </Suspense>
           </div>
 
           {/* CENTER: search */}
@@ -89,6 +95,11 @@ export async function Header() {
 
         {/* Mobile search */}
         <MobileSearchBar />
+
+        {/* Mobile category strip */}
+        <Suspense fallback={null}>
+          <CategoryMobileStrip />
+        </Suspense>
       </header>
     </>
   );

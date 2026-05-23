@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight, Bell, FileText, Shield } from "lucide-react";
+import { ChevronRight, Bell, SlidersHorizontal, FileText, Shield } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { LogoutButton } from "@/components/settings/logout-button";
 import { ProfileInfoSection } from "@/components/settings/profile-info-section";
@@ -105,10 +105,10 @@ export default async function ProfilePage() {
             Manage <ChevronRight className="w-3.5 h-3.5" />
           </span>
         </Row>
-        <Row href="/onboarding/categories">
+        <Row href="/settings/preferences">
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-navy">Deal Categories</p>
-            <p className="text-xs text-body mt-0.5">Choose the types of deals you want to see</p>
+            <p className="text-sm font-semibold text-navy">Deal Preferences</p>
+            <p className="text-xs text-body mt-0.5">Categories, price range, discount and brand filters</p>
           </div>
           <span className="text-xs font-semibold text-navy flex items-center gap-0.5 shrink-0">
             Edit <ChevronRight className="w-3.5 h-3.5" />
@@ -133,6 +133,11 @@ export default async function ProfilePage() {
             <Link href="/settings" className="flex items-center gap-3 px-4 py-3.5 hover:bg-bg transition-colors">
               <Bell className="w-4 h-4 text-body shrink-0" />
               <span className="flex-1 text-sm font-medium text-navy">Notification Settings</span>
+              <ChevronRight className="w-4 h-4 text-body" />
+            </Link>
+            <Link href="/settings/preferences" className="flex items-center gap-3 px-4 py-3.5 hover:bg-bg transition-colors">
+              <SlidersHorizontal className="w-4 h-4 text-body shrink-0" />
+              <span className="flex-1 text-sm font-medium text-navy">Deal Preferences</span>
               <ChevronRight className="w-4 h-4 text-body" />
             </Link>
             <Link href="/terms" className="flex items-center gap-3 px-4 py-3.5 hover:bg-bg transition-colors">

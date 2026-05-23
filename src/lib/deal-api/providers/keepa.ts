@@ -274,12 +274,20 @@ function mapProduct(p: KeepaProduct): DealItem | null {
   // Skip non-standard products
   if (p.productType !== undefined && p.productType !== 0) return null;
 
-  const sc = p.stats?.current;
+  const sc      = p.stats?.current;
+  const avg90Raw = p.stats?.avg90?.[1];   // 90-day weighted average (New price type)
+  const atlRaw   = p.stats?.atl?.[1];     // all-time-low (New price type)
 
   // Price fallback chain: Amazon → New marketplace → New FBA → Used
-  const currentRaw  = firstPositive(sc?.[0], sc?.[1], sc?.[7], sc?.[2]);
-  // For original price prefer List Price (MSRP), then Amazon, then New
-  const originalRaw = firstPositive(sc?.[4], sc?.[0], sc?.[1]);
+  const currentRaw = firstPositive(sc?.[0], sc?.[1], sc?.[7], sc?.[2]);
+
+  // Use 90-day average as "was" baseline — this is the honest reference price.
+  // Only use avg90 if it's meaningfully higher than current price (5%+ gap).
+  // Fall back to List Price → Amazon price → New marketplace price.
+  const hasAvg90   = avg90Raw && avg90Raw > 0 && avg90Raw > currentRaw * 1.05;
+  const originalRaw = hasAvg90
+    ? avg90Raw!
+    : firstPositive(sc?.[4], sc?.[0], sc?.[1]);
 
   // Ratings from stats.current[16]/[17] — only populated when rating=1 param used
   const ratingRaw   = sc?.[16] ?? 0;
@@ -289,6 +297,10 @@ function mapProduct(p: KeepaProduct): DealItem | null {
   const originalCents = keepaPriceToCents(originalRaw > 0 ? originalRaw : currentRaw);
 
   if (currentCents <= 0) return null;
+
+  // All-time-low: current price is at or within 2% above the all-time-low
+  const atlCents     = atlRaw && atlRaw > 0 ? keepaPriceToCents(atlRaw) : 0;
+  const isAllTimeLow = atlCents > 0 && currentCents <= Math.round(atlCents * 1.02);
 
   const discountPercent = originalCents > currentCents
     ? Math.round(((originalCents - currentCents) / originalCents) * 100)
@@ -330,6 +342,8 @@ function mapProduct(p: KeepaProduct): DealItem | null {
     monthlySold: p.monthlySold && p.monthlySold > 0 ? p.monthlySold : undefined,
     affiliateUrl: buildAffiliateUrl(asin),
     isFeaturedDayDeal: false,
+    hasEndTime: false,      // /product items from /deal endpoint have no end time unless overridden
+    isAllTimeLow,
   };
 }
 
@@ -388,6 +402,8 @@ export function mapLightningDeal(d: KeepaLightningDeal): DealItem | null {
     reviewCount,
     affiliateUrl: buildAffiliateUrl(d.asin),
     isFeaturedDayDeal: false,
+    hasEndTime: expiresAt !== null,
+    isAllTimeLow: false,
   };
 }
 
@@ -455,7 +471,8 @@ export class KeepaProvider implements DealApiProvider {
         if (info?.dealType !== undefined) item.dealType = mapDealType(info.dealType);
         // Set expiresAt from lightningEnd for lightning deals
         if (info?.lightningEnd && info.lightningEnd > 0) {
-          item.expiresAt = keepaTimeToDate(info.lightningEnd);
+          item.expiresAt  = keepaTimeToDate(info.lightningEnd);
+          item.hasEndTime = true;
         }
         return item;
       })

@@ -5,6 +5,9 @@ import {
   syncProductWithHistory,
   syncPrices,
   seedDeals,
+  syncLightningDeals,
+  syncBestSellers,
+  markMissedDeals,
 } from "@/lib/deal-api/sync";
 import { db } from "@/lib/db";
 import { requireAdminOrThrow } from "@/lib/auth-guard";
@@ -15,6 +18,8 @@ import { requireAdminOrThrow } from "@/lib/auth-guard";
  * Remove before production deploy.
  *
  * POST /api/test-keepa/sync
+ *   { action: "daily" }                             → run full daily sync (all steps)
+ *   { action: "lightning" }                         → sync lightning deals only
  *   { action: "seed" }                              → seed 3 categories
  *   { action: "category", category: "Electronics" } → sync one category
  *   { action: "search", query: "headphones" }       → search + sync
@@ -34,6 +39,66 @@ export async function POST(req: Request) {
     const action = body.action as string;
 
     switch (action) {
+      case "daily": {
+        // Full daily sync — same as the production cron
+        const results: Record<string, unknown> = {};
+        const allErrors: string[] = [];
+
+        try {
+          const r = await syncLightningDeals();
+          results.lightning = { synced: r.synced, errors: r.errors.length };
+          allErrors.push(...r.errors.slice(0, 3));
+        } catch (e) { allErrors.push(`lightning: ${e instanceof Error ? e.message : String(e)}`); }
+
+        try {
+          const r = await seedDeals(["Electronics", "Home & Kitchen", "Sports & Outdoors"], 20);
+          results.dealFeed = { synced: r.total, errors: r.errors.length };
+          allErrors.push(...r.errors.slice(0, 3));
+        } catch (e) { allErrors.push(`dealFeed: ${e instanceof Error ? e.message : String(e)}`); }
+
+        try {
+          const CATS = [
+            { id: 172282, name: "Electronics" },
+            { id: 1055398, name: "Home & Kitchen" },
+            { id: 3375251, name: "Sports & Outdoors" },
+          ];
+          let bsTotal = 0;
+          for (const cat of CATS) {
+            const r = await syncBestSellers(cat.id, cat.name, 60);
+            bsTotal += r.synced;
+          }
+          results.bestSellers = { synced: bsTotal };
+        } catch (e) { allErrors.push(`bestSellers: ${e instanceof Error ? e.message : String(e)}`); }
+
+        try {
+          const deals = await db.deal.findMany({
+            where: { isActive: true }, orderBy: { lastSyncedAt: "asc" },
+            select: { asin: true }, take: 50,
+          });
+          if (deals.length > 0) {
+            const r = await syncPrices(deals.map((d) => d.asin));
+            results.priceCheck = { checked: deals.length, updated: r.updated };
+          }
+        } catch (e) { allErrors.push(`priceCheck: ${e instanceof Error ? e.message : String(e)}`); }
+
+        // Soft expiry: mark deals not seen in this sync
+        try {
+          const seenAsins = await db.deal.findMany({
+            where:  { lastSyncedAt: { gte: new Date(Date.now() - 5 * 60 * 1000) } },
+            select: { asin: true },
+          }).then((rows) => rows.map((r) => r.asin));
+          const missed = await markMissedDeals(seenAsins);
+          results.missedSync = missed;
+        } catch (e) { allErrors.push(`missedSync: ${e instanceof Error ? e.message : String(e)}`); }
+
+        return NextResponse.json({ action: "daily", results, errors: allErrors.length, errorList: allErrors });
+      }
+
+      case "lightning": {
+        const result = await syncLightningDeals();
+        return NextResponse.json({ action: "lightning", ...result });
+      }
+
       case "seed": {
         const categories = (body.categories as string[]) ?? undefined;
         const limit = (body.limit as number) ?? 10;

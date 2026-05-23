@@ -960,11 +960,26 @@ function SyncPanel() {
 
   const syncButtons = [
     {
-      label: "Seed (3 categories × 10)",
+      label: "⚡ Run Full Daily Sync",
+      action: "daily",
+      body: {},
+      color: "#0066FF",
+      desc: "Runs everything: lightning deals + category feed + best sellers + price refresh. Same as the production cron.",
+      highlight: true,
+    },
+    {
+      label: "Lightning Deals Only",
+      action: "lightning",
+      body: {},
+      color: "#FE9800",
+      desc: "Sync all active lightning deals from Keepa — populates hasEndTime, claimedCount, real countdown.",
+    },
+    {
+      label: "Seed (3 categories × 20)",
       action: "seed",
-      body: { limit: 10 },
+      body: { limit: 20 },
       color: "#22A45D",
-      desc: "Populates DB with deals from Electronics, Home & Kitchen, Sports. ~3 Keepa API calls.",
+      desc: "Pulls quality-filtered price drops from Electronics, Home & Kitchen, Sports using avg90 baseline.",
     },
     {
       label: "Sync Electronics",
@@ -977,7 +992,7 @@ function SyncPanel() {
       label: "Search → Sync \"headphones\"",
       action: "search",
       body: { query: "headphones", limit: 5 },
-      color: "#FE9800",
+      color: "#44474E",
       desc: "Search Keepa for headphones, sync results to DB.",
     },
   ];
@@ -1034,7 +1049,10 @@ function SyncPanel() {
         {/* Sync actions */}
         <div className="space-y-2">
           {syncButtons.map((btn) => (
-            <div key={btn.action + btn.label} className="flex items-center gap-3 p-3 rounded-xl border border-[#E7E8E9] hover:bg-[#F5F6F7] transition-colors">
+            <div
+              key={btn.action + btn.label}
+              className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${"highlight" in btn && btn.highlight ? "border-[#0066FF] bg-[#F0F5FF]" : "border-[#E7E8E9] hover:bg-[#F5F6F7]"}`}
+            >
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-navy">{btn.label}</p>
                 <p className="text-[10px] text-body">{btn.desc}</p>
@@ -1043,12 +1061,12 @@ function SyncPanel() {
                 type="button"
                 onClick={() => runSync(btn.action, btn.body)}
                 disabled={loading !== null}
-                className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40"
+                className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
                 style={{ background: btn.color }}
               >
                 {loading === btn.action
                   ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Syncing…</>
-                  : <><CloudDownload className="w-3.5 h-3.5" /> Sync</>
+                  : <><CloudDownload className="w-3.5 h-3.5" /> Run</>
                 }
               </button>
             </div>

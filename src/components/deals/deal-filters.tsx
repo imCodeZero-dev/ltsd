@@ -9,25 +9,11 @@ import { cn } from "@/lib/utils";
 // Left: "Category ▾" pill | "Deal Type ▾" pill
 // Right: "Sort by ▾" pill
 
-const CATEGORIES = [
-  { value: "",            label: "All Categories" },
-  { value: "electronics", label: "Electronics" },
-  { value: "computers",   label: "Computers" },
-  { value: "home",        label: "Home" },
-  { value: "kitchen",     label: "Kitchen" },
-  { value: "fashion",     label: "Fashion" },
-  { value: "gaming",      label: "Gaming" },
-  { value: "fitness",     label: "Fitness" },
-  { value: "beauty",      label: "Beauty" },
-  { value: "automotive",  label: "Automotive" },
-  { value: "books",       label: "Books" },
-];
-
 const DEAL_TYPES = [
-  { value: "",                label: "All Types" },
-  { value: "LIGHTNING_DEAL",  label: "Lightning Deals" },
-  { value: "PRICE_DROP",      label: "Price Drops" },
-  { value: "LIMITED_TIME",    label: "Limited Time" },
+  { value: "",               label: "All Types" },
+  { value: "LIGHTNING_DEAL", label: "Lightning Deals" },
+  { value: "PRICE_DROP",     label: "Price Drops" },
+  { value: "LIMITED_TIME",   label: "Limited Time" },
 ];
 
 const SORT_OPTIONS = [
@@ -39,7 +25,11 @@ const SORT_OPTIONS = [
   { value: "newest",      label: "Newest" },
 ];
 
-export function DealFilters() {
+interface DealFiltersProps {
+  categories?: { slug: string; name: string }[];
+}
+
+export function DealFilters({ categories = [] }: DealFiltersProps) {
   const router = useRouter();
   const params = useSearchParams();
   const [, startTransition] = useTransition();
@@ -47,6 +37,11 @@ export function DealFilters() {
   const activeCategory = params.get("category") ?? "";
   const activeType     = params.get("type")     ?? "";
   const activeSort     = params.get("sort")      ?? "";
+
+  const CATEGORIES = [
+    { value: "", label: "All Categories" },
+    ...categories.map((c) => ({ value: c.slug, label: c.name })),
+  ];
 
   function setParam(key: string, value: string) {
     const next = new URLSearchParams(params.toString());
@@ -151,8 +146,8 @@ function FilterDropdown({
               className={cn(
                 "w-full text-left px-4 py-2.5 transition-colors cursor-pointer type-body",
                 value === opt.value
-                  ? "bg-[#FFF8EE] text-badge-bg font-semibold"
-                  : "hover:bg-[#F5F6F7]"
+                  ? "bg-badge-tint text-badge-bg font-semibold"
+                  : "hover:bg-surface-hover"
               )}
             >
               {opt.label}
