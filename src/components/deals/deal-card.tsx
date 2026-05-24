@@ -110,29 +110,28 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
 
       {/* ── Info area ──────────────────────────────── */}
       {/* pt-[22px] matches Figma gap between image bottom and brand row (y=202−180=22) */}
-      <div className="px-5 pt-[22px] pb-3 flex flex-col flex-1 overflow-hidden">
+      <div className="px-3 pt-3 pb-3 flex flex-col flex-1 overflow-hidden">
 
-        {/* Brand + badge — 20px tall row, matches Figma layout_LBLPEM h=20 */}
+        {/* Brand + badge row */}
         <div className="flex items-center justify-between gap-1 min-h-5">
-          <p className="type-label truncate">{deal.brand || "\u00A0"}</p>
+          <p className="type-label truncate max-w-[45%]">{deal.brand || "\u00A0"}</p>
           <div className="flex items-center gap-1 shrink-0">
             {/* Featured badge: 40%+ off, 4.2★+, 500+ reviews */}
             {deal.discountPercent >= 40 && deal.rating >= 4.2 && deal.reviewCount >= 500 && (
-              <span className="text-2xs font-bold font-inter px-1.5 py-0.5 rounded text-surface leading-none bg-best-price">
+              <span className="text-2xs font-bold font-inter px-1 py-0.5 rounded text-surface leading-none bg-best-price">
                 FEATURED
               </span>
             )}
             {deal.discountPercent > 0 && (
-              <span className="text-[11px] font-bold font-inter px-1.5 py-0.5 rounded text-surface leading-none bg-badge-bg">
+              <span className="text-[11px] font-bold font-inter px-1 py-0.5 rounded text-surface leading-none bg-badge-bg">
                 {deal.discountPercent}% OFF
               </span>
             )}
           </div>
         </div>
 
-        {/* Title — 15px, Lato, SemiBold, Title Case, tracking 6.67% */}
-        {/* mt-[15px] matches Figma gap between brand row and title (y=237−222=15) */}
-        <Link href={`/deals/${deal.slug ?? deal.id}`} className="mt-[15px] block">
+        {/* Title */}
+        <Link href={`/deals/${deal.slug ?? deal.id}`} className="mt-2 block">
           <h3 className="text-[15px] leading-[1.2] font-semibold font-lato text-navy capitalize tracking-[0.067em] line-clamp-2 hover:text-badge-bg transition-colors">
             {deal.title}
           </h3>
@@ -185,8 +184,8 @@ export function DealCard({ deal, watchlistItemId, className }: DealCardProps) {
         )}
 
         {/* Price — inline row, left-aligned, pushed to bottom of info area */}
-        <div className="flex items-baseline gap-2 mt-auto pt-4">
-          <span className="text-xl font-extrabold font-lato text-navy leading-none">
+        <div className="flex items-baseline gap-2 mt-auto pt-3">
+          <span className="text-lg font-extrabold font-lato text-navy leading-none">
             {formatUSD(deal.currentPrice)}
           </span>
           {deal.originalPrice > deal.currentPrice && (

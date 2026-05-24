@@ -51,7 +51,7 @@ export function LimitedTimeSection({ deals, watchlistMap }: Props) {
           </div>
           <div>
             <h2 className="type-section-title">Hot Price Drops</h2>
-            <p className="text-xs text-body mt-0.5">Huge recent discounts — prices may revert anytime</p>
+            <p className="text-xs text-body mt-0.5 line-clamp-1">Huge recent discounts — prices may revert anytime</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">

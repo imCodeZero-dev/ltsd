@@ -51,7 +51,7 @@ export function LightningDealsSection({ deals, watchlistMap }: Props) {
           </div>
           <div>
             <h2 className="type-section-title">Lightning Deals</h2>
-            <p className="text-xs text-body mt-0.5">Limited stock, real countdown — grab before they're gone</p>
+            <p className="text-xs text-body mt-0.5 line-clamp-1">Limited stock, real countdown — grab before they're gone</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">

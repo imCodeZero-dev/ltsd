@@ -12,7 +12,7 @@ export function StarRating({ score, reviewCount, size = "sm", hideScore = false,
   const iconSize = size === "sm" ? "w-3.5 h-3.5" : "w-4 h-4";
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 flex-wrap">
       <div className="flex items-center gap-0.5">
         {Array.from({ length: 5 }).map((_, i) => {
           const fill = Math.min(Math.max(score - i, 0), 1);
@@ -34,7 +34,7 @@ export function StarRating({ score, reviewCount, size = "sm", hideScore = false,
         })}
       </div>
       {!hideScore && (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
           {score.toFixed(1)}
           {reviewCount !== undefined && (
             <> ({reviewCount.toLocaleString()}{showPlus ? "+" : ""} reviews)</>
@@ -42,7 +42,7 @@ export function StarRating({ score, reviewCount, size = "sm", hideScore = false,
         </span>
       )}
       {hideScore && reviewCount !== undefined && (
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-muted-foreground whitespace-nowrap">
           ({reviewCount.toLocaleString()}{showPlus ? "+" : ""})
         </span>
       )}

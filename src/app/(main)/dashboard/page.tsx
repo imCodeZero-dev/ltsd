@@ -17,6 +17,22 @@ import type { DealItem } from "@/lib/deal-api/types";
 export const metadata: Metadata = { title: "Dashboard — LTSD" };
 export const dynamic = "force-dynamic";
 
+// ── Hardcoded category list — always shows full grid regardless of DB state ────
+const CATEGORIES_LIST = [
+  { slug: "electronics",          name: "Electronics",          emoji: "⚡", bg: "#E8EFF8" },
+  { slug: "home-kitchen",         name: "Home & Kitchen",        emoji: "🏠", bg: "#EDE9E4" },
+  { slug: "sports-outdoors",      name: "Sports & Outdoors",     emoji: "⚽", bg: "#E4F0E4" },
+  { slug: "clothing",             name: "Clothing",              emoji: "👕", bg: "#F3EDE7" },
+  { slug: "health-personal-care", name: "Health & Beauty",       emoji: "💊", bg: "#E8F0F0" },
+  { slug: "video-games",          name: "Video Games",           emoji: "🎮", bg: "#F0EAF0" },
+  { slug: "tools-home-improvement", name: "Tools & DIY",         emoji: "🔧", bg: "#EAF0EC" },
+  { slug: "automotive",           name: "Automotive",            emoji: "🚗", bg: "#F5F0E8" },
+  { slug: "baby-products",        name: "Baby Products",         emoji: "👶", bg: "#FFF0F0" },
+  { slug: "office-products",      name: "Office Products",       emoji: "📎", bg: "#EEF0F8" },
+  { slug: "grocery-gourmet-food", name: "Grocery",               emoji: "🛒", bg: "#E8F4EC" },
+  { slug: "appliances",           name: "Appliances",            emoji: "🫧", bg: "#E8EFF8" },
+];
+
 // ── Category background colours (keyed by slug prefix) ────────────────────────
 const CAT_BG: Record<string, string> = {
   electronics:  "#E8EFF8",
@@ -124,78 +140,66 @@ function PersonalizationBar({ userName }: { userName: string }) {
 }
 
 // ── Categories row ─────────────────────────────────────────────────────────────
-function CategoriesRow({ categories }: { categories: CategoryWithImage[] }) {
+function CategoriesRow() {
   return (
     <section>
       <SectionHeading title="Our Categories" viewAllHref="/deals" />
 
       {/* Mobile: horizontal pill filters */}
       <div className="md:hidden flex gap-2 overflow-x-auto scrollbar-none pb-1 -mx-4 px-4">
-        {CATEGORY_PILLS.map(({ value, label }, i) => (
+        <Link
+          href="/deals"
+          className="shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border whitespace-nowrap bg-navy text-white border-navy"
+        >
+          All
+        </Link>
+        {CATEGORIES_LIST.map(({ slug, name }) => (
           <Link
-            key={value}
-            href={value ? `/deals?category=${value}` : "/deals"}
-            className={`shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border whitespace-nowrap transition-colors ${
-              i === 0
-                ? "bg-navy text-white border-navy"
-                : "bg-surface text-body border-border"
-            }`}
+            key={slug}
+            href={`/deals?category=${slug}`}
+            className="shrink-0 px-4 py-1.5 rounded-full text-sm font-semibold border whitespace-nowrap bg-surface text-body border-border"
           >
-            {label}
+            {name}
           </Link>
         ))}
       </div>
 
-      {/* Desktop: circular icon row with arrows */}
-      {categories.length > 0 && (
-        <div className="hidden md:flex relative items-center">
-          <button
-            type="button"
-            aria-label="Scroll left"
-            className="shrink-0 -ml-2 mr-2 flex w-9 h-9 rounded-full bg-surface border border-border shadow items-center justify-center hover:border-badge-bg transition-colors z-10"
-          >
-            <ChevronLeft className="w-4 h-4 text-body" />
-          </button>
+      {/* Desktop: circular icon row */}
+      <div className="hidden md:flex relative items-center">
+        <button
+          type="button"
+          aria-label="Scroll left"
+          className="shrink-0 -ml-2 mr-2 flex w-9 h-9 rounded-full bg-surface border border-border shadow items-center justify-center hover:border-badge-bg transition-colors z-10"
+        >
+          <ChevronLeft className="w-4 h-4 text-body" />
+        </button>
 
-          <div className="flex-1 flex gap-6 overflow-x-auto scrollbar-none pb-2">
-            {categories.map(({ slug, name, imageUrl }) => (
-              <Link
-                key={slug}
-                href={`/deals?category=${slug}`}
-                className="shrink-0 flex flex-col items-center gap-3 group"
+        <div className="flex-1 flex gap-6 overflow-x-auto scrollbar-none pb-2">
+          {CATEGORIES_LIST.map(({ slug, name, emoji, bg }) => (
+            <Link
+              key={slug}
+              href={`/deals?category=${slug}`}
+              className="shrink-0 flex flex-col items-center gap-3 group"
+            >
+              <div
+                className="w-28 h-28 rounded-full flex items-center justify-center transition-transform group-hover:scale-105"
+                style={{ background: bg }}
               >
-                <div
-                  className="w-28 h-28 rounded-full overflow-hidden flex items-center justify-center transition-transform group-hover:scale-105 relative"
-                  style={{ background: getCatBg(slug) }}
-                >
-                  {imageUrl ? (
-                    <Image
-                      src={imageUrl}
-                      alt={name}
-                      fill
-                      sizes="112px"
-                      className="object-contain p-4"
-                    />
-                  ) : (
-                    <span className="text-2xl">
-                      {getCatEmoji(slug)}
-                    </span>
-                  )}
-                </div>
-                <span className="text-sm font-medium text-navy text-center leading-none">{name}</span>
-              </Link>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            aria-label="Scroll right"
-            className="shrink-0 -mr-2 ml-2 flex w-9 h-9 rounded-full bg-surface border border-border shadow items-center justify-center hover:border-badge-bg transition-colors z-10"
-          >
-            <ChevronRight className="w-4 h-4 text-body" />
-          </button>
+                <span className="text-4xl">{emoji}</span>
+              </div>
+              <span className="text-sm font-medium text-navy text-center leading-tight max-w-[100px]">{name}</span>
+            </Link>
+          ))}
         </div>
-      )}
+
+        <button
+          type="button"
+          aria-label="Scroll right"
+          className="shrink-0 -mr-2 ml-2 flex w-9 h-9 rounded-full bg-surface border border-border shadow items-center justify-center hover:border-badge-bg transition-colors z-10"
+        >
+          <ChevronRight className="w-4 h-4 text-body" />
+        </button>
+      </div>
     </section>
   );
 }
@@ -416,28 +420,7 @@ export default async function DashboardPage() {
       };
     });
 
-    // 4. Categories
-    const catRows = await db.category.findMany({
-      select: {
-        slug: true,
-        name: true,
-        deals: {
-          where: {
-            deal: { isActive: true, imageUrl: { not: null }, currentPrice: { gt: 0 } },
-          },
-          take: 1,
-          orderBy: { deal: { discountPercent: "desc" } },
-          select: { deal: { select: { imageUrl: true } } },
-        },
-      },
-      take: 12,
-    });
-
-    categories = catRows.map((c) => ({
-      slug: c.slug,
-      name: c.name,
-      imageUrl: c.deals[0]?.deal.imageUrl ?? null,
-    }));
+    // 4. Categories — hardcoded list, no DB fetch needed
 
     // 5. Top brands from DB
     const brandRows = await db.deal.findMany({
@@ -489,7 +472,7 @@ export default async function DashboardPage() {
       <PersonalizationBar userName={userName} />
 
       {/* Categories */}
-      <CategoriesRow categories={categories} />
+      <CategoriesRow />
 
       {/* Deal of Week */}
       <DealOfWeekSection deals={dealOfWeekDeals} watchlistMap={watchlistMap} />
@@ -524,8 +507,8 @@ export default async function DashboardPage() {
         watchlistMap={watchlistMap}
       />
 
-      {/* Shop by Top Brands — only shown when DB has brands */}
-      {topBrands.length > 0 && (
+      {/* Shop by Top Brands — commented out until real brand logos/data available */}
+      {/* {topBrands.length > 0 && (
         <section className="pb-4">
           <SectionHeading title="Shop By Top Brands" viewAllHref="/deals" />
           <div className="flex gap-3 overflow-x-auto scrollbar-none pb-1">
@@ -541,7 +524,7 @@ export default async function DashboardPage() {
             ))}
           </div>
         </section>
-      )}
+      )} */}
     </div>
   );
 }
