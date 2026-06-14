@@ -58,12 +58,13 @@ export function DealFilters({ categories = [] }: DealFiltersProps) {
     <div className="flex items-center justify-between gap-3 py-3 border-b border-[#E7E8E9]">
       {/* Left: filter pills */}
       <div className="flex items-center gap-2">
-        <FilterDropdown
+        <SearchableDropdown
           label={activeCategory ? categoryLabel : "Category"}
           active={!!activeCategory}
           options={CATEGORIES}
           value={activeCategory}
           onChange={(v) => setParam("category", v)}
+          placeholder="Search categories..."
         />
         <FilterDropdown
           label={activeType ? typeLabel : "Deal Type"}
@@ -83,6 +84,93 @@ export function DealFilters({ categories = [] }: DealFiltersProps) {
         onChange={(v) => setParam("sort", v)}
         alignRight
       />
+    </div>
+  );
+}
+
+function SearchableDropdown({
+  label,
+  active,
+  options,
+  value,
+  onChange,
+  placeholder = "Search...",
+}: {
+  label: string;
+  active: boolean;
+  options: { value: string; label: string }[];
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setQuery(""); }
+    }
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [open]);
+
+  useEffect(() => {
+    if (open) setTimeout(() => inputRef.current?.focus(), 50);
+  }, [open]);
+
+  const filtered = query.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(query.trim().toLowerCase()))
+    : options;
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={cn("cursor-pointer", active ? "btn-ghost-active" : "btn-ghost")}
+      >
+        {label}
+        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-150", open && "rotate-180")} />
+      </button>
+
+      {open && (
+        <div className="absolute top-full mt-1.5 z-30 bg-white border border-[#E7E8E9] rounded-xl shadow-lg w-56 left-0 overflow-hidden">
+          <div className="px-3 pt-3 pb-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={placeholder}
+              className="w-full px-3 py-2 rounded-lg border border-[#E7E8E9] text-sm text-navy outline-none focus:border-badge-bg bg-white placeholder:text-body"
+            />
+          </div>
+          <div className="max-h-56 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="px-4 py-3 text-xs text-body">No categories found</p>
+            ) : (
+              filtered.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => { onChange(opt.value); setOpen(false); setQuery(""); }}
+                  className={cn(
+                    "w-full text-left px-4 py-2.5 transition-colors cursor-pointer type-body",
+                    value === opt.value
+                      ? "bg-badge-tint text-badge-bg font-semibold"
+                      : "hover:bg-surface-hover",
+                  )}
+                >
+                  {opt.label}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

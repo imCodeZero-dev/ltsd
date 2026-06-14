@@ -13,6 +13,7 @@ import { TrendingDealsSection } from "@/components/dashboard/trending-deals-sect
 import { LightningDealsSection } from "@/components/deals/lightning-deals-section";
 import { TopPicksSection } from "@/components/deals/top-picks-section";
 import type { DealItem } from "@/lib/deal-api/types";
+import { getUserDealPrefs } from "@/lib/get-user-prefs";
 
 export const metadata: Metadata = { title: "Dashboard — LTSD" };
 export const dynamic = "force-dynamic";
@@ -294,6 +295,23 @@ export default async function DashboardPage() {
 
 
   const userName = session.user.name ?? session.user.email ?? "there";
+  const prefs = await getUserDealPrefs();
+
+  // Preference-aware reordering — preferred deals appear first within each section
+  const prefBrands = new Set(prefs.brands.map((b) => b.toLowerCase()));
+  const prefSlugs  = new Set(prefs.categorySlugs);
+
+  function prefScore(deal: DealItem): number {
+    let score = 0;
+    if (deal.brand && prefBrands.has(deal.brand.toLowerCase())) score += 2;
+    if (deal.category && prefSlugs.has(deal.category.toLowerCase().replace(/[^a-z0-9]+/g, "-"))) score += 1;
+    return score;
+  }
+
+  function reorderByPrefs(deals: DealItem[]): DealItem[] {
+    if (prefBrands.size === 0 && prefSlugs.size === 0) return deals;
+    return [...deals].sort((a, b) => prefScore(b) - prefScore(a));
+  }
 
   let heroSlides: HeroSlide[] = [];
   let dealOfWeekDeals: DealItem[] = [];
@@ -356,8 +374,14 @@ export default async function DashboardPage() {
         lightningSeenTitles.set(key, deal);
       }
     }
-    lightningDeals = Array.from(lightningSeenTitles.values());
-    topPicksDeals = mapDeals(topPicksRows as RawDeal[]);
+    lightningDeals = reorderByPrefs(Array.from(lightningSeenTitles.values()));
+
+    // Cross-section dedup — remove deals already shown in lightning from top picks
+    const seenIds = new Set([
+      ...dealOfWeekIds,
+      ...lightningDeals.map((d) => d.id),
+    ]);
+    topPicksDeals = reorderByPrefs(mapDeals(topPicksRows as RawDeal[]).filter((d) => !seenIds.has(d.id)));
 
     // 4. Trending — fetch 3 types for tabbed section
     const trendingBase = {
@@ -386,9 +410,9 @@ export default async function DashboardPage() {
         include: { categories: { include: { category: { select: { name: true } } } } },
       }),
     ]);
-    trendingLightning = mapDeals(lightningRows as RawDeal[]);
-    trendingPriceDrops = mapDeals(priceDropRows as RawDeal[]);
-    trendingBestDeals = mapDeals(bestDealRows as RawDeal[]);
+    trendingLightning = reorderByPrefs(mapDeals(lightningRows as RawDeal[]));
+    trendingPriceDrops = reorderByPrefs(mapDeals(priceDropRows as RawDeal[]));
+    trendingBestDeals = reorderByPrefs(mapDeals(bestDealRows as RawDeal[]));
 
     // 5. Hero slides — top 3 deals with images for the carousel
     const heroRows = await db.deal.findMany({

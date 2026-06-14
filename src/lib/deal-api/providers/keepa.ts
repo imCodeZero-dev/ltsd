@@ -125,6 +125,14 @@ const CATEGORY_MAP: Record<number, string> = {
   16310101:    "Grocery & Gourmet Food",
   2625373011:  "Movies & TV",
   468642:      "Video Games",
+  541966:      "Computers & Accessories",
+  11091801:    "Beauty & Personal Care",
+  2972638011:  "Toys & Games",
+  2619533011:  "Pet Supplies",
+  283155:      "Books",
+  7301146011:  "Cell Phones & Accessories",
+  2335752011:  "Camera & Photo",
+  3760931:     "Vitamins & Supplements",
 };
 
 // ── Keepa API type definitions ────────────────────────────────────────────────

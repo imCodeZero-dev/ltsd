@@ -9,6 +9,7 @@ import {
   syncBestSellers,
   markMissedDeals,
 } from "@/lib/deal-api/sync";
+import { syncPreferredBrands } from "@/lib/deal-api/pref-sync";
 import { db } from "@/lib/db";
 import { requireAdminOrThrow } from "@/lib/auth-guard";
 
@@ -51,7 +52,7 @@ export async function POST(req: Request) {
         } catch (e) { allErrors.push(`lightning: ${e instanceof Error ? e.message : String(e)}`); }
 
         try {
-          const r = await seedDeals(["Electronics", "Home & Kitchen", "Sports & Outdoors"], 20);
+          const r = await seedDeals(undefined, 15);
           results.dealFeed = { synced: r.total, errors: r.errors.length };
           allErrors.push(...r.errors.slice(0, 3));
         } catch (e) { allErrors.push(`dealFeed: ${e instanceof Error ? e.message : String(e)}`); }
@@ -61,6 +62,9 @@ export async function POST(req: Request) {
             { id: 172282, name: "Electronics" },
             { id: 1055398, name: "Home & Kitchen" },
             { id: 3375251, name: "Sports & Outdoors" },
+            { id: 7141123011, name: "Clothing" },
+            { id: 11091801, name: "Beauty & Personal Care" },
+            { id: 541966, name: "Computers & Accessories" },
           ];
           let bsTotal = 0;
           for (const cat of CATS) {
@@ -69,6 +73,12 @@ export async function POST(req: Request) {
           }
           results.bestSellers = { synced: bsTotal };
         } catch (e) { allErrors.push(`bestSellers: ${e instanceof Error ? e.message : String(e)}`); }
+
+        try {
+          const r = await syncPreferredBrands(10);
+          results.prefBrands = { brands: r.brands.length, synced: r.synced, errors: r.errors.length };
+          allErrors.push(...r.errors.slice(0, 3));
+        } catch (e) { allErrors.push(`prefBrands: ${e instanceof Error ? e.message : String(e)}`); }
 
         try {
           const deals = await db.deal.findMany({
@@ -119,6 +129,11 @@ export async function POST(req: Request) {
         const limit = (body.limit as number) ?? 10;
         const result = await syncSearch(query, limit);
         return NextResponse.json({ action: "search", query, ...result });
+      }
+
+      case "pref-brands": {
+        const result = await syncPreferredBrands(10);
+        return NextResponse.json({ action: "pref-brands", ...result });
       }
 
       case "product": {

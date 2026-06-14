@@ -6,6 +6,8 @@ export interface UserDealPrefs {
   categorySlugs: string[];
   /** Min discount % — null means no preference */
   minDiscount: number | null;
+  /** Min price in dollars — null means no preference */
+  minPrice: number | null;
   /** Max price in dollars — null means no preference */
   maxPrice: number | null;
   /** Deal types — empty means "all types" */
@@ -22,6 +24,7 @@ export async function getUserDealPrefs(): Promise<UserDealPrefs> {
   const defaults: UserDealPrefs = {
     categorySlugs: [],
     minDiscount:   null,
+    minPrice:      null,
     maxPrice:      null,
     dealTypes:     [],
     brands:        [],
@@ -34,12 +37,6 @@ export async function getUserDealPrefs(): Promise<UserDealPrefs> {
     const [prefs, catPrefs] = await Promise.all([
       db.userPreferences.findUnique({
         where:  { userId: session.user.id },
-        select: {
-          minDiscountPercent:  true,
-          maxPrice:            true,
-          dealTypePreferences: true,
-          brandPreferences:    true,
-        },
       }),
       db.userCategoryPreference.findMany({
         where:  { userId: session.user.id },
@@ -50,6 +47,7 @@ export async function getUserDealPrefs(): Promise<UserDealPrefs> {
     return {
       categorySlugs: catPrefs.map((c) => c.category.slug),
       minDiscount:   prefs?.minDiscountPercent ?? null,
+      minPrice:      (prefs as Record<string, unknown>)?.minPrice as number ?? null,
       maxPrice:      prefs?.maxPrice           ?? null,
       dealTypes:     prefs?.dealTypePreferences ?? [],
       brands:        prefs?.brandPreferences    ?? [],

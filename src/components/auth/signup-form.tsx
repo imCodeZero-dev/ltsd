@@ -16,11 +16,32 @@ const initialState = { error: undefined };
 
 export function SignupForm() {
   const [showPass, setShowPass] = useState(false);
+  const [password, setPassword] = useState("");
+  const [clientError, setClientError] = useState("");
   const [state, formAction, isPending] = useActionState(signup, initialState);
 
   useEffect(() => {
     if (state?.error) toast.error(state.error);
   }, [state]);
+
+  // Client-side password validation
+  function validatePassword(val: string): string {
+    if (val.length < 8) return "Password must be at least 8 characters";
+    if (!/[A-Z]/.test(val)) return "Password must contain an uppercase letter";
+    if (!/[0-9]/.test(val)) return "Password must contain a number";
+    return "";
+  }
+
+  function handleSubmit(formData: FormData) {
+    const pw = formData.get("password") as string;
+    const err = validatePassword(pw);
+    if (err) {
+      setClientError(err);
+      return;
+    }
+    setClientError("");
+    formAction(formData);
+  }
 
   return (
     <div className="w-full flex flex-col gap-8.75">
@@ -41,7 +62,7 @@ export function SignupForm() {
       </div>
 
       {/* Form section — gap-36px */}
-      <form action={formAction} className="flex flex-col gap-9">
+      <form action={handleSubmit} className="flex flex-col gap-9">
         {/* Social + divider — gap-25px */}
         <div className="flex flex-col gap-6.25">
           {/* Google button */}
@@ -88,6 +109,7 @@ export function SignupForm() {
                 type="text"
                 autoComplete="name"
                 required
+                placeholder="John Doe"
                 className={cn(
                   "w-full px-3 py-2.75 rounded-[6px] border bg-white",
                   "text-base leading-6 text-input-text outline-none transition-shadow",
@@ -106,6 +128,7 @@ export function SignupForm() {
                 type="email"
                 autoComplete="email"
                 required
+                placeholder="you@example.com"
                 className={cn(
                   "w-full px-3 py-2.75 rounded-[6px] border border-input-border bg-white",
                   "text-base leading-6 text-input-text outline-none transition-shadow",
@@ -124,6 +147,9 @@ export function SignupForm() {
                   type={showPass ? "text" : "password"}
                   autoComplete="new-password"
                   required
+                  placeholder="Min 8 chars, 1 uppercase, 1 number"
+                  value={password}
+                  onChange={(e) => { setPassword(e.target.value); setClientError(""); }}
                   className={cn(
                     "w-full px-3 py-2.75 pr-10 rounded-[6px] border border-input-border bg-white",
                     "text-base leading-6 outline-none transition-shadow",
@@ -147,10 +173,10 @@ export function SignupForm() {
             </SignupField>
           </div>
 
-          {/* Error message */}
-          {state?.error && (
+          {/* Error message — client-side first, then server */}
+          {(clientError || state?.error) && (
             <p className="text-sm text-error text-center" style={{ fontFamily: "var(--font-inter)" }}>
-              {state.error}
+              {clientError || state?.error}
             </p>
           )}
 

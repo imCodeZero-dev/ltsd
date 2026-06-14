@@ -93,6 +93,7 @@ export async function updateNotificationPreferences(
 export async function updateDealPreferences(input: {
   categorySlugs: string[];
   minDiscount:   number;
+  minPrice:      number | null;
   maxPrice:      number | null;
   brands:        string[];
 }): Promise<ActionResult> {
@@ -117,11 +118,13 @@ export async function updateDealPreferences(input: {
         create: {
           userId,
           minDiscountPercent: input.minDiscount,
+          minPrice:           input.minPrice,
           maxPrice:           input.maxPrice,
           brandPreferences:   input.brands,
         },
         update: {
           minDiscountPercent: input.minDiscount,
+          minPrice:           input.minPrice,
           maxPrice:           input.maxPrice,
           brandPreferences:   input.brands,
         },

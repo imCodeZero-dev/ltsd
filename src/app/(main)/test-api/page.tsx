@@ -925,6 +925,7 @@ function SyncPanel() {
   const [status, setStatus] = useState<SyncStatus | null>(null);
   const [loading, setLoading] = useState<string | null>(null);
   const [result, setResult] = useState<{ action: string; data: unknown } | null>(null);
+  const [searchQuery, setSearchQuery] = useState("headphones");
 
   async function fetchStatus() {
     try {
@@ -964,7 +965,7 @@ function SyncPanel() {
       action: "daily",
       body: {},
       color: "#0066FF",
-      desc: "Runs everything: lightning deals + category feed + best sellers + price refresh. Same as the production cron.",
+      desc: "All 8 steps: lightning + 15 categories + best sellers + user-preferred brands + price refresh + cleanup. Same as production cron.",
       highlight: true,
     },
     {
@@ -975,11 +976,11 @@ function SyncPanel() {
       desc: "Sync all active lightning deals from Keepa — populates hasEndTime, claimedCount, real countdown.",
     },
     {
-      label: "Seed (3 categories × 20)",
+      label: "Seed (15 categories × 15)",
       action: "seed",
-      body: { limit: 20 },
+      body: { limit: 15 },
       color: "#22A45D",
-      desc: "Pulls quality-filtered price drops from Electronics, Home & Kitchen, Sports using avg90 baseline.",
+      desc: "Pulls quality-filtered deals from 15 categories (Electronics, Clothing, Beauty, Toys, etc.).",
     },
     {
       label: "Sync Electronics",
@@ -989,11 +990,20 @@ function SyncPanel() {
       desc: "Fetch 10 deals from Electronics category.",
     },
     {
-      label: "Search → Sync \"headphones\"",
+      label: "🎯 Sync Preferred Brands",
+      action: "pref-brands",
+      body: {},
+      color: "#FF5733",
+      desc: "Fetches deals for ALL brands from user preferences (Samsung, Apple, Nike, etc.). ~15 tokens per brand.",
+      highlight: false,
+    },
+    {
+      label: "Search → Sync",
       action: "search",
-      body: { query: "headphones", limit: 5 },
+      body: { query: "", limit: 10 },
       color: "#44474E",
-      desc: "Search Keepa for headphones, sync results to DB.",
+      desc: "Search Keepa by keyword and sync results to DB. ~15 tokens per search.",
+      editable: true,
     },
   ];
 
@@ -1048,7 +1058,10 @@ function SyncPanel() {
 
         {/* Sync actions */}
         <div className="space-y-2">
-          {syncButtons.map((btn) => (
+          {syncButtons.map((btn) => {
+            const isEditable = "editable" in btn && btn.editable;
+            const body = isEditable ? { ...btn.body, query: searchQuery } : btn.body;
+            return (
             <div
               key={btn.action + btn.label}
               className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${"highlight" in btn && btn.highlight ? "border-[#0066FF] bg-[#F0F5FF]" : "border-[#E7E8E9] hover:bg-[#F5F6F7]"}`}
@@ -1056,11 +1069,20 @@ function SyncPanel() {
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-navy">{btn.label}</p>
                 <p className="text-[10px] text-body">{btn.desc}</p>
+                {isEditable && (
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="e.g. fitness, books, Samsung TV..."
+                    className="mt-2 w-full max-w-xs px-3 py-1.5 rounded-lg border border-[#E7E8E9] text-xs text-navy outline-none focus:border-badge-bg bg-white"
+                  />
+                )}
               </div>
               <button
                 type="button"
-                onClick={() => runSync(btn.action, btn.body)}
-                disabled={loading !== null}
+                onClick={() => runSync(btn.action, body)}
+                disabled={loading !== null || (isEditable && !searchQuery.trim())}
                 className="shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-40 cursor-pointer"
                 style={{ background: btn.color }}
               >
@@ -1070,7 +1092,8 @@ function SyncPanel() {
                 }
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Result */}

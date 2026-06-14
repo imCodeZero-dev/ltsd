@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { SettingsSidebar } from "@/components/settings/settings-sidebar";
@@ -32,16 +33,23 @@ export default async function SettingsLayout({ children }: { children: React.Rea
         </aside>
 
         <div className="flex-1 min-w-0 flex flex-col bg-[#F8F9FA]">
-          {/* Top bar */}
-          <div className="flex items-center gap-4 px-8 py-3.5 bg-white border-b border-[#E7E8E9]">
-            <h1 className="text-xl font-extrabold text-navy flex-1">Settings</h1>
-            <NotificationsBell initialUnreadCount={0} />
-            <AccountDropdown
-              name={user.name}
-              email={user.email}
-              image={user.image}
-              role={user.role}
-            />
+          {/* Top bar with navigation */}
+          <div className="flex items-center px-8 py-3.5 bg-white border-b border-[#E7E8E9]">
+            <h1 className="text-xl font-extrabold text-navy">Settings</h1>
+            <nav className="flex items-center justify-center gap-5 flex-1">
+              <Link href="/dashboard" className="text-sm font-medium text-body hover:text-navy transition-colors">Home</Link>
+              <Link href="/deals" className="text-sm font-medium text-body hover:text-navy transition-colors">Deals</Link>
+              <Link href="/watchlist" className="text-sm font-medium text-body hover:text-navy transition-colors">Watchlist</Link>
+            </nav>
+            <div className="flex items-center gap-4">
+              <NotificationsBell initialUnreadCount={0} />
+              <AccountDropdown
+                name={user.name}
+                email={user.email}
+                image={user.image}
+                role={user.role}
+              />
+            </div>
           </div>
 
           <div className="flex-1 overflow-auto">

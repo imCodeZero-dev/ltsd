@@ -348,7 +348,23 @@ export async function syncProductWithHistory(asin: string): Promise<string | nul
  * Use for initial DB population.
  */
 export async function seedDeals(
-  categories: string[] = ["Electronics", "Home & Kitchen", "Sports & Outdoors"],
+  categories: string[] = [
+    "Electronics",
+    "Home & Kitchen",
+    "Sports & Outdoors",
+    "Clothing",
+    "Beauty & Personal Care",
+    "Toys & Games",
+    "Tools & Home Improvement",
+    "Automotive",
+    "Computers & Accessories",
+    "Cell Phones & Accessories",
+    "Pet Supplies",
+    "Baby Products",
+    "Office Products",
+    "Health & Personal Care",
+    "Video Games",
+  ],
   limitPerCategory = 20
 ): Promise<{ total: number; errors: string[] }> {
   let total = 0;
@@ -372,6 +388,52 @@ export async function cleanupInvalidDeals(): Promise<number> {
     data:  { isActive: false },
   });
   return result.count;
+}
+
+/**
+ * Hard cleanup — permanently delete stale inactive deals.
+ *
+ * Deletes deals that are:
+ *   - isActive = false
+ *   - lastSyncedAt older than 7 days
+ *   - NOT in any user's watchlist
+ *
+ * Also deletes their price history and category links (cascade).
+ * Categories and brands are never deleted — they stay forever.
+ */
+export async function cleanupStaleDealData(): Promise<{ deletedDeals: number; deletedHistory: number }> {
+  const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  // Find IDs of deals that are currently in someone's watchlist
+  const watchedDealIds = await db.watchlistItem.findMany({
+    select: { dealId: true },
+    distinct: ["dealId"],
+  }).then((rows) => rows.map((r) => r.dealId));
+
+  // Find stale deals to delete
+  const staleDeals = await db.deal.findMany({
+    where: {
+      isActive:     false,
+      lastSyncedAt: { lt: cutoff },
+      id:           { notIn: watchedDealIds },
+    },
+    select: { id: true },
+  });
+
+  if (!staleDeals.length) {
+    return { deletedDeals: 0, deletedHistory: 0 };
+  }
+
+  const staleIds = staleDeals.map((d) => d.id);
+
+  // Delete related data first (no cascade on these), then deals
+  const [historyResult, ,] = await db.$transaction([
+    db.priceHistory.deleteMany({ where: { dealId: { in: staleIds } } }),
+    db.dealCategory.deleteMany({ where: { dealId: { in: staleIds } } }),
+    db.deal.deleteMany({ where: { id: { in: staleIds } } }),
+  ]);
+
+  return { deletedDeals: staleIds.length, deletedHistory: historyResult.count };
 }
 
 /**

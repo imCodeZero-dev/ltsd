@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import { X, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,8 @@ export function WatchlistModal({ deal, open, onClose, onConfirm }: WatchlistModa
     onClose();
   }
 
-  return (
+  // Portal to document.body so the modal escapes any overflow/stacking-context traps
+  return createPortal(
     /* Backdrop */
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -216,7 +218,8 @@ export function WatchlistModal({ deal, open, onClose, onConfirm }: WatchlistModa
           </p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

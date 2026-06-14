@@ -112,6 +112,7 @@ export function LoginForm() {
                 type="email"
                 autoComplete="email"
                 required
+                placeholder="you@example.com"
                 className={cn(
                   "w-full px-3 py-2.75 rounded-[6px] border border-input-border bg-white",
                   "text-base leading-6 text-input-text outline-none transition-shadow",
@@ -150,6 +151,7 @@ export function LoginForm() {
                   type={showPass ? "text" : "password"}
                   autoComplete="current-password"
                   required
+                  placeholder="Enter your password"
                   className={cn(
                     "w-full px-3 py-2.75 pr-10 rounded-[6px] border border-input-border bg-white",
                     "text-base leading-6 outline-none transition-shadow",

@@ -96,6 +96,7 @@ model UserPreferences {
   quietHoursEnd         String?
   alertThresholdPercent Int        @default(10)
   minDiscountPercent    Int?
+  minPrice              Float?
   maxPrice              Float?
   brandPreferences      String[]
   dealTypePreferences   DealType[]

@@ -20,7 +20,25 @@ export const metadata: Metadata = { title: "Deal Feed — LTSD" };
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 20;
-const FALLBACK_THRESHOLD = 8; // if prefs return fewer than this, fall back to full pool
+
+// Same fallback categories used across onboarding, settings, and deals filter
+const FALLBACK_CATEGORIES = [
+  { slug: "electronics",              name: "Electronics" },
+  { slug: "home-kitchen",             name: "Home & Kitchen" },
+  { slug: "sports-outdoors",          name: "Sports & Outdoors" },
+  { slug: "clothing",                 name: "Clothing" },
+  { slug: "beauty-personal-care",     name: "Beauty & Personal Care" },
+  { slug: "video-games",              name: "Video Games" },
+  { slug: "tools-home-improvement",   name: "Tools & DIY" },
+  { slug: "automotive",               name: "Automotive" },
+  { slug: "baby-products",            name: "Baby Products" },
+  { slug: "computers-accessories",    name: "Computers & Accessories" },
+  { slug: "cell-phones-accessories",  name: "Cell Phones" },
+  { slug: "toys-games",              name: "Toys & Games" },
+  { slug: "pet-supplies",            name: "Pet Supplies" },
+  { slug: "office-products",         name: "Office Products" },
+  { slug: "grocery-gourmet-food",    name: "Grocery" },
+];
 
 const VALID_DEAL_TYPES = new Set([
   "PRICE_DROP", "LIGHTNING_DEAL", "LIMITED_TIME",
@@ -38,7 +56,7 @@ const QUALITY_FLOOR = {
 
 async function getDeals(
   filters: { type?: string; category?: string; q?: string; sort?: string },
-  prefs:   { minDiscount: number | null; maxPrice: number | null; categorySlugs: string[] }
+  prefs:   { minDiscount: number | null; minPrice: number | null; maxPrice: number | null; categorySlugs: string[]; brands: string[]; dealTypes: string[] }
 ): Promise<{ deals: DealItem[]; total: number; usingPrefs: boolean }> {
   try {
     const orderBy =
@@ -76,35 +94,91 @@ async function getDeals(
     // No URL filter — try preferences as a soft signal
     const hasPrefFilters = (prefs.categorySlugs.length > 0) ||
                            (prefs.minDiscount != null && prefs.minDiscount > 0) ||
-                           (prefs.maxPrice != null && prefs.maxPrice < 1000);
+                           (prefs.minPrice != null && prefs.minPrice > 0) ||
+                           (prefs.maxPrice != null && prefs.maxPrice < 1000) ||
+                           (prefs.brands.length > 0) ||
+                           (prefs.dealTypes.length > 0);
 
     if (hasPrefFilters) {
-      const prefWhere = {
-        ...urlWhere,
-        ...(prefs.categorySlugs.length > 0 && {
-          categories: { some: { category: { slug: { in: prefs.categorySlugs } } } },
-        }),
-        ...(prefs.minDiscount && prefs.minDiscount > 0 && {
-          discountPercent: { gte: prefs.minDiscount, lte: 70 },
-        }),
-        ...(prefs.maxPrice && prefs.maxPrice < 1000 && {
-          currentPrice: { gte: 10, lte: prefs.maxPrice },
-        }),
-      };
+      // Build separate queries per preference dimension — OR logic, not AND
+      // A deal matching brand OR category OR price range counts as preferred
+      const prefQueries = [];
 
-      const [rows, total] = await Promise.all([
-        db.deal.findMany({ where: prefWhere, orderBy, take: PAGE_SIZE, include }),
-        db.deal.count({ where: prefWhere }),
+      if (prefs.brands.length > 0) {
+        prefQueries.push(
+          db.deal.findMany({
+            where: { ...urlWhere, brand: { in: prefs.brands, mode: "insensitive" as const } },
+            orderBy, take: PAGE_SIZE, include,
+          })
+        );
+      }
+
+      if (prefs.categorySlugs.length > 0) {
+        prefQueries.push(
+          db.deal.findMany({
+            where: { ...urlWhere, categories: { some: { category: { slug: { in: prefs.categorySlugs } } } } },
+            orderBy, take: PAGE_SIZE, include,
+          })
+        );
+      }
+
+      if ((prefs.minPrice && prefs.minPrice > 0) || (prefs.maxPrice && prefs.maxPrice < 1000)) {
+        prefQueries.push(
+          db.deal.findMany({
+            where: {
+              ...urlWhere,
+              currentPrice: {
+                gte: prefs.minPrice && prefs.minPrice > 0 ? prefs.minPrice : 10,
+                ...(prefs.maxPrice && prefs.maxPrice < 1000 && { lte: prefs.maxPrice }),
+              },
+            },
+            orderBy, take: PAGE_SIZE, include,
+          })
+        );
+      }
+
+      // Also fetch general pool in parallel
+      const [generalRows, totalGeneral, ...prefResults] = await Promise.all([
+        db.deal.findMany({ where: urlWhere, orderBy, take: PAGE_SIZE, include }),
+        db.deal.count({ where: urlWhere }),
+        ...prefQueries,
       ]);
 
-      // Enough results — serve personalized
-      if (rows.length >= FALLBACK_THRESHOLD) {
-        return { deals: mapDeals(rows as RawDeal[]), total, usingPrefs: true };
+      // Score deals: more preference dimensions matched = higher rank
+      const scoreMap = new Map<string, { deal: RawDeal; score: number }>();
+      for (const rows of prefResults) {
+        for (const row of rows as RawDeal[]) {
+          const existing = scoreMap.get(row.id);
+          if (existing) {
+            existing.score += 1;
+          } else {
+            scoreMap.set(row.id, { deal: row, score: 1 });
+          }
+        }
       }
-      // Too few — fall through to full pool silently
+
+      // Sort preferred by score (descending), then by discount
+      const preferred = Array.from(scoreMap.values())
+        .sort((a, b) => b.score - a.score || (b.deal.discountPercent ?? 0) - (a.deal.discountPercent ?? 0))
+        .map((entry) => entry.deal);
+
+      const prefDeals = mapDeals(preferred);
+      const prefIds = new Set(prefDeals.map((d) => d.id));
+
+      // General pool minus preferred
+      const general = mapDeals(generalRows as RawDeal[]).filter((d) => !prefIds.has(d.id));
+
+      // Merge: preferred first (scored), then general fills remaining
+      const merged = [...prefDeals, ...general].slice(0, PAGE_SIZE);
+
+      return {
+        deals: merged,
+        total: totalGeneral,
+        usingPrefs: prefDeals.length > 0,
+      };
     }
 
-    // Full pool — no preference filtering
+    // No preferences set — full pool
     const [rows, total] = await Promise.all([
       db.deal.findMany({ where: urlWhere, orderBy, take: PAGE_SIZE, include }),
       db.deal.count({ where: urlWhere }),
@@ -145,10 +219,9 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
     getDeals(filters, prefs),
     getWatchlistMap(),
     db.category.findMany({
-      where:   { deals: { some: { deal: { isActive: true } } } },
       select:  { slug: true, name: true },
       orderBy: { name: "asc" },
-      take:    20,
+      take:    50,
     }),
     // Weekly spotlight — admin-curated, never filtered
     hasFilter ? Promise.resolve([]) : db.deal.findMany({
@@ -191,19 +264,57 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
     }),
   ]);
 
-  const weeklyDeals: DealItem[]   = weeklyRows.length   > 0 ? mapDeals(weeklyRows   as RawDeal[]) : [];
-  const topPicksDeals: DealItem[] = topPicksRows.length > 0 ? mapDeals(topPicksRows as RawDeal[]) : [];
-  const limitedDeals: DealItem[]  = limitedRows.length  > 0 ? mapDeals(limitedRows  as RawDeal[]) : [];
+  // Preference-aware reordering — preferred deals first within each section
+  const prefBrands = new Set(prefs.brands.map((b) => b.toLowerCase()));
+  const prefSlugs  = new Set(prefs.categorySlugs);
+
+  function prefScore(deal: DealItem): number {
+    let score = 0;
+    if (deal.brand && prefBrands.has(deal.brand.toLowerCase())) score += 2;
+    if (deal.category && prefSlugs.has(deal.category.toLowerCase().replace(/[^a-z0-9]+/g, "-"))) score += 1;
+    return score;
+  }
+
+  function reorderByPrefs(deals: DealItem[]): DealItem[] {
+    if (prefBrands.size === 0 && prefSlugs.size === 0) return deals;
+    return [...deals].sort((a, b) => prefScore(b) - prefScore(a));
+  }
+
+  // Global dedup — track IDs across all curated sections so no deal appears twice
+  const seenIds = new Set<string>();
+
+  const weeklyDeals: DealItem[] = reorderByPrefs(mapDeals(weeklyRows as RawDeal[]));
+  for (const d of weeklyDeals) seenIds.add(d.id);
 
   // Deduplicate lightning deals by title prefix — keep cheapest variant
-  const lightningDeals: DealItem[] = (() => {
+  const lightningDeals: DealItem[] = reorderByPrefs((() => {
     const seen = new Map<string, DealItem>();
     for (const deal of mapDeals(lightningRows as RawDeal[])) {
+      if (seenIds.has(deal.id)) continue;
       const key = deal.title.slice(0, 40).toLowerCase();
       const existing = seen.get(key);
       if (!existing || deal.currentPrice < existing.currentPrice) seen.set(key, deal);
     }
     return Array.from(seen.values());
+  })());
+  for (const d of lightningDeals) seenIds.add(d.id);
+
+  const topPicksDeals: DealItem[] = reorderByPrefs(mapDeals(topPicksRows as RawDeal[]).filter((d) => !seenIds.has(d.id)));
+  for (const d of topPicksDeals) seenIds.add(d.id);
+
+  const limitedDeals: DealItem[] = reorderByPrefs(mapDeals(limitedRows as RawDeal[]).filter((d) => !seenIds.has(d.id)));
+  for (const d of limitedDeals) seenIds.add(d.id);
+
+  // Also remove curated IDs + title-level duplicates from the All Deals grid
+  const dedupedDeals = (() => {
+    const seenTitles = new Set<string>();
+    return deals.filter((d) => {
+      if (seenIds.has(d.id)) return false;
+      const key = d.title.slice(0, 40).toLowerCase();
+      if (seenTitles.has(key)) return false;
+      seenTitles.add(key);
+      return true;
+    });
   })();
 
   return (
@@ -226,7 +337,10 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
       )}
 
       <Suspense fallback={<div className="h-12 rounded-xl bg-bg animate-pulse" />}>
-        <DealFilters categories={categoryRows} />
+        <DealFilters categories={(() => {
+          const dbSlugs = new Set(categoryRows.map((c: { slug: string }) => c.slug));
+          return [...categoryRows, ...FALLBACK_CATEGORIES.filter((fc) => !dbSlugs.has(fc.slug))];
+        })()} />
       </Suspense>
 
       <div className="flex items-center justify-between gap-3">
@@ -244,7 +358,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
       </div>
 
       <Suspense fallback={<DealGridSkeleton count={16} />}>
-        <DealGrid deals={deals} watchlistMap={watchlistMap} />
+        <DealGrid deals={hasFilter ? deals : dedupedDeals} watchlistMap={watchlistMap} />
       </Suspense>
 
       <LoadMoreButton

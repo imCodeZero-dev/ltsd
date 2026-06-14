@@ -37,14 +37,17 @@ export async function POST(req: Request): Promise<Response> {
         })
       : [];
 
-    // Map dealType strings → Prisma enum values
+    // Accept both old IDs (lightning/limited/prime) and new enum values (LIGHTNING_DEAL etc.)
     const dealTypeMap: Record<string, string> = {
-      lightning: "LIGHTNING_DEAL",
-      limited:   "DEAL_OF_DAY",
-      prime:     "PRIME_EXCLUSIVE",
+      lightning:       "LIGHTNING_DEAL",
+      limited:         "DEAL_OF_DAY",
+      prime:           "PRIME_EXCLUSIVE",
+      LIGHTNING_DEAL:  "LIGHTNING_DEAL",
+      PRICE_DROP:      "PRICE_DROP",
+      LIMITED_TIME:    "LIMITED_TIME",
     };
     const dealTypeEnums = dealTypes
-      .map((t) => dealTypeMap[t])
+      .map((t) => dealTypeMap[t] ?? t)
       .filter(Boolean) as string[];
 
     // minDiscount is already a number (0-100) from the schema
@@ -59,13 +62,15 @@ export async function POST(req: Request): Promise<Response> {
           brandPreferences:  brands,
           dealTypePreferences: dealTypeEnums as never,
           minDiscountPercent:  discountNum,
-          maxPrice:            priceMax,
+          minPrice:            priceMin > 0 ? priceMin : null,
+          maxPrice:            priceMax < 1000 ? priceMax : null,
         },
         update: {
           brandPreferences:    brands,
           dealTypePreferences: dealTypeEnums as never,
           minDiscountPercent:  discountNum,
-          maxPrice:            priceMax,
+          minPrice:            priceMin > 0 ? priceMin : null,
+          maxPrice:            priceMax < 1000 ? priceMax : null,
         },
       }),
 
