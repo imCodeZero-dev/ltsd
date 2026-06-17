@@ -5,16 +5,16 @@ import { seedDeals, syncBestSellers } from "@/lib/deal-api/sync";
  * GET /api/cron/deal-sync
  *
  * Syncs deals from Keepa → DB using two strategies:
- *   1. Category deal feed (/deal + /product) — quality-filtered price drops
- *   2. Best sellers (/bestsellers + /product) — run once per day via ?mode=bestsellers
+ *   ?mode=deals (default) — 15 categories, quality-filtered price drops
+ *   ?mode=bestsellers     — top sellers from 6 categories
  *
  * Token cost:
- *   Default (deal feed):  ~165 tokens (5 + 3×limit)
- *   Best sellers mode:    ~270 tokens (3×50 + 60)
+ *   Deal feed:     ~450 tokens (15 categories × ~30 tokens)
+ *   Best sellers:  ~540 tokens (6 categories × ~90 tokens)
  *
- * Recommended schedule:
- *   Deal feed:    every 6 hours  → ?mode=deals (default)
- *   Best sellers: once per day   → ?mode=bestsellers
+ * Schedule:
+ *   Deal feed:    every 6 hours
+ *   Best sellers: once per day
  *
  * Protected by CRON_SECRET bearer token.
  */
@@ -29,18 +29,20 @@ export async function GET(req: Request) {
 
   try {
     if (mode === "bestsellers") {
-      // Sync top 60 ASINs from 3 root categories
-      const CATEGORIES: { id: number; name: string }[] = [
-        { id: 172282,   name: "Electronics" },
-        { id: 1055398,  name: "Home & Kitchen" },
-        { id: 3375251,  name: "Sports & Outdoors" },
+      const CATEGORIES = [
+        { id: 172282,     name: "Electronics" },
+        { id: 1055398,    name: "Home & Kitchen" },
+        { id: 3375251,    name: "Sports & Outdoors" },
+        { id: 7141123011, name: "Clothing" },
+        { id: 11091801,   name: "Beauty & Personal Care" },
+        { id: 541966,     name: "Computers & Accessories" },
       ];
 
       let total = 0;
       const allErrors: string[] = [];
 
       for (const cat of CATEGORIES) {
-        const result = await syncBestSellers(cat.id, cat.name, 60);
+        const result = await syncBestSellers(cat.id, cat.name, 40);
         total += result.synced;
         allErrors.push(...result.errors);
       }
@@ -55,11 +57,8 @@ export async function GET(req: Request) {
       });
     }
 
-    // Default: deal feed — quality-filtered price drops
-    const result = await seedDeals(
-      ["Electronics", "Home & Kitchen", "Sports & Outdoors"],
-      20
-    );
+    // Default: 15 categories deal feed
+    const result = await seedDeals(undefined, 15);
 
     return NextResponse.json({
       ok:           true,
