@@ -18,7 +18,7 @@ export function WeeklyDealsSlider({ deals, watchlistMap }: Props) {
   const trackRef   = useRef<HTMLDivElement>(null);
   const rafRef     = useRef<number>(0);
   const pausedRef  = useRef(false);
-  const manualPauseTimer = useRef<ReturnType<typeof setTimeout>>();
+  const manualPauseTimer = useRef<ReturnType<typeof setTimeout> | any>(null);
   const activeDotRef = useRef(0);
   const [activeDot, setActiveDot] = useState(0);
 
