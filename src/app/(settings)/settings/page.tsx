@@ -17,26 +17,38 @@ export default async function SettingsPage() {
     alertThresholdPercent: 10,
   };
 
+  // Category alerts reuse the user's Deal Preference categories (single source
+  // of truth) — they are managed on /settings/preferences, shown read-only here.
+  let alertCategories: string[] = [];
+
   if (session?.user?.id) {
-    const row = await db.userPreferences.findUnique({
-      where: { userId: session.user.id },
-      select: {
-        emailAlerts: true,
-        pushAlerts: true,
-        weeklyDigest: true,
-        quietHoursEnabled: true,
-        quietHoursStart: true,
-        quietHoursEnd: true,
-        alertThresholdPercent: true,
-      },
-    });
+    const [row, catPrefs] = await Promise.all([
+      db.userPreferences.findUnique({
+        where: { userId: session.user.id },
+        select: {
+          emailAlerts: true,
+          pushAlerts: true,
+          weeklyDigest: true,
+          quietHoursEnabled: true,
+          quietHoursStart: true,
+          quietHoursEnd: true,
+          alertThresholdPercent: true,
+        },
+      }),
+      db.userCategoryPreference.findMany({
+        where:   { userId: session.user.id },
+        select:  { category: { select: { name: true } } },
+        orderBy: { category: { name: "asc" } },
+      }),
+    ]);
     if (row) {
       prefs = {
         ...row,
         weeklyDigest: row.weeklyDigest ?? false,
       };
     }
+    alertCategories = catPrefs.map((c) => c.category.name);
   }
 
-  return <NotificationSettingsClient prefs={prefs} />;
+  return <NotificationSettingsClient prefs={prefs} alertCategories={alertCategories} />;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Mail, Bell, Volume2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { updateNotificationPreferences } from "@/actions/settings";
@@ -76,6 +77,38 @@ function MobileSectionLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
+// Read-only reflection of the user's Deal Preference categories. They are the
+// single source of truth and are edited on /settings/preferences.
+function CategoryAlertsList({ categories }: { categories: string[] }) {
+  return (
+    <div className="space-y-3">
+      {categories.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {categories.map(cat => (
+            <span
+              key={cat}
+              className="px-4 py-1.5 rounded-lg text-sm font-semibold border border-navy bg-white text-navy"
+            >
+              {cat}
+            </span>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-body">
+          You&apos;ll receive alerts for <span className="font-semibold text-navy">all categories</span>.
+          Choose specific ones to narrow them down.
+        </p>
+      )}
+      <Link
+        href="/settings/preferences"
+        className="inline-flex text-sm font-semibold text-navy underline underline-offset-2 hover:opacity-80"
+      >
+        Manage categories in Deal Preferences →
+      </Link>
+    </div>
+  );
+}
+
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const MAX_PER_DAY_OPTS = [
@@ -103,7 +136,13 @@ export interface NotificationPrefs {
   alertThresholdPercent: number;
 }
 
-export function NotificationSettingsClient({ prefs }: { prefs: NotificationPrefs }) {
+export function NotificationSettingsClient({
+  prefs,
+  alertCategories,
+}: {
+  prefs: NotificationPrefs;
+  alertCategories: string[];
+}) {
   const [emailAlerts,   setEmailAlerts]   = useState(prefs.emailAlerts);
   const [pushAlerts,    setPushAlerts]    = useState(prefs.pushAlerts);
   const [frequency,     setFrequency]     = useState<"instant" | "digest">(prefs.weeklyDigest ? "digest" : "instant");
@@ -112,21 +151,8 @@ export function NotificationSettingsClient({ prefs }: { prefs: NotificationPrefs
   const [quietHours,    setQuietHours]    = useState(prefs.quietHoursEnabled);
   const [quietFrom,     setQuietFrom]     = useState(prefs.quietHoursStart ?? "8:00");
   const [quietTo,       setQuietTo]       = useState(prefs.quietHoursEnd   ?? "22:00");
-  const [showMoreCats,  setShowMoreCats]  = useState(false);
 
   const [isPending, startTransition] = useTransition();
-
-  const CATEGORIES = ["Electronics", "Fashion", "Beauty", "Home", "Fitness", "Books", "Gaming", "Automotive"];
-  const [selCategories, setSelCategories] = useState(["Electronics", "Fashion", "Beauty", "Home", "Fitness"]);
-  const [limitToCategories, setLimitToCategories] = useState(true);
-
-  const visibleCats = showMoreCats ? CATEGORIES : CATEGORIES.slice(0, 6);
-
-  function toggleCategory(cat: string) {
-    setSelCategories(prev =>
-      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat],
-    );
-  }
 
   function handleSave() {
     startTransition(async () => {
@@ -252,41 +278,9 @@ export function NotificationSettingsClient({ prefs }: { prefs: NotificationPrefs
         </DesktopSection>
 
         {/* Category Alerts */}
-        <DesktopSection label="Category Alerts" description="Select categories you want to receive alerts for">
-          <div className="px-6 py-5 space-y-4">
-            <div className="flex flex-wrap gap-2">
-              {visibleCats.map(cat => (
-                <button
-                  key={cat}
-                  type="button"
-                  onClick={() => toggleCategory(cat)}
-                  className={cn(
-                    "px-4 py-1.5 rounded-lg text-sm font-semibold border transition-colors",
-                    selCategories.includes(cat)
-                      ? "border-navy bg-white text-navy"
-                      : "border-[#E7E8E9] text-body hover:border-navy hover:text-navy bg-white",
-                  )}
-                >
-                  {cat}
-                </button>
-              ))}
-              {!showMoreCats && (
-                <button
-                  type="button"
-                  onClick={() => setShowMoreCats(true)}
-                  className="px-4 py-1.5 rounded-lg text-sm font-semibold border border-[#E7E8E9] text-body hover:border-navy hover:text-navy bg-white transition-colors"
-                >
-                  + Show More
-                </button>
-              )}
-            </div>
-            <div className="flex items-center justify-between pt-2 border-t border-[#E7E8E9]">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-body" />
-                <p className="text-sm font-medium text-navy">Limit alerts to selected categories only</p>
-              </div>
-              <Toggle on={limitToCategories} onChange={setLimitToCategories} />
-            </div>
+        <DesktopSection label="Category Alerts" description="Alerts are limited to the categories in your Deal Preferences">
+          <div className="px-6 py-5">
+            <CategoryAlertsList categories={alertCategories} />
           </div>
         </DesktopSection>
 
@@ -382,42 +376,10 @@ export function NotificationSettingsClient({ prefs }: { prefs: NotificationPrefs
           </p>
         </div>
 
-        {/* ALERTS SETTINGS */}
-        <MobileSectionLabel>Alerts Settings</MobileSectionLabel>
-        <div className="mx-4 rounded-xl border border-[#E7E8E9] bg-white px-4 py-4 space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {visibleCats.map(cat => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => toggleCategory(cat)}
-                className={cn(
-                  "px-3 py-1.5 rounded-lg text-sm font-semibold border transition-colors",
-                  selCategories.includes(cat)
-                    ? "border-navy text-navy bg-white"
-                    : "border-[#E7E8E9] text-body bg-white",
-                )}
-              >
-                {cat}
-              </button>
-            ))}
-            {!showMoreCats && (
-              <button
-                type="button"
-                onClick={() => setShowMoreCats(true)}
-                className="px-3 py-1.5 rounded-lg text-sm font-semibold border border-[#E7E8E9] text-body bg-white"
-              >
-                + Show More
-              </button>
-            )}
-          </div>
-          <div className="flex items-center justify-between pt-2 border-t border-[#E7E8E9]">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-body shrink-0" />
-              <p className="text-sm font-medium text-navy">Limit alerts to selected categories only</p>
-            </div>
-            <Toggle on={limitToCategories} onChange={setLimitToCategories} />
-          </div>
+        {/* CATEGORY ALERTS */}
+        <MobileSectionLabel>Category Alerts</MobileSectionLabel>
+        <div className="mx-4 rounded-xl border border-[#E7E8E9] bg-white px-4 py-4">
+          <CategoryAlertsList categories={alertCategories} />
         </div>
 
         {/* MAX ALERTS PER DAY */}
