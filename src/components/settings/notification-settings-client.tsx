@@ -111,13 +111,14 @@ function CategoryAlertsList({ categories }: { categories: string[] }) {
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
-const MAX_PER_DAY_OPTS = [
-  { label: "1",         value: "1" },
-  { label: "3",         value: "3" },
-  { label: "5",         value: "5" },
-  { label: "10",        value: "10" },
-  { label: "Unlimited", value: "Unlimited" },
-] as const;
+// TODO: re-enable once "Max alerts per day" has a DB column to persist to.
+// const MAX_PER_DAY_OPTS = [
+//   { label: "1",         value: "1" },
+//   { label: "3",         value: "3" },
+//   { label: "5",         value: "5" },
+//   { label: "10",        value: "10" },
+//   { label: "Unlimited", value: "Unlimited" },
+// ] as const;
 
 const MIN_DISCOUNT_OPTS = [
   { label: "Any",  value: "0" },
@@ -146,7 +147,8 @@ export function NotificationSettingsClient({
   const [emailAlerts,   setEmailAlerts]   = useState(prefs.emailAlerts);
   const [pushAlerts,    setPushAlerts]    = useState(prefs.pushAlerts);
   const [frequency,     setFrequency]     = useState<"instant" | "digest">(prefs.weeklyDigest ? "digest" : "instant");
-  const [maxPerDay,     setMaxPerDay]     = useState("5");
+  // TODO: re-enable once "Max alerts per day" has a DB column to persist to.
+  // const [maxPerDay,     setMaxPerDay]     = useState("5");
   const [minDiscount,   setMinDiscount]   = useState(String(prefs.alertThresholdPercent));
   const [quietHours,    setQuietHours]    = useState(prefs.quietHoursEnabled);
   const [quietFrom,     setQuietFrom]     = useState(prefs.quietHoursStart ?? "8:00");
@@ -247,6 +249,8 @@ export function NotificationSettingsClient({
               </button>
             ))}
           </div>
+          {/* TODO: "Max alerts per day" has no DB backing (UserPreferences has no
+              maxAlertsPerDay column) and is not persisted — hidden until wired up.
           <div className="px-6 py-4 flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-navy">Max alerts per day</p>
@@ -260,6 +264,7 @@ export function NotificationSettingsClient({
               {["1","3","5","10","Unlimited"].map(v => <option key={v} value={v}>{v}</option>)}
             </select>
           </div>
+          */}
           <div className="px-6 py-4 flex items-center justify-between gap-4">
             <div>
               <p className="text-sm font-semibold text-navy">Minimum Discount For Alerts</p>
@@ -382,7 +387,7 @@ export function NotificationSettingsClient({
           <CategoryAlertsList categories={alertCategories} />
         </div>
 
-        {/* MAX ALERTS PER DAY */}
+        {/* TODO: "Max Alerts Per Day" has no DB backing yet — hidden until wired up.
         <div className="mx-4 mt-4">
           <p className="text-sm font-semibold text-navy mb-2">Max Alerts Per Day</p>
           <ChipGroup
@@ -391,6 +396,7 @@ export function NotificationSettingsClient({
             onChange={v => setMaxPerDay(v)}
           />
         </div>
+        */}
 
         {/* MIN DISCOUNT */}
         <div className="mx-4 mt-5">
