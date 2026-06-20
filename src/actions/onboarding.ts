@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth-guard";
 import { db } from "@/lib/db";
-import { $Enums } from "@prisma/client";
+import type { DealType } from "@prisma/client";
 
 export async function saveCategoryPreferences(categoryIds: string[]): Promise<void> {
   const session = await requireAuth();
@@ -20,7 +20,7 @@ export async function saveCategoryPreferences(categoryIds: string[]): Promise<vo
   redirect("/onboarding/deal-types");
 }
 
-export async function saveDealTypePreferences(dealTypes: $Enums.DealType[]): Promise<void> {
+export async function saveDealTypePreferences(dealTypes: DealType[]): Promise<void> {
   const session = await requireAuth();
 
   await db.userPreferences.upsert({
