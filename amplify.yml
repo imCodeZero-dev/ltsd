@@ -1,0 +1,25 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # Installs deps and runs the `postinstall` hook (prisma generate),
+        # which populates @prisma/client with the schema types/enums.
+        - npm ci --cache .npm --prefer-offline
+    build:
+      commands:
+        # Amplify injects console env vars into the BUILD environment but does
+        # NOT pass them to the Next.js SSR runtime (the Lambda). Persist the
+        # ones the server needs into .env.production so the standalone server
+        # reads them at runtime. Set the actual values in the Amplify console.
+        - |
+          env | grep -E '^(DATABASE_URL|DIRECT_DATABASE_URL|AUTH_SECRET|NEXTAUTH_SECRET|NEXTAUTH_URL|NEXT_PUBLIC_APP_URL|GOOGLE_CLIENT_ID|GOOGLE_CLIENT_SECRET|CRON_SECRET|NEXT_PUBLIC_CRON_SECRET|DEAL_API_PROVIDER|AMAZON_PA_ACCESS_KEY|AMAZON_PA_SECRET_KEY|AMAZON_PA_ASSOCIATE_TAG|AMAZON_PA_HOST|AMAZON_PA_REGION|KEEPA_API_KEY|CLOUDINARY_CLOUD_NAME|CLOUDINARY_API_KEY|CLOUDINARY_API_SECRET|CLOUDINARY_FOLDER_NAME|EMAIL_HOST|EMAIL_PORT|EMAIL_SECURE|EMAIL_USER|EMAIL_PASS|VAPID_EMAIL|VAPID_PRIVATE_KEY|NEXT_PUBLIC_VAPID_PUBLIC_KEY)=' >> .env.production || true
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .next/cache/**/*
+      - .npm/**/*
