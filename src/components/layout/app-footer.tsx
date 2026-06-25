@@ -77,9 +77,9 @@ export function AppFooter() {
             Copyright © {new Date().getFullYear()} LTSD. All Rights Reserved.
           </p>
           <div className="flex items-center gap-2 text-xs font-lato">
-            <Link href="/terms" className="text-badge-bg hover:underline">Terms and Conditions</Link>
+            <Link href="/terms-of-service" className="text-badge-bg hover:underline">Terms and Conditions</Link>
             <span className="text-body">|</span>
-            <Link href="/privacy" className="text-badge-bg hover:underline">Privacy Policy</Link>
+            <Link href="/privacy-policy" className="text-badge-bg hover:underline">Privacy Policy</Link>
           </div>
         </div>
       </div>

@@ -105,7 +105,7 @@ export default function TermsPage() {
       <H2>Privacy</H2>
       <P>
         Your use of the Service is also governed by our{" "}
-        <Link href="/privacy" className="text-badge-bg hover:underline font-semibold">
+        <Link href="/privacy-policy" className="text-badge-bg hover:underline font-semibold">
           Privacy Policy
         </Link>
         .
