@@ -29,6 +29,7 @@ export interface EmailPayload {
 
 export async function sendEmail(payload: EmailPayload): Promise<void> {
   if (!process.env.EMAIL_HOST || !process.env.EMAIL_USER) {
+    console.warn("[EMAIL] EMAIL_HOST or EMAIL_USER not configured — skipping email");
     return; // EMAIL_HOST not configured — skip silently
   }
 
@@ -42,8 +43,10 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
       html:    payload.html,
       text:    payload.text,
     });
-    void info;
+    console.log(`[EMAIL] Sent to ${payload.to}:`, info.messageId);
   } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : String(err);
+    console.error(`[EMAIL] Failed to send to ${payload.to}:`, errorMsg);
     throw err; // re-throw so caller decides whether to swallow
   }
 }

@@ -69,7 +69,9 @@ export async function signup(_prevState: ActionResult, formData: FormData): Prom
   await db.userPreferences.create({ data: { userId: user.id } });
 
   // Non-fatal — don't block signup if email fails
-  await sendWelcomeEmail(user.email).catch(() => {});
+  await sendWelcomeEmail(user.email).catch((err) => {
+    console.error("[SIGNUP] Welcome email failed for", user.email, err);
+  });
 
   // Redirect to login so the user can sign in themselves
   redirect("/login?registered=1");
@@ -102,7 +104,9 @@ export async function forgotPassword(
     data: { userId: user.id, token, expiresAt },
   });
 
-  await sendPasswordResetEmail(user.email, token).catch(() => {});
+  await sendPasswordResetEmail(user.email, token).catch((err) => {
+    console.error("[FORGOT_PASSWORD] Email failed for", user.email, err);
+  });
 
   return {};
 }
