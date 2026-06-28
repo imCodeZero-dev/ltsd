@@ -47,9 +47,9 @@ export async function POST(req: Request): Promise<Response> {
         })
       : [];
 
-    // Build DealTypePreference rows from enabled configs
+    // Build DealTypePreference rows from configs
     const dealTypePrefRows = Object.entries(dealTypeConfigs)
-      .filter(([key, cfg]) => cfg.enabled && VALID_DEAL_TYPES.has(key))
+      .filter(([key]) => VALID_DEAL_TYPES.has(key))
       .map(([key, cfg]) => ({
         userId,
         dealType: key as DealType,

@@ -29,7 +29,6 @@ export default async function DealPreferencesPage() {
     // Build config map from existing rows
     for (const row of dtPrefs) {
       dealTypeConfigs[row.dealType] = {
-        enabled:     true,
         priceMin:    row.minPrice ?? 0,
         priceMax:    row.maxPrice ?? 1000,
         minDiscount: row.minDiscountPercent,

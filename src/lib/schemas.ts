@@ -61,7 +61,6 @@ export const ResetPasswordSchema = z.object({
 });
 
 const DealTypeConfigSchema = z.object({
-  enabled:     z.boolean(),
   priceMin:    z.number().min(0).max(10000).default(0),
   priceMax:    z.number().min(0).max(10000).default(1000),
   minDiscount: z.number().int().min(0).max(100).default(0),

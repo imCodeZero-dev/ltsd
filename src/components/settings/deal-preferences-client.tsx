@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useMemo, type KeyboardEvent } from "react";
-import { X, ChevronDown, Check, Zap, Tag } from "lucide-react";
+import { X, ChevronDown, Zap, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { updateDealPreferences } from "@/actions/settings";
 import { toast } from "sonner";
@@ -85,7 +85,6 @@ const DISCOUNT_OPTS = [
 // ── Types ────────────────────────────────────────────────────────────────────
 
 export interface DealTypeConfigInput {
-  enabled:     boolean;
   priceMin:    number;
   priceMax:    number;
   minDiscount: number;
@@ -119,7 +118,6 @@ function configsEqual(
     const ca = a[key];
     const cb = b[key];
     if (
-      ca.enabled !== cb.enabled ||
       ca.priceMin !== cb.priceMin ||
       ca.priceMax !== cb.priceMax ||
       ca.minDiscount !== cb.minDiscount ||
@@ -132,7 +130,7 @@ function configsEqual(
 // ── Default config ──────────────────────────────────────────────────────────
 
 function defaultConfig(): DealTypeConfigInput {
-  return { enabled: false, priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] };
+  return { priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] };
 }
 
 function buildInitialConfigs(saved: Record<string, DealTypeConfigInput>): Record<string, DealTypeConfigInput> {
@@ -140,7 +138,7 @@ function buildInitialConfigs(saved: Record<string, DealTypeConfigInput>): Record
   for (const dt of DEAL_TYPES) {
     result[dt.id] = saved[dt.id]
       ? { ...saved[dt.id] }
-      : { ...defaultConfig(), enabled: false };
+      : defaultConfig();
   }
   return result;
 }
@@ -169,13 +167,6 @@ export function DealPreferencesClient({
     setDealConfigs((prev) => ({
       ...prev,
       [activeDealType]: { ...prev[activeDealType], ...patch },
-    }));
-  }
-
-  function toggleDealTypeEnabled(id: string) {
-    setDealConfigs((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], enabled: !prev[id].enabled },
     }));
   }
 
@@ -230,22 +221,9 @@ export function DealPreferencesClient({
 
   function handleSave() {
     startTransition(async () => {
-      // Build the enabled configs to send
-      const enabledConfigs: Record<string, { priceMin: number; priceMax: number; minDiscount: number; brands: string[] }> = {};
-      for (const [key, cfg] of Object.entries(dealConfigs)) {
-        if (cfg.enabled) {
-          enabledConfigs[key] = {
-            priceMin: cfg.priceMin,
-            priceMax: cfg.priceMax,
-            minDiscount: cfg.minDiscount,
-            brands: cfg.brands,
-          };
-        }
-      }
-
       const result = await updateDealPreferences({
         categorySlugs: selCategories,
-        dealTypeConfigs: enabledConfigs,
+        dealTypeConfigs: dealConfigs,
       });
       if (result.error) {
         toast.error(result.error);
@@ -304,55 +282,31 @@ export function DealPreferencesClient({
           {/* Tab row */}
           <div className="flex flex-wrap gap-2">
             {DEAL_TYPES.map(({ id, label, Icon }) => {
-              const cfg = dealConfigs[id];
               const isActive = activeDealType === id;
-              const isEnabled = cfg.enabled;
               return (
-                <div key={id} className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => toggleDealTypeEnabled(id)}
-                    className={cn(
-                      "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer shrink-0",
-                      isEnabled
-                        ? "border-badge-bg bg-badge-bg"
-                        : "border-[#D1D5DB] bg-white",
-                    )}
-                  >
-                    {isEnabled && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => switchTab(id)}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-semibold transition-all cursor-pointer",
-                      isActive
-                        ? "border-badge-bg bg-badge-tint text-navy"
-                        : isEnabled
-                          ? "border-[#E7E8E9] bg-white text-body hover:border-badge-bg"
-                          : "border-[#E7E8E9] bg-[#F9FAFB] text-[#9CA3AF]",
-                    )}
-                  >
-                    <Icon className={cn(
-                      "w-4 h-4",
-                      isActive ? "text-badge-bg" : isEnabled ? "text-body" : "text-[#D1D5DB]",
-                    )} />
-                    {label}
-                  </button>
-                </div>
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => switchTab(id)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-semibold transition-all cursor-pointer",
+                    isActive
+                      ? "border-badge-bg bg-badge-tint text-navy"
+                      : "border-[#E7E8E9] bg-white text-body hover:border-badge-bg",
+                  )}
+                >
+                  <Icon className={cn(
+                    "w-4 h-4",
+                    isActive ? "text-badge-bg" : "text-body",
+                  )} />
+                  {label}
+                </button>
               );
             })}
           </div>
 
           {/* Tab content */}
-          {!activeConfig.enabled ? (
-            <div className="rounded-lg border border-dashed border-[#D1D5DB] bg-[#F9FAFB] p-6 text-center">
-              <p className="text-sm text-[#9CA3AF]">
-                This deal type is disabled. Check the box above to enable it and set preferences.
-              </p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4">
               {/* Price Range */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -449,7 +403,6 @@ export function DealPreferencesClient({
                 )}
               </div>
             </div>
-          )}
         </SectionCard>
       </div>
 

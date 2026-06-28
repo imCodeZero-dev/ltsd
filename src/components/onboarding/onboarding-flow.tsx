@@ -67,7 +67,6 @@ const PRICE_MAX = 1000;
 // ─── Per-deal-type config ────────────────────────────────────────────────────
 
 type DealTypeConfig = {
-  enabled: boolean;
   priceMin: number;
   priceMax: number;
   minDiscount: number;
@@ -76,9 +75,9 @@ type DealTypeConfig = {
 
 function defaultDealTypeConfigs(): Record<string, DealTypeConfig> {
   return {
-    LIGHTNING_DEAL: { enabled: true, priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] },
-    PRICE_DROP:     { enabled: true, priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] },
-    LIMITED_TIME:   { enabled: true, priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] },
+    LIGHTNING_DEAL: { priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] },
+    PRICE_DROP:     { priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] },
+    LIMITED_TIME:   { priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] },
   };
 }
 
@@ -226,13 +225,6 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
     setSelCategories((p) => p.includes(slug) ? p.filter((s) => s !== slug) : [...p, slug]);
   }
 
-  function toggleDealTypeEnabled(id: string) {
-    setDealTypeConfigs((prev) => ({
-      ...prev,
-      [id]: { ...prev[id], enabled: !prev[id].enabled },
-    }));
-  }
-
   function addBrand(name?: string) {
     const t = (name ?? brandInput).trim().replace(/,+$/, "");
     if (t && !activeConfig.brands.includes(t)) {
@@ -273,9 +265,7 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
             categories: skip && step < 2 ? [] : selCategories,
             dealTypeConfigs: skip && step < 2
               ? {}
-              : Object.fromEntries(
-                  Object.entries(dealTypeConfigs).filter(([, v]) => v.enabled),
-                ),
+              : dealTypeConfigs,
             goals: [],
           }),
         });
@@ -468,60 +458,34 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
             <SectionLabel>Deal Type</SectionLabel>
             <div className="flex flex-wrap gap-2">
               {DEAL_TYPES.map(({ id, label, Icon }) => {
-                const cfg = dealTypeConfigs[id];
                 const isActive = activeDealType === id;
-                const isEnabled = cfg.enabled;
                 return (
-                  <div key={id} className="flex items-center gap-1.5">
-                    {/* Enable/disable checkbox */}
-                    <button
-                      type="button"
-                      onClick={() => toggleDealTypeEnabled(id)}
-                      className={cn(
-                        "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer shrink-0",
-                        isEnabled
-                          ? "border-[#FE9800] bg-[#FE9800]"
-                          : "border-[#D1D5DB] bg-white",
-                      )}
-                    >
-                      {isEnabled && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
-                    </button>
-                    {/* Tab button */}
-                    <button
-                      type="button"
-                      onClick={() => switchTab(id)}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-[8px] border text-sm font-medium transition-all cursor-pointer",
-                        isActive
-                          ? "border-[#FE9800] bg-[#FFF8EE] text-[#000A1E]"
-                          : isEnabled
-                            ? "border-[#E5E7EB] bg-white text-[#374151] hover:border-[#D1D5DB]"
-                            : "border-[#E5E7EB] bg-[#F9FAFB] text-[#9CA3AF]",
-                      )}
-                      style={{ fontFamily: "var(--font-lato)" }}
-                    >
-                      <Icon className={cn(
-                        "w-4 h-4",
-                        isActive ? "text-[#FE9800]" : isEnabled ? "text-[#6B7280]" : "text-[#D1D5DB]",
-                      )} />
-                      {label}
-                    </button>
-                  </div>
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => switchTab(id)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2 rounded-[8px] border text-sm font-medium transition-all cursor-pointer",
+                      isActive
+                        ? "border-[#FE9800] bg-[#FFF8EE] text-[#000A1E]"
+                        : "border-[#E5E7EB] bg-white text-[#374151] hover:border-[#D1D5DB]",
+                    )}
+                    style={{ fontFamily: "var(--font-lato)" }}
+                  >
+                    <Icon className={cn(
+                      "w-4 h-4",
+                      isActive ? "text-[#FE9800]" : "text-[#6B7280]",
+                    )} />
+                    {label}
+                  </button>
                 );
               })}
             </div>
           </div>
 
           {/* ── Tab Content ── */}
-          {!activeConfig.enabled ? (
-            <div className="rounded-[12px] border border-dashed border-[#D1D5DB] bg-[#F9FAFB] p-8 text-center">
-              <p className="text-sm text-[#9CA3AF]" style={{ fontFamily: "var(--font-lato)" }}>
-                This deal type is disabled. Check the box above to enable it and set preferences.
-              </p>
-            </div>
-          ) : (
-            <>
-              {/* ── Price Range ── */}
+          <>
+            {/* ── Price Range ── */}
               <div className="flex flex-col gap-2.5">
                 <div className="flex items-center justify-between">
                   <SectionLabel>Select Price Range</SectionLabel>
@@ -661,8 +625,7 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
                   </div>
                 )}
               </div>
-            </>
-          )}
+          </>
         </>
       )}
 
