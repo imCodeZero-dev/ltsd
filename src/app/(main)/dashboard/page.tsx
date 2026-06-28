@@ -13,7 +13,7 @@ import { TrendingDealsSection } from "@/components/dashboard/trending-deals-sect
 import { LightningDealsSection } from "@/components/deals/lightning-deals-section";
 import { TopPicksSection } from "@/components/deals/top-picks-section";
 import type { DealItem } from "@/lib/deal-api/types";
-import { getUserDealPrefs } from "@/lib/get-user-prefs";
+import { getUserDealPrefs, mergeDealTypePrefs, type DealTypePrefs } from "@/lib/get-user-prefs";
 
 export const metadata: Metadata = { title: "Dashboard — LTSD" };
 export const dynamic = "force-dynamic";
@@ -297,31 +297,44 @@ export default async function DashboardPage() {
   const userName = session.user.name ?? session.user.email ?? "there";
   const prefs = await getUserDealPrefs();
 
-  // Preference-aware scoring — preferred deals appear first within each section.
+  // Preference-aware scoring — uses per-deal-type prefs for curated sections.
   // Scores: +2 brand match, +1 category match, +1 price-in-range, +1 meets min-discount.
-  const prefBrands = new Set(prefs.brands.map((b) => b.toLowerCase()));
   const prefSlugs  = new Set(prefs.categorySlugs);
-  const hasPrefs   = prefBrands.size > 0 || prefSlugs.size > 0 ||
-                     prefs.minPrice != null || prefs.maxPrice != null ||
-                     (prefs.minDiscount != null && prefs.minDiscount > 0);
+  const dealTypeEntries = Object.values(prefs.byDealType);
+  const hasAnyDealTypePrefs = dealTypeEntries.length > 0;
+  const hasPrefs = hasAnyDealTypePrefs || prefSlugs.size > 0;
 
-  function prefScore(deal: DealItem): number {
+  // Pre-compute merged prefs for each section context
+  const lightningDealTypePrefs = prefs.byDealType["LIGHTNING_DEAL"] ?? null;
+  const priceDropPrefs = mergeDealTypePrefs(
+    [prefs.byDealType["PRICE_DROP"], prefs.byDealType["LIMITED_TIME"]].filter((p): p is DealTypePrefs => p != null)
+  );
+  const allDealTypePrefs = mergeDealTypePrefs(dealTypeEntries);
+
+  /** Score a deal against a specific merged DealTypePrefs. */
+  function prefScore(deal: DealItem, dtPrefs: DealTypePrefs | null): number {
     let score = 0;
-    if (deal.brand && prefBrands.has(deal.brand.toLowerCase())) score += 2;
+    // Category match (always available)
     if (deal.category && prefSlugs.has(deal.category.toLowerCase().replace(/[^a-z0-9]+/g, "-"))) score += 1;
-    // Price in range (cents → dollars for comparison)
+    if (!dtPrefs) return score;
+
+    // Brand match
+    const prefBrands = new Set(dtPrefs.brands.map((b) => b.toLowerCase()));
+    if (deal.brand && prefBrands.has(deal.brand.toLowerCase())) score += 2;
+    // Price in range (cents -> dollars)
     const priceDollars = deal.currentPrice / 100;
-    if (prefs.minPrice && prefs.maxPrice && priceDollars >= prefs.minPrice && priceDollars <= prefs.maxPrice) score += 1;
-    else if (prefs.minPrice && !prefs.maxPrice && priceDollars >= prefs.minPrice) score += 1;
-    else if (!prefs.minPrice && prefs.maxPrice && priceDollars <= prefs.maxPrice) score += 1;
+    if (dtPrefs.minPrice && dtPrefs.maxPrice && priceDollars >= dtPrefs.minPrice && priceDollars <= dtPrefs.maxPrice) score += 1;
+    else if (dtPrefs.minPrice && !dtPrefs.maxPrice && priceDollars >= dtPrefs.minPrice) score += 1;
+    else if (!dtPrefs.minPrice && dtPrefs.maxPrice && priceDollars <= dtPrefs.maxPrice) score += 1;
     // Meets minimum discount
-    if (prefs.minDiscount && deal.discountPercent >= prefs.minDiscount) score += 1;
+    if (dtPrefs.minDiscount && deal.discountPercent >= dtPrefs.minDiscount) score += 1;
     return score;
   }
 
-  function reorderByPrefs(deals: DealItem[]): DealItem[] {
+  /** Reorder deals by preference score for a given deal-type context. */
+  function reorderByPrefs(deals: DealItem[], dtPrefs: DealTypePrefs | null): DealItem[] {
     if (!hasPrefs) return deals;
-    return [...deals].sort((a, b) => prefScore(b) - prefScore(a));
+    return [...deals].sort((a, b) => prefScore(b, dtPrefs) - prefScore(a, dtPrefs));
   }
 
   let heroSlides: HeroSlide[] = [];
@@ -385,14 +398,14 @@ export default async function DashboardPage() {
         lightningSeenTitles.set(key, deal);
       }
     }
-    lightningDeals = reorderByPrefs(Array.from(lightningSeenTitles.values()));
+    lightningDeals = reorderByPrefs(Array.from(lightningSeenTitles.values()), lightningDealTypePrefs);
 
     // Cross-section dedup — remove deals already shown in lightning from top picks
     const seenIds = new Set([
       ...dealOfWeekIds,
       ...lightningDeals.map((d) => d.id),
     ]);
-    topPicksDeals = reorderByPrefs(mapDeals(topPicksRows as RawDeal[]).filter((d) => !seenIds.has(d.id)));
+    topPicksDeals = reorderByPrefs(mapDeals(topPicksRows as RawDeal[]).filter((d) => !seenIds.has(d.id)), allDealTypePrefs);
 
     // 4. Trending — fetch 3 types for tabbed section
     const trendingBase = {
@@ -422,9 +435,9 @@ export default async function DashboardPage() {
         include: { categories: { include: { category: { select: { name: true } } } } },
       }),
     ]);
-    trendingLightning = reorderByPrefs(mapDeals(lightningRows as RawDeal[])).slice(0, 4);
-    trendingPriceDrops = reorderByPrefs(mapDeals(priceDropRows as RawDeal[])).slice(0, 4);
-    trendingBestDeals = reorderByPrefs(mapDeals(bestDealRows as RawDeal[])).slice(0, 4);
+    trendingLightning = reorderByPrefs(mapDeals(lightningRows as RawDeal[]), lightningDealTypePrefs).slice(0, 4);
+    trendingPriceDrops = reorderByPrefs(mapDeals(priceDropRows as RawDeal[]), priceDropPrefs).slice(0, 4);
+    trendingBestDeals = reorderByPrefs(mapDeals(bestDealRows as RawDeal[]), allDealTypePrefs).slice(0, 4);
 
     // 5. Hero slides — fetch extra, score by prefs, pick top 3
     const heroRows = await db.deal.findMany({
@@ -441,7 +454,7 @@ export default async function DashboardPage() {
       },
     });
 
-    const scoredHeroDeals = reorderByPrefs(mapDeals(heroRows as RawDeal[])).slice(0, 3);
+    const scoredHeroDeals = reorderByPrefs(mapDeals(heroRows as RawDeal[]), allDealTypePrefs).slice(0, 3);
     heroSlides = scoredHeroDeals.map((item) => ({
       slug: item.slug ?? item.id,
       image: item.imageUrl,

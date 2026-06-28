@@ -1,11 +1,21 @@
 // POST /api/onboarding
-// Saves all onboarding preferences in one transaction and marks onboarding complete.
-// Body: { categories, dealTypes, priceMin, priceMax, minDiscount, brands, goals }
+// Saves per-deal-type preferences + categories and marks onboarding complete.
+// Body: { categories, dealTypeConfigs, goals }
 
 import { db } from "@/lib/db";
 import { ok, err } from "@/lib/api";
 import { requireAuthOrThrow } from "@/lib/auth-guard";
 import { OnboardingSchema } from "@/lib/schemas";
+import type { DealType } from "@prisma/client";
+
+const VALID_DEAL_TYPES = new Set<string>([
+  "PRICE_DROP",
+  "LIGHTNING_DEAL",
+  "LIMITED_TIME",
+  "COUPON",
+  "DEAL_OF_DAY",
+  "PRIME_EXCLUSIVE",
+]);
 
 export async function POST(req: Request): Promise<Response> {
   let session;
@@ -25,7 +35,7 @@ export async function POST(req: Request): Promise<Response> {
   const parsed = OnboardingSchema.safeParse(body);
   if (!parsed.success) return err("Invalid input", 400);
 
-  const { categories, dealTypes, priceMin, priceMax, minDiscount, brands, goals } = parsed.data;
+  const { categories, dealTypeConfigs } = parsed.data;
   const userId = session.user.id;
 
   try {
@@ -37,42 +47,28 @@ export async function POST(req: Request): Promise<Response> {
         })
       : [];
 
-    // Accept both old IDs (lightning/limited/prime) and new enum values (LIGHTNING_DEAL etc.)
-    const dealTypeMap: Record<string, string> = {
-      lightning:       "LIGHTNING_DEAL",
-      limited:         "DEAL_OF_DAY",
-      prime:           "PRIME_EXCLUSIVE",
-      LIGHTNING_DEAL:  "LIGHTNING_DEAL",
-      PRICE_DROP:      "PRICE_DROP",
-      LIMITED_TIME:    "LIMITED_TIME",
-    };
-    const dealTypeEnums = dealTypes
-      .map((t) => dealTypeMap[t] ?? t)
-      .filter(Boolean) as string[];
-
-    // minDiscount is already a number (0-100) from the schema
-    const discountNum = minDiscount;
+    // Build DealTypePreference rows from enabled configs
+    const dealTypePrefRows = Object.entries(dealTypeConfigs)
+      .filter(([key, cfg]) => cfg.enabled && VALID_DEAL_TYPES.has(key))
+      .map(([key, cfg]) => ({
+        userId,
+        dealType: key as DealType,
+        minPrice: cfg.priceMin > 0 ? cfg.priceMin : null,
+        maxPrice: cfg.priceMax < 1000 ? cfg.priceMax : null,
+        minDiscountPercent: cfg.minDiscount,
+        brandPreferences: cfg.brands,
+      }));
 
     await db.$transaction([
-      // Upsert preferences
+      // Ensure UserPreferences row exists (for notification settings etc.)
       db.userPreferences.upsert({
         where: { userId },
-        create: {
-          userId,
-          brandPreferences:  brands,
-          dealTypePreferences: dealTypeEnums as never,
-          minDiscountPercent:  discountNum,
-          minPrice:            priceMin > 0 ? priceMin : null,
-          maxPrice:            priceMax < 1000 ? priceMax : null,
-        },
-        update: {
-          brandPreferences:    brands,
-          dealTypePreferences: dealTypeEnums as never,
-          minDiscountPercent:  discountNum,
-          minPrice:            priceMin > 0 ? priceMin : null,
-          maxPrice:            priceMax < 1000 ? priceMax : null,
-        },
+        create: { userId },
+        update: {},
       }),
+
+      // Replace deal type preferences
+      db.dealTypePreference.deleteMany({ where: { userId } }),
 
       // Replace category preferences
       db.userCategoryPreference.deleteMany({ where: { userId } }),
@@ -80,11 +76,19 @@ export async function POST(req: Request): Promise<Response> {
       // Mark onboarding done
       db.user.update({
         where: { id: userId },
-        data:  { onboardingCompleted: true },
+        data: { onboardingCompleted: true },
       }),
     ]);
 
-    // Insert category preferences (after delete, so not in transaction constraint)
+    // Insert new deal type preferences (after delete)
+    if (dealTypePrefRows.length) {
+      await db.dealTypePreference.createMany({
+        data: dealTypePrefRows,
+        skipDuplicates: true,
+      });
+    }
+
+    // Insert new category preferences (after delete)
     if (categoryRecords.length) {
       await db.userCategoryPreference.createMany({
         data: categoryRecords.map((c) => ({ userId, categoryId: c.id })),

@@ -91,14 +91,21 @@ export async function updateNotificationPreferences(
 }
 
 export async function updateDealPreferences(input: {
-  categorySlugs: string[];
-  minDiscount:   number;
-  minPrice:      number | null;
-  maxPrice:      number | null;
-  brands:        string[];
+  categorySlugs:   string[];
+  dealTypeConfigs: Record<string, {
+    priceMin:    number;
+    priceMax:    number;
+    minDiscount: number;
+    brands:      string[];
+  }>;
 }): Promise<ActionResult> {
   const session = await requireAuth();
   const userId  = session.user.id;
+
+  const VALID_DEAL_TYPES = new Set([
+    "PRICE_DROP", "LIGHTNING_DEAL", "LIMITED_TIME",
+    "COUPON", "DEAL_OF_DAY", "PRIME_EXCLUSIVE",
+  ]);
 
   try {
     // Resolve category ids from slugs
@@ -109,29 +116,34 @@ export async function updateDealPreferences(input: {
         })
       : [];
 
+    // Build DealTypePreference rows from enabled configs
+    const dealTypePrefRows = Object.entries(input.dealTypeConfigs)
+      .filter(([key]) => VALID_DEAL_TYPES.has(key))
+      .map(([key, cfg]) => ({
+        userId,
+        dealType: key as import("@prisma/client").DealType,
+        minPrice:           cfg.priceMin > 0 ? cfg.priceMin : null,
+        maxPrice:           cfg.priceMax < 1000 ? cfg.priceMax : null,
+        minDiscountPercent: cfg.minDiscount,
+        brandPreferences:   cfg.brands,
+      }));
+
     await db.$transaction([
       // Replace category preferences
       db.userCategoryPreference.deleteMany({ where: { userId } }),
-      // Upsert deal prefs
-      db.userPreferences.upsert({
-        where:  { userId },
-        create: {
-          userId,
-          minDiscountPercent: input.minDiscount,
-          minPrice:           input.minPrice,
-          maxPrice:           input.maxPrice,
-          brandPreferences:   input.brands,
-        },
-        update: {
-          minDiscountPercent: input.minDiscount,
-          minPrice:           input.minPrice,
-          maxPrice:           input.maxPrice,
-          brandPreferences:   input.brands,
-        },
-      }),
+      // Replace deal type preferences
+      db.dealTypePreference.deleteMany({ where: { userId } }),
     ]);
 
-    // Insert new category prefs (after delete — outside transaction constraint)
+    // Insert new deal type preferences (after delete)
+    if (dealTypePrefRows.length) {
+      await db.dealTypePreference.createMany({
+        data:           dealTypePrefRows,
+        skipDuplicates: true,
+      });
+    }
+
+    // Insert new category prefs (after delete)
     if (categoryRecords.length) {
       await db.userCategoryPreference.createMany({
         data:           categoryRecords.map((c) => ({ userId, categoryId: c.id })),

@@ -17,16 +17,11 @@ export async function GET(req: Request): Promise<Response> {
   try {
     const hasExplicitFilter = !!(category || type || q);
 
-    // Fetch extra deals when preferences are active (no explicit filter)
-    // so we can score and reorder by preference match
+    // Load category preferences for scoring (Load More matches "All Deals" behavior)
     const prefs = hasExplicitFilter ? null : await getUserDealPrefs();
-    const hasPrefs = prefs && (
-      prefs.categorySlugs.length > 0 || prefs.brands.length > 0 ||
-      prefs.minPrice != null || prefs.maxPrice != null ||
-      (prefs.minDiscount != null && prefs.minDiscount > 0)
-    );
+    const hasCatPrefs = prefs && prefs.categorySlugs.length > 0;
 
-    const fetchSize = hasPrefs ? PAGE_SIZE * 3 : PAGE_SIZE;
+    const fetchSize = hasCatPrefs ? PAGE_SIZE * 3 : PAGE_SIZE;
 
     const deals = await db.deal.findMany({
       where: {
@@ -39,7 +34,7 @@ export async function GET(req: Request): Promise<Response> {
         sort === "discount" ? { discountPercent: "desc" }
         : sort === "rating" ? { rating: "desc" }
         :                     { createdAt: "desc" },
-      take:    hasPrefs ? fetchSize : PAGE_SIZE,
+      take:    hasCatPrefs ? fetchSize : PAGE_SIZE,
       skip:    (page - 1) * PAGE_SIZE,
       include: {
         categories: {
@@ -48,20 +43,13 @@ export async function GET(req: Request): Promise<Response> {
       },
     });
 
-    if (hasPrefs && prefs) {
-      // Score and reorder — preferred deals first, then general fills
-      const prefBrands = new Set(prefs.brands.map((b) => b.toLowerCase()));
-      const prefSlugs  = new Set(prefs.categorySlugs);
+    if (hasCatPrefs && prefs) {
+      // Score by category match only — matches "All Deals" grid behavior
+      const prefSlugs = new Set(prefs.categorySlugs);
 
       const scored = deals.map((deal) => {
-        let score = 0;
-        if (deal.brand && prefBrands.has(deal.brand.toLowerCase())) score += 2;
         const dealCatSlugs = deal.categories.map((dc) => dc.category.slug);
-        if (dealCatSlugs.some((s) => prefSlugs.has(s))) score += 1;
-        if (prefs.minPrice && prefs.maxPrice && deal.currentPrice >= prefs.minPrice && deal.currentPrice <= prefs.maxPrice) score += 1;
-        else if (prefs.minPrice && !prefs.maxPrice && deal.currentPrice >= prefs.minPrice) score += 1;
-        else if (!prefs.minPrice && prefs.maxPrice && deal.currentPrice <= prefs.maxPrice) score += 1;
-        if (prefs.minDiscount && deal.discountPercent && deal.discountPercent >= prefs.minDiscount) score += 1;
+        const score = dealCatSlugs.some((s) => prefSlugs.has(s)) ? 1 : 0;
         return { deal, score };
       });
 

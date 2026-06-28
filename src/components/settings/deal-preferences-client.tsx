@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useRef, useMemo, type KeyboardEvent } from "react";
-import { X, ChevronDown } from "lucide-react";
+import { X, ChevronDown, Check, Zap, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { updateDealPreferences } from "@/actions/settings";
 import { toast } from "sonner";
@@ -68,6 +68,12 @@ function SectionCard({ label, description, children, className }: {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
+const DEAL_TYPES = [
+  { id: "LIGHTNING_DEAL", label: "Lightning Deals", Icon: Zap },
+  { id: "PRICE_DROP",     label: "Price Drops",     Icon: Tag },
+  { id: "LIMITED_TIME",   label: "Limited Time",    Icon: Tag },
+] as const;
+
 const DISCOUNT_OPTS = [
   { label: "Any",  value: 0  },
   { label: "20%+", value: 20 },
@@ -76,20 +82,21 @@ const DISCOUNT_OPTS = [
   { label: "70%+", value: 70 },
 ] as const;
 
-// ── Props ─────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
-export interface DealPrefs {
-  categorySlugs: string[];
-  minDiscount:   number;
-  minPrice:      number;
-  maxPrice:      number;
-  brands:        string[];
+export interface DealTypeConfigInput {
+  enabled:     boolean;
+  priceMin:    number;
+  priceMax:    number;
+  minDiscount: number;
+  brands:      string[];
 }
 
 interface Props {
-  prefs:      DealPrefs;
-  categories: { slug: string; name: string }[];
-  apiBrands?: string[];
+  categorySlugs:   string[];
+  dealTypeConfigs: Record<string, DealTypeConfigInput>;
+  categories:      { slug: string; name: string }[];
+  apiBrands:       string[];
 }
 
 // ── Dirty check helpers ───────────────────────────────────────────────────────
@@ -101,39 +108,98 @@ function arraysEqual(a: string[], b: string[]) {
   return sa.every((v, i) => v === sb[i]);
 }
 
+function configsEqual(
+  a: Record<string, DealTypeConfigInput>,
+  b: Record<string, DealTypeConfigInput>,
+) {
+  const keysA = Object.keys(a).sort();
+  const keysB = Object.keys(b).sort();
+  if (!arraysEqual(keysA, keysB)) return false;
+  for (const key of keysA) {
+    const ca = a[key];
+    const cb = b[key];
+    if (
+      ca.enabled !== cb.enabled ||
+      ca.priceMin !== cb.priceMin ||
+      ca.priceMax !== cb.priceMax ||
+      ca.minDiscount !== cb.minDiscount ||
+      !arraysEqual(ca.brands, cb.brands)
+    ) return false;
+  }
+  return true;
+}
+
+// ── Default config ──────────────────────────────────────────────────────────
+
+function defaultConfig(): DealTypeConfigInput {
+  return { enabled: false, priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] };
+}
+
+function buildInitialConfigs(saved: Record<string, DealTypeConfigInput>): Record<string, DealTypeConfigInput> {
+  const result: Record<string, DealTypeConfigInput> = {};
+  for (const dt of DEAL_TYPES) {
+    result[dt.id] = saved[dt.id]
+      ? { ...saved[dt.id] }
+      : { ...defaultConfig(), enabled: false };
+  }
+  return result;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function DealPreferencesClient({ prefs, categories, apiBrands = [] }: Props) {
-  const initialPriceMin = prefs.minPrice || 0;
-  const initialPriceMax = prefs.maxPrice || 1000;
+export function DealPreferencesClient({
+  categorySlugs: initialCategorySlugs,
+  dealTypeConfigs: initialDealTypeConfigs,
+  categories,
+  apiBrands,
+}: Props) {
+  const initialConfigs = useMemo(() => buildInitialConfigs(initialDealTypeConfigs), [initialDealTypeConfigs]);
 
-  const [selCategories, setSelCategories] = useState<string[]>(prefs.categorySlugs);
-  const [minDiscount,   setMinDiscount]   = useState<number>(prefs.minDiscount);
-  const [priceMin,      setPriceMin]      = useState(initialPriceMin);
-  const [priceMax,      setPriceMax]      = useState(initialPriceMax);
-  const [brands,        setBrands]        = useState<string[]>(prefs.brands);
-  const [brandInput,    setBrandInput]    = useState("");
+  const [selCategories, setSelCategories] = useState<string[]>(initialCategorySlugs);
+  const [dealConfigs, setDealConfigs] = useState<Record<string, DealTypeConfigInput>>(() => buildInitialConfigs(initialDealTypeConfigs));
+  const [activeDealType, setActiveDealType] = useState<string>(DEAL_TYPES[0].id);
+  const [brandInput, setBrandInput] = useState("");
   const [brandDropdownOpen, setBrandDropdownOpen] = useState(false);
   const brandRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
 
-  // Brand suggestions — show top brands on focus, filter when typing
+  const activeConfig = dealConfigs[activeDealType];
+
+  function updateActiveConfig(patch: Partial<DealTypeConfigInput>) {
+    setDealConfigs((prev) => ({
+      ...prev,
+      [activeDealType]: { ...prev[activeDealType], ...patch },
+    }));
+  }
+
+  function toggleDealTypeEnabled(id: string) {
+    setDealConfigs((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], enabled: !prev[id].enabled },
+    }));
+  }
+
+  function switchTab(id: string) {
+    setActiveDealType(id);
+    setBrandInput("");
+    setBrandDropdownOpen(false);
+  }
+
+  // Brand suggestions for active tab
   const brandSuggestions = useMemo(() => {
     const q = brandInput.trim().toLowerCase();
-    const available = apiBrands.filter((b) => !brands.includes(b));
+    const currentBrands = activeConfig?.brands ?? [];
+    const available = apiBrands.filter((b) => !currentBrands.includes(b));
     if (!q) return available.slice(0, 10);
     return available.filter((b) => b.toLowerCase().includes(q)).slice(0, 8);
-  }, [brandInput, apiBrands, brands]);
+  }, [brandInput, apiBrands, activeConfig?.brands]);
 
-  // Dirty — true when anything differs from the saved prefs
+  // Dirty check
   const isDirty = useMemo(() => {
-    if (!arraysEqual(selCategories, prefs.categorySlugs)) return true;
-    if (minDiscount !== prefs.minDiscount) return true;
-    if (priceMin !== initialPriceMin) return true;
-    if (priceMax !== initialPriceMax) return true;
-    if (!arraysEqual(brands, prefs.brands)) return true;
+    if (!arraysEqual(selCategories, initialCategorySlugs)) return true;
+    if (!configsEqual(dealConfigs, initialConfigs)) return true;
     return false;
-  }, [selCategories, minDiscount, priceMin, priceMax, brands, prefs, initialPriceMin, initialPriceMax]);
+  }, [selCategories, initialCategorySlugs, dealConfigs, initialConfigs]);
 
   function toggleCategory(slug: string) {
     setSelCategories((prev) =>
@@ -143,26 +209,43 @@ export function DealPreferencesClient({ prefs, categories, apiBrands = [] }: Pro
 
   function addBrand(name?: string) {
     const t = (name ?? brandInput).trim().replace(/,+$/, "");
-    if (t && !brands.includes(t)) setBrands((b) => [...b, t]);
+    if (t && !activeConfig.brands.includes(t)) {
+      updateActiveConfig({ brands: [...activeConfig.brands, t] });
+    }
     setBrandInput("");
     setBrandDropdownOpen(false);
   }
+
+  function removeBrand(b: string) {
+    updateActiveConfig({ brands: activeConfig.brands.filter((x) => x !== b) });
+  }
+
   function handleBrandKey(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addBrand(); }
-    if (e.key === "Backspace" && brandInput === "" && brands.length) {
-      setBrands((b) => b.slice(0, -1));
+    if (e.key === "Backspace" && brandInput === "" && activeConfig.brands.length) {
+      updateActiveConfig({ brands: activeConfig.brands.slice(0, -1) });
     }
     if (e.key === "Escape") setBrandDropdownOpen(false);
   }
 
   function handleSave() {
     startTransition(async () => {
+      // Build the enabled configs to send
+      const enabledConfigs: Record<string, { priceMin: number; priceMax: number; minDiscount: number; brands: string[] }> = {};
+      for (const [key, cfg] of Object.entries(dealConfigs)) {
+        if (cfg.enabled) {
+          enabledConfigs[key] = {
+            priceMin: cfg.priceMin,
+            priceMax: cfg.priceMax,
+            minDiscount: cfg.minDiscount,
+            brands: cfg.brands,
+          };
+        }
+      }
+
       const result = await updateDealPreferences({
         categorySlugs: selCategories,
-        minDiscount,
-        minPrice: priceMin > 0 ? priceMin : null,
-        maxPrice: priceMax < 1000 ? priceMax : null,
-        brands,
+        dealTypeConfigs: enabledConfigs,
       });
       if (result.error) {
         toast.error(result.error);
@@ -184,14 +267,13 @@ export function DealPreferencesClient({ prefs, categories, apiBrands = [] }: Pro
   return (
     <div className="px-4 md:px-10 py-6 pb-10 bg-white min-h-full">
 
-      {/* Categories left, other 3 stacked right on lg+ */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1fr] gap-4">
 
         {/* ── Categories (spans full left column height) ── */}
         <SectionCard
           label="Categories"
           description="Deals will be filtered to your selected categories. Leave empty to see all."
-          className="lg:row-span-3"
+          className="lg:row-span-4"
         >
           <div className="flex flex-wrap gap-2">
             <button
@@ -214,117 +296,164 @@ export function DealPreferencesClient({ prefs, categories, apiBrands = [] }: Pro
           </div>
         </SectionCard>
 
-        {/* ── Minimum Discount ── */}
+        {/* ── Deal Type Tabs ── */}
         <SectionCard
-          label="Minimum Discount"
-          description="Only show deals at or above your chosen discount level."
+          label="Deal Type Preferences"
+          description="Set price, discount, and brand preferences per deal type."
         >
+          {/* Tab row */}
           <div className="flex flex-wrap gap-2">
-            {DISCOUNT_OPTS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setMinDiscount(opt.value)}
-                className={chipClass(minDiscount === opt.value)}
-              >
-                {opt.label}
-              </button>
-            ))}
+            {DEAL_TYPES.map(({ id, label, Icon }) => {
+              const cfg = dealConfigs[id];
+              const isActive = activeDealType === id;
+              const isEnabled = cfg.enabled;
+              return (
+                <div key={id} className="flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => toggleDealTypeEnabled(id)}
+                    className={cn(
+                      "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer shrink-0",
+                      isEnabled
+                        ? "border-badge-bg bg-badge-bg"
+                        : "border-[#D1D5DB] bg-white",
+                    )}
+                  >
+                    {isEnabled && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => switchTab(id)}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-semibold transition-all cursor-pointer",
+                      isActive
+                        ? "border-badge-bg bg-badge-tint text-navy"
+                        : isEnabled
+                          ? "border-[#E7E8E9] bg-white text-body hover:border-badge-bg"
+                          : "border-[#E7E8E9] bg-[#F9FAFB] text-[#9CA3AF]",
+                    )}
+                  >
+                    <Icon className={cn(
+                      "w-4 h-4",
+                      isActive ? "text-badge-bg" : isEnabled ? "text-body" : "text-[#D1D5DB]",
+                    )} />
+                    {label}
+                  </button>
+                </div>
+              );
+            })}
           </div>
-        </SectionCard>
 
-        {/* ── Price Range ── */}
-        <SectionCard
-          label="Price Range"
-          description="Only show deals within your budget."
-        >
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-body">Range</span>
-              <span className="text-sm font-bold text-navy">{fmt(priceMin)} – {fmt(priceMax)}</span>
+          {/* Tab content */}
+          {!activeConfig.enabled ? (
+            <div className="rounded-lg border border-dashed border-[#D1D5DB] bg-[#F9FAFB] p-6 text-center">
+              <p className="text-sm text-[#9CA3AF]">
+                This deal type is disabled. Check the box above to enable it and set preferences.
+              </p>
             </div>
-            <DualRangeSlider
-              min={0} max={1000}
-              low={priceMin} high={priceMax}
-              onChange={(lo, hi) => { setPriceMin(lo); setPriceMax(hi); }}
-            />
-            <div className="flex justify-between">
-              {["$0", "$250", "$500", "$750", "$1000+"].map((l) => (
-                <span key={l} className="text-2xs text-body">{l}</span>
-              ))}
-            </div>
-          </div>
-        </SectionCard>
-
-        {/* ── Brand Preferences ── */}
-        <SectionCard
-          label="Brand Preferences"
-          description="Search and select brands from the dropdown."
-        >
-          <div className="space-y-2">
-            {/* Searchable dropdown */}
-            <div className="relative">
-              <div
-                className="w-full min-h-11 px-3 py-2.5 rounded-lg border border-[#E7E8E9] bg-white cursor-text flex items-center gap-2"
-                onClick={() => { brandRef.current?.focus(); setBrandDropdownOpen(true); }}
-              >
-                <input
-                  ref={brandRef}
-                  type="text"
-                  value={brandInput}
-                  onChange={(e) => { setBrandInput(e.target.value); setBrandDropdownOpen(true); }}
-                  onKeyDown={handleBrandKey}
-                  onFocus={() => setBrandDropdownOpen(true)}
-                  onBlur={() => setTimeout(() => setBrandDropdownOpen(false), 150)}
-                  placeholder="Search brands..."
-                  className="flex-1 outline-none bg-transparent text-sm text-navy placeholder:text-body"
+          ) : (
+            <div className="flex flex-col gap-4">
+              {/* Price Range */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-body">Price Range</span>
+                  <span className="text-sm font-bold text-navy">{fmt(activeConfig.priceMin)} – {fmt(activeConfig.priceMax)}</span>
+                </div>
+                <DualRangeSlider
+                  min={0} max={1000}
+                  low={activeConfig.priceMin} high={activeConfig.priceMax}
+                  onChange={(lo, hi) => updateActiveConfig({ priceMin: lo, priceMax: hi })}
                 />
-                <ChevronDown className="w-4 h-4 text-body shrink-0" />
+                <div className="flex justify-between">
+                  {["$0", "$250", "$500", "$750", "$1000+"].map((l) => (
+                    <span key={l} className="text-2xs text-body">{l}</span>
+                  ))}
+                </div>
               </div>
 
-              {brandDropdownOpen && brandSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-[#E7E8E9] shadow-lg z-30 max-h-48 overflow-y-auto">
-                  {brandSuggestions.map((b) => (
+              {/* Minimum Discount */}
+              <div className="space-y-2">
+                <span className="text-xs font-medium text-body">Minimum Discount</span>
+                <div className="flex flex-wrap gap-2">
+                  {DISCOUNT_OPTS.map((opt) => (
                     <button
-                      key={b}
+                      key={opt.value}
                       type="button"
-                      onMouseDown={(e) => e.preventDefault()}
-                      onClick={() => addBrand(b)}
-                      className="w-full text-left px-4 py-2.5 text-sm text-body hover:bg-badge-tint hover:text-navy transition-colors cursor-pointer"
+                      onClick={() => updateActiveConfig({ minDiscount: opt.value })}
+                      className={chipClass(activeConfig.minDiscount === opt.value)}
                     >
-                      {b}
+                      {opt.label}
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
-
-            {/* Selected brand tags */}
-            {brands.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {brands.map((b) => (
-                  <span
-                    key={b}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-badge-bg bg-white text-navy text-sm font-medium"
-                  >
-                    {b}
-                    <button
-                      type="button"
-                      onClick={() => setBrands((prev) => prev.filter((x) => x !== b))}
-                      className="text-body hover:text-navy transition-colors"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </span>
-                ))}
               </div>
-            )}
-          </div>
-        </SectionCard>
 
+              {/* Brand Preferences */}
+              <div className="space-y-2">
+                <span className="text-xs font-medium text-body">Brand Preferences</span>
+                <div className="relative">
+                  <div
+                    className="w-full min-h-11 px-3 py-2.5 rounded-lg border border-[#E7E8E9] bg-white cursor-text flex items-center gap-2"
+                    onClick={() => { brandRef.current?.focus(); setBrandDropdownOpen(true); }}
+                  >
+                    <input
+                      ref={brandRef}
+                      type="text"
+                      value={brandInput}
+                      onChange={(e) => { setBrandInput(e.target.value); setBrandDropdownOpen(true); }}
+                      onKeyDown={handleBrandKey}
+                      onFocus={() => setBrandDropdownOpen(true)}
+                      onBlur={() => setTimeout(() => setBrandDropdownOpen(false), 150)}
+                      placeholder="Search brands..."
+                      className="flex-1 outline-none bg-transparent text-sm text-navy placeholder:text-body"
+                    />
+                    <ChevronDown className="w-4 h-4 text-body shrink-0" />
+                  </div>
+
+                  {brandDropdownOpen && brandSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-[#E7E8E9] shadow-lg z-30 max-h-48 overflow-y-auto">
+                      {brandSuggestions.map((b) => (
+                        <button
+                          key={b}
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => addBrand(b)}
+                          className="w-full text-left px-4 py-2.5 text-sm text-body hover:bg-badge-tint hover:text-navy transition-colors cursor-pointer"
+                        >
+                          {b}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected brand tags */}
+                {activeConfig.brands.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {activeConfig.brands.map((b) => (
+                      <span
+                        key={b}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-badge-bg bg-white text-navy text-sm font-medium"
+                      >
+                        {b}
+                        <button
+                          type="button"
+                          onClick={() => removeBrand(b)}
+                          className="text-body hover:text-navy transition-colors"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </SectionCard>
       </div>
 
-      {/* Save button — full width on mobile, right-aligned on desktop */}
+      {/* Save button */}
       <div className="mt-6 flex justify-end">
         <button
           type="button"
@@ -337,7 +466,7 @@ export function DealPreferencesClient({ prefs, categories, apiBrands = [] }: Pro
               : "bg-[#E7E8E9] text-body cursor-not-allowed",
           )}
         >
-          {isPending ? "Saving…" : "Save Preferences"}
+          {isPending ? "Saving..." : "Save Preferences"}
         </button>
       </div>
 

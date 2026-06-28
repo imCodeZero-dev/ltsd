@@ -2,26 +2,21 @@ import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DealPreferencesClient } from "@/components/settings/deal-preferences-client";
-import type { DealPrefs } from "@/components/settings/deal-preferences-client";
+import type { DealTypeConfigInput } from "@/components/settings/deal-preferences-client";
 
 export const metadata: Metadata = { title: "Deal Preferences — LTSD" };
 
 export default async function DealPreferencesPage() {
   const session = await auth();
 
-  // Load existing prefs or fall back to permissive defaults
-  let prefs: DealPrefs = {
-    categorySlugs: [],
-    minDiscount:   0,
-    minPrice:      0,
-    maxPrice:      1000,
-    brands:        [],
-  };
+  // Load existing deal-type preferences and categories
+  let categorySlugs: string[] = [];
+  let dealTypeConfigs: Record<string, DealTypeConfigInput> = {};
 
   if (session?.user?.id) {
-    const [userPrefs, catPrefs] = await Promise.all([
-      db.userPreferences.findUnique({
-        where:  { userId: session.user.id },
+    const [dtPrefs, catPrefs] = await Promise.all([
+      db.dealTypePreference.findMany({
+        where: { userId: session.user.id },
       }),
       db.userCategoryPreference.findMany({
         where:  { userId: session.user.id },
@@ -29,13 +24,18 @@ export default async function DealPreferencesPage() {
       }),
     ]);
 
-    prefs = {
-      categorySlugs: catPrefs.map((c) => c.category.slug),
-      minDiscount:   userPrefs?.minDiscountPercent ?? 0,
-      minPrice:      (userPrefs as Record<string, unknown>)?.minPrice as number ?? 0,
-      maxPrice:      userPrefs?.maxPrice           ?? 1000,
-      brands:        userPrefs?.brandPreferences   ?? [],
-    };
+    categorySlugs = catPrefs.map((c) => c.category.slug);
+
+    // Build config map from existing rows
+    for (const row of dtPrefs) {
+      dealTypeConfigs[row.dealType] = {
+        enabled:     true,
+        priceMin:    row.minPrice ?? 0,
+        priceMax:    row.maxPrice ?? 1000,
+        minDiscount: row.minDiscountPercent,
+        brands:      row.brandPreferences,
+      };
+    }
   }
 
   // Categories from DB + fallbacks
@@ -88,5 +88,12 @@ export default async function DealPreferencesPage() {
     ...FALLBACK_BRANDS.filter((b) => !dbBrandLower.has(b.toLowerCase())),
   ];
 
-  return <DealPreferencesClient prefs={prefs} categories={categories} apiBrands={apiBrands} />;
+  return (
+    <DealPreferencesClient
+      categorySlugs={categorySlugs}
+      dealTypeConfigs={dealTypeConfigs}
+      categories={categories}
+      apiBrands={apiBrands}
+    />
+  );
 }

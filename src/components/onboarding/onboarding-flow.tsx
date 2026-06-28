@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useRef, useTransition } from "react";
 import type { KeyboardEvent } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ShoppingBag, Car, Baby, Sparkles, BookOpen,
@@ -64,6 +63,24 @@ const DISCOUNTS = [
 
 const PRICE_MIN = 0;
 const PRICE_MAX = 1000;
+
+// ─── Per-deal-type config ────────────────────────────────────────────────────
+
+type DealTypeConfig = {
+  enabled: boolean;
+  priceMin: number;
+  priceMax: number;
+  minDiscount: number;
+  brands: string[];
+};
+
+function defaultDealTypeConfigs(): Record<string, DealTypeConfig> {
+  return {
+    LIGHTNING_DEAL: { enabled: true, priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] },
+    PRICE_DROP:     { enabled: true, priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] },
+    LIMITED_TIME:   { enabled: true, priceMin: 0, priceMax: 1000, minDiscount: 0, brands: [] },
+  };
+}
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -167,15 +184,25 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
   const [selCategories, setSelCategories] = useState<string[]>([]);
   const [query, setQuery] = useState("");
 
-  // Step 2
-  const [dealTypes,   setDealTypes]   = useState<string[]>(["LIGHTNING_DEAL"]);
-  const [priceMin,    setPriceMin]    = useState(0);
-  const [priceMax,    setPriceMax]    = useState(1000);
-  const [minDiscount, setMinDiscount] = useState(0);
-  const [brands,      setBrands]      = useState<string[]>([]);
+  // Step 2 — per-deal-type configs
+  const [dealTypeConfigs, setDealTypeConfigs] = useState<Record<string, DealTypeConfig>>(defaultDealTypeConfigs);
+  const [activeDealType, setActiveDealType] = useState("LIGHTNING_DEAL");
+
+  // Brand input state (per active tab)
   const [brandInput,  setBrandInput]  = useState("");
   const [brandDropdownOpen, setBrandDropdownOpen] = useState(false);
   const brandRef = useRef<HTMLInputElement>(null);
+
+  // ─── Helpers ───────────────────────────────────────────────────────────
+
+  const activeConfig = dealTypeConfigs[activeDealType];
+
+  function updateActiveConfig(patch: Partial<DealTypeConfig>) {
+    setDealTypeConfigs((prev) => ({
+      ...prev,
+      [activeDealType]: { ...prev[activeDealType], ...patch },
+    }));
+  }
 
   // ─── Handlers ──────────────────────────────────────────────────────────
 
@@ -184,32 +211,53 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
     return q ? categories.filter((c) => c.name.toLowerCase().includes(q)) : categories;
   }, [query, categories]);
 
-  // Brand suggestions — show top brands on focus, filter when typing
+  // Brand suggestions for active tab
   const brandSuggestions = useMemo(() => {
     const q = brandInput.trim().toLowerCase();
-    const available = apiBrands.filter((b) => !brands.includes(b));
-    if (!q) return available.slice(0, 10); // show top 10 when empty
+    const currentBrands = activeConfig?.brands ?? [];
+    const available = apiBrands.filter((b) => !currentBrands.includes(b));
+    if (!q) return available.slice(0, 10);
     return available
       .filter((b) => b.toLowerCase().includes(q))
       .slice(0, 8);
-  }, [brandInput, apiBrands, brands]);
+  }, [brandInput, apiBrands, activeConfig?.brands]);
 
   function toggleCategory(slug: string) {
     setSelCategories((p) => p.includes(slug) ? p.filter((s) => s !== slug) : [...p, slug]);
   }
-  function toggleDealType(id: string) {
-    setDealTypes((p) => p.includes(id) ? p.filter((t) => t !== id) : [...p, id]);
+
+  function toggleDealTypeEnabled(id: string) {
+    setDealTypeConfigs((prev) => ({
+      ...prev,
+      [id]: { ...prev[id], enabled: !prev[id].enabled },
+    }));
   }
+
   function addBrand(name?: string) {
     const t = (name ?? brandInput).trim().replace(/,+$/, "");
-    if (t && !brands.includes(t)) setBrands((b) => [...b, t]);
+    if (t && !activeConfig.brands.includes(t)) {
+      updateActiveConfig({ brands: [...activeConfig.brands, t] });
+    }
     setBrandInput("");
     setBrandDropdownOpen(false);
   }
+
+  function removeBrand(b: string) {
+    updateActiveConfig({ brands: activeConfig.brands.filter((x) => x !== b) });
+  }
+
   function handleBrandKey(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addBrand(); }
-    if (e.key === "Backspace" && brandInput === "" && brands.length) setBrands((b) => b.slice(0, -1));
+    if (e.key === "Backspace" && brandInput === "" && activeConfig.brands.length) {
+      updateActiveConfig({ brands: activeConfig.brands.slice(0, -1) });
+    }
     if (e.key === "Escape") setBrandDropdownOpen(false);
+  }
+
+  function switchTab(id: string) {
+    setActiveDealType(id);
+    setBrandInput("");
+    setBrandDropdownOpen(false);
   }
 
   function next() { setStep((s) => Math.min(s + 1, 3) as StepNum); }
@@ -223,12 +271,12 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             categories: skip && step < 2 ? [] : selCategories,
-            dealTypes:   skip && step < 2 ? [] : dealTypes,
-            priceMin,
-            priceMax,
-            minDiscount,
-            brands:      skip && step < 2 ? [] : brands,
-            goals:       [],
+            dealTypeConfigs: skip && step < 2
+              ? {}
+              : Object.fromEntries(
+                  Object.entries(dealTypeConfigs).filter(([, v]) => v.enabled),
+                ),
+            goals: [],
           }),
         });
         if (!res.ok) throw new Error("save failed");
@@ -402,7 +450,7 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
         </>
       )}
 
-      {/* ══════════ STEP 2: DEAL PREFERENCES ══════════ */}
+      {/* ══════════ STEP 2: DEAL PREFERENCES (TAB-BASED) ══════════ */}
       {step === 2 && (
         <>
           <div className="flex flex-col gap-1.5 text-center">
@@ -411,177 +459,210 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
               Set Your Deal Preferences
             </h1>
             <p className="text-sm leading-relaxed text-body" style={{ fontFamily: "var(--font-lato)" }}>
-              Choose how you want to discover deals, from price range to discounts and brands
+              Customize preferences for each deal type — price range, discounts, and brands
             </p>
           </div>
 
-          {/* ── Deal Type ── */}
-          <div className="flex flex-col gap-2.5">
+          {/* ── Deal Type Tabs ── */}
+          <div className="flex flex-col gap-4">
             <SectionLabel>Deal Type</SectionLabel>
             <div className="flex flex-wrap gap-2">
               {DEAL_TYPES.map(({ id, label, Icon }) => {
-                const active = dealTypes.includes(id);
+                const cfg = dealTypeConfigs[id];
+                const isActive = activeDealType === id;
+                const isEnabled = cfg.enabled;
                 return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => toggleDealType(id)}
-                    className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-[8px] border text-sm font-medium transition-all cursor-pointer",
-                      active
-                        ? "border-[#FE9800] bg-white text-[#000A1E]"
-                        : "border-[#E5E7EB] bg-white text-[#374151] hover:border-[#D1D5DB]",
-                    )}
-                    style={{ fontFamily: "var(--font-lato)" }}
-                  >
-                    <Icon className={cn("w-4 h-4", active ? "text-[#FE9800]" : "text-[#6B7280]")} />
-                    {label}
-                  </button>
+                  <div key={id} className="flex items-center gap-1.5">
+                    {/* Enable/disable checkbox */}
+                    <button
+                      type="button"
+                      onClick={() => toggleDealTypeEnabled(id)}
+                      className={cn(
+                        "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors cursor-pointer shrink-0",
+                        isEnabled
+                          ? "border-[#FE9800] bg-[#FE9800]"
+                          : "border-[#D1D5DB] bg-white",
+                      )}
+                    >
+                      {isEnabled && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
+                    </button>
+                    {/* Tab button */}
+                    <button
+                      type="button"
+                      onClick={() => switchTab(id)}
+                      className={cn(
+                        "flex items-center gap-2 px-4 py-2 rounded-[8px] border text-sm font-medium transition-all cursor-pointer",
+                        isActive
+                          ? "border-[#FE9800] bg-[#FFF8EE] text-[#000A1E]"
+                          : isEnabled
+                            ? "border-[#E5E7EB] bg-white text-[#374151] hover:border-[#D1D5DB]"
+                            : "border-[#E5E7EB] bg-[#F9FAFB] text-[#9CA3AF]",
+                      )}
+                      style={{ fontFamily: "var(--font-lato)" }}
+                    >
+                      <Icon className={cn(
+                        "w-4 h-4",
+                        isActive ? "text-[#FE9800]" : isEnabled ? "text-[#6B7280]" : "text-[#D1D5DB]",
+                      )} />
+                      {label}
+                    </button>
+                  </div>
                 );
               })}
             </div>
           </div>
 
-          {/* ── Price Range ── */}
-          <div className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between">
-              <SectionLabel>Select Price Range</SectionLabel>
-              <span className="text-base font-bold text-[#000A1E]" style={{ fontFamily: "var(--font-lato)" }}>
-                {fmt(priceMin)} – {fmt(priceMax)}
-              </span>
+          {/* ── Tab Content ── */}
+          {!activeConfig.enabled ? (
+            <div className="rounded-[12px] border border-dashed border-[#D1D5DB] bg-[#F9FAFB] p-8 text-center">
+              <p className="text-sm text-[#9CA3AF]" style={{ fontFamily: "var(--font-lato)" }}>
+                This deal type is disabled. Check the box above to enable it and set preferences.
+              </p>
             </div>
-            <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-4 sm:p-5 flex flex-col gap-4">
-              <div className="flex items-center justify-between">
-                <SectionLabel>Price Range</SectionLabel>
-                <span className="text-sm font-bold text-[#000A1E]" style={{ fontFamily: "var(--font-lato)" }}>
-                  {fmt(priceMin)} – {fmt(priceMax)}
-                </span>
-              </div>
-              <DualRangeSlider
-                min={PRICE_MIN} max={PRICE_MAX}
-                low={priceMin}  high={priceMax}
-                onChange={(lo, hi) => { setPriceMin(lo); setPriceMax(hi); }}
-              />
-              <div className="flex justify-between">
-                {["$0", "$250", "$500", "$750", "$1000+"].map((l) => (
-                  <span key={l} className="text-[10px] text-[rgba(0,0,0,0.4)]"
-                    style={{ fontFamily: "var(--font-inter)" }}>{l}</span>
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-[rgba(0,0,0,0.5)]"
-                    style={{ fontFamily: "var(--font-inter)" }}>Min</span>
-                  <input
-                    type="number"
-                    value={priceMin}
-                    min={PRICE_MIN} max={PRICE_MAX}
-                    onChange={(e) => setPriceMin(Math.min(Number(e.target.value), priceMax - 10))}
-                    className="w-full px-3 py-2 rounded-[8px] border border-[#E5E7EB] text-sm text-[#000A1E] outline-none focus:border-[#FE9800] cursor-text"
-                    style={{ fontFamily: "var(--font-inter)" }}
-                  />
+          ) : (
+            <>
+              {/* ── Price Range ── */}
+              <div className="flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <SectionLabel>Select Price Range</SectionLabel>
+                  <span className="text-base font-bold text-[#000A1E]" style={{ fontFamily: "var(--font-lato)" }}>
+                    {fmt(activeConfig.priceMin)} – {fmt(activeConfig.priceMax)}
+                  </span>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-medium text-[rgba(0,0,0,0.5)]"
-                    style={{ fontFamily: "var(--font-inter)" }}>Max</span>
-                  <input
-                    type="number"
-                    value={priceMax}
+                <div className="rounded-[12px] border border-[#E5E7EB] bg-white p-4 sm:p-5 flex flex-col gap-4">
+                  <div className="flex items-center justify-between">
+                    <SectionLabel>Price Range</SectionLabel>
+                    <span className="text-sm font-bold text-[#000A1E]" style={{ fontFamily: "var(--font-lato)" }}>
+                      {fmt(activeConfig.priceMin)} – {fmt(activeConfig.priceMax)}
+                    </span>
+                  </div>
+                  <DualRangeSlider
                     min={PRICE_MIN} max={PRICE_MAX}
-                    onChange={(e) => setPriceMax(Math.max(Number(e.target.value), priceMin + 10))}
-                    className="w-full px-3 py-2 rounded-[8px] border border-[#E5E7EB] text-sm text-[#000A1E] outline-none focus:border-[#FE9800] cursor-text"
-                    style={{ fontFamily: "var(--font-inter)" }}
+                    low={activeConfig.priceMin} high={activeConfig.priceMax}
+                    onChange={(lo, hi) => updateActiveConfig({ priceMin: lo, priceMax: hi })}
                   />
+                  <div className="flex justify-between">
+                    {["$0", "$250", "$500", "$750", "$1000+"].map((l) => (
+                      <span key={l} className="text-[10px] text-[rgba(0,0,0,0.4)]"
+                        style={{ fontFamily: "var(--font-inter)" }}>{l}</span>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-[rgba(0,0,0,0.5)]"
+                        style={{ fontFamily: "var(--font-inter)" }}>Min</span>
+                      <input
+                        type="number"
+                        value={activeConfig.priceMin}
+                        min={PRICE_MIN} max={PRICE_MAX}
+                        onChange={(e) => updateActiveConfig({ priceMin: Math.min(Number(e.target.value), activeConfig.priceMax - 10) })}
+                        className="w-full px-3 py-2 rounded-[8px] border border-[#E5E7EB] text-sm text-[#000A1E] outline-none focus:border-[#FE9800] cursor-text"
+                        style={{ fontFamily: "var(--font-inter)" }}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs font-medium text-[rgba(0,0,0,0.5)]"
+                        style={{ fontFamily: "var(--font-inter)" }}>Max</span>
+                      <input
+                        type="number"
+                        value={activeConfig.priceMax}
+                        min={PRICE_MIN} max={PRICE_MAX}
+                        onChange={(e) => updateActiveConfig({ priceMax: Math.max(Number(e.target.value), activeConfig.priceMin + 10) })}
+                        className="w-full px-3 py-2 rounded-[8px] border border-[#E5E7EB] text-sm text-[#000A1E] outline-none focus:border-[#FE9800] cursor-text"
+                        style={{ fontFamily: "var(--font-inter)" }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* ── Minimum Discount ── */}
-          <div className="flex flex-col gap-2.5">
-            <SectionLabel>Minimum Discount</SectionLabel>
-            <div className="flex flex-wrap gap-2">
-              {DISCOUNTS.map((d) => (
-                <button
-                  key={d.value}
-                  type="button"
-                  onClick={() => setMinDiscount(d.value)}
-                  className={cn(
-                    "px-5 py-2.5 rounded-[8px] border text-sm font-bold transition-all cursor-pointer",
-                    minDiscount === d.value
-                      ? "border-[#FE9800] bg-[#FFF8EE] text-[#000A1E]"
-                      : "border-[#E5E7EB] bg-white text-[#374151] hover:border-[#D1D5DB]",
-                  )}
-                  style={{ fontFamily: "var(--font-lato)" }}
-                >
-                  {d.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Brand Preferences (searchable dropdown) ── */}
-          <div className="flex flex-col gap-2.5">
-            <SectionLabel>Brand Preferences</SectionLabel>
-            <div className="relative">
-              <div
-                className="w-full min-h-[48px] px-3 py-3 rounded-[8px] border border-[#E5E7EB] bg-white cursor-text flex items-center gap-2"
-                onClick={() => { brandRef.current?.focus(); setBrandDropdownOpen(true); }}
-              >
-                <input
-                  ref={brandRef}
-                  type="text"
-                  value={brandInput}
-                  onChange={(e) => { setBrandInput(e.target.value); setBrandDropdownOpen(true); }}
-                  onKeyDown={handleBrandKey}
-                  onFocus={() => setBrandDropdownOpen(true)}
-                  placeholder="Search brands..."
-                  className="flex-1 outline-none bg-transparent text-sm text-[#000A1E] placeholder:text-[rgba(0,0,0,0.35)] cursor-text"
-                  style={{ fontFamily: "var(--font-inter)" }}
-                />
-                <ChevronDown className="w-4 h-4 text-[#6B7280] shrink-0" />
-              </div>
-
-              {/* Dropdown suggestions */}
-              {brandDropdownOpen && brandSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-[#E5E7EB] shadow-lg z-30 max-h-48 overflow-y-auto">
-                  {brandSuggestions.map((b) => (
+              {/* ── Minimum Discount ── */}
+              <div className="flex flex-col gap-2.5">
+                <SectionLabel>Minimum Discount</SectionLabel>
+                <div className="flex flex-wrap gap-2">
+                  {DISCOUNTS.map((d) => (
                     <button
-                      key={b}
+                      key={d.value}
                       type="button"
-                      onClick={() => addBrand(b)}
-                      className="w-full text-left px-4 py-2.5 text-sm text-[#374151] hover:bg-[#FFF8EE] hover:text-[#000A1E] transition-colors cursor-pointer"
-                      style={{ fontFamily: "var(--font-inter)" }}
+                      onClick={() => updateActiveConfig({ minDiscount: d.value })}
+                      className={cn(
+                        "px-5 py-2.5 rounded-[8px] border text-sm font-bold transition-all cursor-pointer",
+                        activeConfig.minDiscount === d.value
+                          ? "border-[#FE9800] bg-[#FFF8EE] text-[#000A1E]"
+                          : "border-[#E5E7EB] bg-white text-[#374151] hover:border-[#D1D5DB]",
+                      )}
+                      style={{ fontFamily: "var(--font-lato)" }}
                     >
-                      {b}
+                      {d.label}
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
-
-            {/* Selected brand tags */}
-            {brands.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {brands.map((b) => (
-                  <span
-                    key={b}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#FE9800] bg-white text-[#000A1E] text-sm font-medium"
-                    style={{ fontFamily: "var(--font-lato)" }}
-                  >
-                    {b}
-                    <button
-                      type="button"
-                      onClick={() => setBrands((prev) => prev.filter((x) => x !== b))}
-                      className="text-[#374151] hover:text-[#000A1E] transition-colors cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </span>
-                ))}
               </div>
-            )}
-          </div>
+
+              {/* ── Brand Preferences (searchable dropdown) ── */}
+              <div className="flex flex-col gap-2.5">
+                <SectionLabel>Brand Preferences</SectionLabel>
+                <div className="relative">
+                  <div
+                    className="w-full min-h-[48px] px-3 py-3 rounded-[8px] border border-[#E5E7EB] bg-white cursor-text flex items-center gap-2"
+                    onClick={() => { brandRef.current?.focus(); setBrandDropdownOpen(true); }}
+                  >
+                    <input
+                      ref={brandRef}
+                      type="text"
+                      value={brandInput}
+                      onChange={(e) => { setBrandInput(e.target.value); setBrandDropdownOpen(true); }}
+                      onKeyDown={handleBrandKey}
+                      onFocus={() => setBrandDropdownOpen(true)}
+                      placeholder="Search brands..."
+                      className="flex-1 outline-none bg-transparent text-sm text-[#000A1E] placeholder:text-[rgba(0,0,0,0.35)] cursor-text"
+                      style={{ fontFamily: "var(--font-inter)" }}
+                    />
+                    <ChevronDown className="w-4 h-4 text-[#6B7280] shrink-0" />
+                  </div>
+
+                  {/* Dropdown suggestions */}
+                  {brandDropdownOpen && brandSuggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-lg border border-[#E5E7EB] shadow-lg z-30 max-h-48 overflow-y-auto">
+                      {brandSuggestions.map((b) => (
+                        <button
+                          key={b}
+                          type="button"
+                          onClick={() => addBrand(b)}
+                          className="w-full text-left px-4 py-2.5 text-sm text-[#374151] hover:bg-[#FFF8EE] hover:text-[#000A1E] transition-colors cursor-pointer"
+                          style={{ fontFamily: "var(--font-inter)" }}
+                        >
+                          {b}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Selected brand tags */}
+                {activeConfig.brands.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {activeConfig.brands.map((b) => (
+                      <span
+                        key={b}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-[#FE9800] bg-white text-[#000A1E] text-sm font-medium"
+                        style={{ fontFamily: "var(--font-lato)" }}
+                      >
+                        {b}
+                        <button
+                          type="button"
+                          onClick={() => removeBrand(b)}
+                          className="text-[#374151] hover:text-[#000A1E] transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </>
       )}
 

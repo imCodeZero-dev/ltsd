@@ -22,6 +22,12 @@ function SearchParamsToasts() {
     if (searchParams.get("reset") === "success") {
       toast.success("Password updated! You can now log in.", { id: "reset-success" });
     }
+    const error = searchParams.get("error");
+    if (error === "OAuthAccountNotLinked") {
+      toast.error("This email is already registered with a password. Please sign in with your email and password.", { id: "oauth-linked" });
+    } else if (error) {
+      toast.error("Something went wrong. Please try again.", { id: "auth-error" });
+    }
   // intentionally run once on mount only
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
