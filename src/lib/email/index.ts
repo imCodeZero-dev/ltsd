@@ -16,6 +16,7 @@ function createTransport() {
     port,
     secure,
     auth:   { user, pass },
+    authMethod: "LOGIN",
     tls:    { rejectUnauthorized: false },
   });
 }
@@ -37,7 +38,7 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
 
   try {
     const info = await transport.sendMail({
-      from:    `"LTSD" <${process.env.EMAIL_USER}>`,
+      from:    `"Limited Time Super Deals" <${process.env.EMAIL_USER}>`,
       to:      payload.to,
       subject: payload.subject,
       html:    payload.html,
