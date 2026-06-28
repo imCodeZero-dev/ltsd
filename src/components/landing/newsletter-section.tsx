@@ -21,7 +21,7 @@ export function NewsletterSection() {
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ email: email.trim() }),
       });
-      const json = await res.json();
+      const json = await res.json().catch(() => null);
 
       if (!res.ok) {
         setStatus("error");

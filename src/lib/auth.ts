@@ -63,12 +63,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  events: {
+    // Create default preferences row for any new user (covers Google OAuth,
+    // where the PrismaAdapter creates the User but not the preferences)
+    async createUser({ user }) {
+      if (user.id) {
+        await db.userPreferences.upsert({
+          where:  { userId: user.id },
+          create: { userId: user.id },
+          update: {},
+        });
+      }
+    },
+  },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id                  = user.id;
-        token.role                = user.role;
-        token.onboardingCompleted = user.onboardingCompleted;
+        token.id = user.id;
+        // PrismaAdapter doesn't pass custom fields (role, onboardingCompleted)
+        // for OAuth users — always fetch fresh from DB on sign-in
+        const dbUser = await db.user.findUnique({
+          where:  { id: user.id as string },
+          select: { role: true, onboardingCompleted: true },
+        });
+        token.role                = dbUser?.role ?? "USER";
+        token.onboardingCompleted = dbUser?.onboardingCompleted ?? false;
       }
       return token;
     },

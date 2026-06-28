@@ -25,12 +25,26 @@ export const proxy = auth((req) => {
 
   // Logged-in user hit landing page or auth page → send to dashboard
   if (isLoggedIn && (pathname === "/" || onAuthPage)) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    const dest = session.user.onboardingCompleted === false && session.user.role !== "ADMIN"
+      ? "/onboarding"
+      : "/dashboard";
+    return NextResponse.redirect(new URL(dest, req.url));
   }
 
   // Unauthenticated user hit a protected page → send to login
   if (!isLoggedIn && onProtectedPage) {
     return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  // Logged-in user hasn't completed onboarding → redirect to onboarding
+  // (skip if already on onboarding pages or if admin)
+  if (
+    isLoggedIn &&
+    session.user.onboardingCompleted === false &&
+    session.user.role !== "ADMIN" &&
+    !pathname.startsWith("/onboarding")
+  ) {
+    return NextResponse.redirect(new URL("/onboarding", req.url));
   }
 
   return NextResponse.next();

@@ -137,6 +137,15 @@ async function getDeals(
         );
       }
 
+      if (prefs.minDiscount != null && prefs.minDiscount > 0) {
+        prefQueries.push(
+          db.deal.findMany({
+            where: { ...urlWhere, discountPercent: { gte: prefs.minDiscount } },
+            orderBy, take: PAGE_SIZE, include,
+          })
+        );
+      }
+
       // Also fetch general pool in parallel
       const [generalRows, totalGeneral, ...prefResults] = await Promise.all([
         db.deal.findMany({ where: urlWhere, orderBy, take: PAGE_SIZE, include }),
@@ -264,19 +273,28 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
     }),
   ]);
 
-  // Preference-aware reordering — preferred deals first within each section
+  // Preference-aware scoring — preferred deals first within each section.
+  // Scores: +2 brand match, +1 category match, +1 price-in-range, +1 meets min-discount.
   const prefBrands = new Set(prefs.brands.map((b) => b.toLowerCase()));
   const prefSlugs  = new Set(prefs.categorySlugs);
+  const hasPrefs   = prefBrands.size > 0 || prefSlugs.size > 0 ||
+                     prefs.minPrice != null || prefs.maxPrice != null ||
+                     (prefs.minDiscount != null && prefs.minDiscount > 0);
 
   function prefScore(deal: DealItem): number {
     let score = 0;
     if (deal.brand && prefBrands.has(deal.brand.toLowerCase())) score += 2;
     if (deal.category && prefSlugs.has(deal.category.toLowerCase().replace(/[^a-z0-9]+/g, "-"))) score += 1;
+    const priceDollars = deal.currentPrice / 100;
+    if (prefs.minPrice && prefs.maxPrice && priceDollars >= prefs.minPrice && priceDollars <= prefs.maxPrice) score += 1;
+    else if (prefs.minPrice && !prefs.maxPrice && priceDollars >= prefs.minPrice) score += 1;
+    else if (!prefs.minPrice && prefs.maxPrice && priceDollars <= prefs.maxPrice) score += 1;
+    if (prefs.minDiscount && deal.discountPercent >= prefs.minDiscount) score += 1;
     return score;
   }
 
   function reorderByPrefs(deals: DealItem[]): DealItem[] {
-    if (prefBrands.size === 0 && prefSlugs.size === 0) return deals;
+    if (!hasPrefs) return deals;
     return [...deals].sort((a, b) => prefScore(b) - prefScore(a));
   }
 

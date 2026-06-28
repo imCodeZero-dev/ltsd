@@ -297,19 +297,30 @@ export default async function DashboardPage() {
   const userName = session.user.name ?? session.user.email ?? "there";
   const prefs = await getUserDealPrefs();
 
-  // Preference-aware reordering — preferred deals appear first within each section
+  // Preference-aware scoring — preferred deals appear first within each section.
+  // Scores: +2 brand match, +1 category match, +1 price-in-range, +1 meets min-discount.
   const prefBrands = new Set(prefs.brands.map((b) => b.toLowerCase()));
   const prefSlugs  = new Set(prefs.categorySlugs);
+  const hasPrefs   = prefBrands.size > 0 || prefSlugs.size > 0 ||
+                     prefs.minPrice != null || prefs.maxPrice != null ||
+                     (prefs.minDiscount != null && prefs.minDiscount > 0);
 
   function prefScore(deal: DealItem): number {
     let score = 0;
     if (deal.brand && prefBrands.has(deal.brand.toLowerCase())) score += 2;
     if (deal.category && prefSlugs.has(deal.category.toLowerCase().replace(/[^a-z0-9]+/g, "-"))) score += 1;
+    // Price in range (cents → dollars for comparison)
+    const priceDollars = deal.currentPrice / 100;
+    if (prefs.minPrice && prefs.maxPrice && priceDollars >= prefs.minPrice && priceDollars <= prefs.maxPrice) score += 1;
+    else if (prefs.minPrice && !prefs.maxPrice && priceDollars >= prefs.minPrice) score += 1;
+    else if (!prefs.minPrice && prefs.maxPrice && priceDollars <= prefs.maxPrice) score += 1;
+    // Meets minimum discount
+    if (prefs.minDiscount && deal.discountPercent >= prefs.minDiscount) score += 1;
     return score;
   }
 
   function reorderByPrefs(deals: DealItem[]): DealItem[] {
-    if (prefBrands.size === 0 && prefSlugs.size === 0) return deals;
+    if (!hasPrefs) return deals;
     return [...deals].sort((a, b) => prefScore(b) - prefScore(a));
   }
 
@@ -390,31 +401,32 @@ export default async function DashboardPage() {
       imageUrl: { not: null },
       id: { notIn: dealOfWeekIds },
     };
+    // Fetch extra (12) so preference scoring has a meaningful pool, then slice to 4
     const [lightningRows, priceDropRows, bestDealRows] = await Promise.all([
       db.deal.findMany({
         where: { ...trendingBase, dealType: "LIGHTNING_DEAL" },
         orderBy: { reviewCount: "desc" },
-        take: 4,
+        take: 12,
         include: { categories: { include: { category: { select: { name: true } } } } },
       }),
       db.deal.findMany({
         where: { ...trendingBase, dealType: { in: ["PRICE_DROP", "LIMITED_TIME"] } },
         orderBy: { discountPercent: "desc" },
-        take: 4,
+        take: 12,
         include: { categories: { include: { category: { select: { name: true } } } } },
       }),
       db.deal.findMany({
         where: { ...trendingBase, discountPercent: { gte: 20 } },
         orderBy: { discountPercent: "desc" },
-        take: 4,
+        take: 12,
         include: { categories: { include: { category: { select: { name: true } } } } },
       }),
     ]);
-    trendingLightning = reorderByPrefs(mapDeals(lightningRows as RawDeal[]));
-    trendingPriceDrops = reorderByPrefs(mapDeals(priceDropRows as RawDeal[]));
-    trendingBestDeals = reorderByPrefs(mapDeals(bestDealRows as RawDeal[]));
+    trendingLightning = reorderByPrefs(mapDeals(lightningRows as RawDeal[])).slice(0, 4);
+    trendingPriceDrops = reorderByPrefs(mapDeals(priceDropRows as RawDeal[])).slice(0, 4);
+    trendingBestDeals = reorderByPrefs(mapDeals(bestDealRows as RawDeal[])).slice(0, 4);
 
-    // 5. Hero slides — top 3 deals with images for the carousel
+    // 5. Hero slides — fetch extra, score by prefs, pick top 3
     const heroRows = await db.deal.findMany({
       where: {
         isActive: true,
@@ -423,26 +435,24 @@ export default async function DashboardPage() {
         discountPercent: { gt: 0 },
       },
       orderBy: { discountPercent: "desc" },
-      take: 3,
+      take: 10,
       include: {
         categories: { include: { category: { select: { name: true } } } },
       },
     });
 
-    heroSlides = heroRows.map((row) => {
-      const item = mapDeal(row as RawDeal);
-      return {
-        slug: item.slug ?? item.id,
-        image: item.imageUrl,
-        brand: item.brand,
-        title: item.title,
-        rating: item.rating,
-        reviewCount: item.reviewCount,
-        currentPrice: item.currentPrice,
-        originalPrice: item.originalPrice,
-        discountPercent: item.discountPercent,
-      };
-    });
+    const scoredHeroDeals = reorderByPrefs(mapDeals(heroRows as RawDeal[])).slice(0, 3);
+    heroSlides = scoredHeroDeals.map((item) => ({
+      slug: item.slug ?? item.id,
+      image: item.imageUrl,
+      brand: item.brand,
+      title: item.title,
+      rating: item.rating,
+      reviewCount: item.reviewCount,
+      currentPrice: item.currentPrice,
+      originalPrice: item.originalPrice,
+      discountPercent: item.discountPercent,
+    }));
 
     // 4. Categories — hardcoded list, no DB fetch needed
 

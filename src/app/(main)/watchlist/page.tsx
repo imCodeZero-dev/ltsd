@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth-guard";
 import { mapDeals, type RawDeal } from "@/lib/deal-mapper";
 import { WatchlistContent, type TrackingItem } from "./watchlist-content";
 import type { DealItem } from "@/lib/deal-api/types";
+import { getUserDealPrefs } from "@/lib/get-user-prefs";
 
 export const metadata: Metadata = { title: "Watchlist — LTSD" };
 export const revalidate = 0; // always fresh — user-specific data
@@ -75,22 +76,69 @@ export default async function WatchlistPage() {
           };
         });
 
-        // Fetch matched deals from categories the user watches
+        // Matched deals — tiered: watchlist categories → onboarding prefs → top deals
         const watchedDealIds = watchlistRows.map((wi) => wi.dealId);
-        const matchedRows = await db.deal.findMany({
-          where: {
-            isActive: true,
-            id: { notIn: watchedDealIds },
-          },
-          orderBy: { discountPercent: "desc" },
-          take: 4,
-          include: {
-            categories: { include: { category: { select: { name: true } } } },
-          },
-        });
+        const watchedCategoryIds = [
+          ...new Set(
+            watchlistRows.flatMap((wi) =>
+              wi.deal.categories.map((dc: { categoryId: string }) => dc.categoryId)
+            )
+          ),
+        ];
 
-        if (matchedRows.length > 0) {
-          matchedDeals = mapDeals(matchedRows as RawDeal[]);
+        const MATCHED_LIMIT = 4;
+        const matchedInclude = {
+          categories: { include: { category: { select: { name: true } } } },
+        };
+        const excludeIds = [...watchedDealIds];
+
+        // Tier 1: deals in same categories as watchlist items
+        if (watchedCategoryIds.length > 0) {
+          const tier1 = await db.deal.findMany({
+            where: {
+              isActive: true,
+              id: { notIn: excludeIds },
+              categories: { some: { categoryId: { in: watchedCategoryIds } } },
+            },
+            orderBy: { discountPercent: "desc" },
+            take: MATCHED_LIMIT,
+            include: matchedInclude,
+          });
+          matchedDeals = mapDeals(tier1 as RawDeal[]);
+          excludeIds.push(...tier1.map((d) => d.id));
+        }
+
+        // Tier 2: deals matching onboarding preference categories (if still need more)
+        if (matchedDeals.length < MATCHED_LIMIT) {
+          const prefs = await getUserDealPrefs();
+          if (prefs.categorySlugs.length > 0) {
+            const tier2 = await db.deal.findMany({
+              where: {
+                isActive: true,
+                id: { notIn: excludeIds },
+                categories: { some: { category: { slug: { in: prefs.categorySlugs } } } },
+              },
+              orderBy: { discountPercent: "desc" },
+              take: MATCHED_LIMIT - matchedDeals.length,
+              include: matchedInclude,
+            });
+            matchedDeals.push(...mapDeals(tier2 as RawDeal[]));
+            excludeIds.push(...tier2.map((d) => d.id));
+          }
+        }
+
+        // Tier 3: top discounted deals as backfill (never empty)
+        if (matchedDeals.length < MATCHED_LIMIT) {
+          const tier3 = await db.deal.findMany({
+            where: {
+              isActive: true,
+              id: { notIn: excludeIds },
+            },
+            orderBy: { discountPercent: "desc" },
+            take: MATCHED_LIMIT - matchedDeals.length,
+            include: matchedInclude,
+          });
+          matchedDeals.push(...mapDeals(tier3 as RawDeal[]));
         }
       }
     } catch { /* DB not seeded */ }

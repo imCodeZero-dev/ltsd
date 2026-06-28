@@ -3,11 +3,10 @@ import { ok, err, created } from "@/lib/api";
 import { rateLimitByIp } from "@/lib/rate-limit";
 
 export async function POST(req: Request): Promise<Response> {
-  // Public endpoint — strict rate limit: 5 per minute per IP
-  const blocked = await rateLimitByIp(req, "newsletter", 5);
-  if (blocked) return blocked;
-
   try {
+    // Public endpoint — strict rate limit: 5 per minute per IP
+    const blocked = await rateLimitByIp(req, "newsletter", 5);
+    if (blocked) return blocked;
     const body = await req.json();
     const email = (body?.email ?? "").trim().toLowerCase();
 
