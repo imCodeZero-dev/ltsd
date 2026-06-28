@@ -215,10 +215,10 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
     const q = brandInput.trim().toLowerCase();
     const currentBrands = activeConfig?.brands ?? [];
     const available = apiBrands.filter((b) => !currentBrands.includes(b));
-    if (!q) return available.slice(0, 10);
+    if (!q) return available.slice(0, 30);
     return available
       .filter((b) => b.toLowerCase().includes(q))
-      .slice(0, 8);
+      .slice(0, 30);
   }, [brandInput, apiBrands, activeConfig?.brands]);
 
   function toggleCategory(slug: string) {
