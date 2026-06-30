@@ -98,7 +98,8 @@ export async function POST(req: Request): Promise<Response> {
 
     return ok({ ok: true });
   } catch (e) {
-    void e;
-    return err("Failed to save preferences", 500);
+    console.error("[onboarding] Failed to save preferences:", e);
+    const message = e instanceof Error ? e.message : String(e);
+    return err(`Failed to save preferences: ${message}`, 500);
   }
 }
