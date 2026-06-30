@@ -194,6 +194,118 @@ export async function GET(req: Request) {
         });
       }
 
+      // Product Finder — discover top brands per category (single or all)
+      case "product-finder": {
+        const KEEPA_BASE = "https://api.keepa.com";
+        const API_KEY = process.env.KEEPA_API_KEY ?? "";
+
+        // Amazon root category IDs
+        const ROOT_CATS: Record<string, number> = {
+          "Electronics":              172282,
+          "Home & Kitchen":           1055398,
+          "Sports & Outdoors":        3375251,
+          "Health & Personal Care":   3760911,
+          "Clothing":                 7141123011,
+          "Tools & Home Improvement": 228013011,
+          "Automotive":               15684181,
+          "Baby":                     165796011,
+          "Video Games":              468642,
+          "Office Products":          1064954,
+          "Grocery":                  16310101,
+          "Toys & Games":             165793011,
+          "Pet Supplies":             2619533011,
+          "Computers":                541966,
+        };
+
+        async function fetchBrandsForCategory(catName: string, catId: number) {
+          const selection = JSON.stringify({
+            rootCategory: catId,
+            productType: [0],
+            hasReviews: true,
+            minRating: 35,
+            salesRankRange: [0, 100000],
+            perPage: 50,   // need enough results for searchInsights to populate
+            page: 0,
+          });
+          const u = new URL(`${KEEPA_BASE}/query`);
+          u.searchParams.set("key", API_KEY);
+          u.searchParams.set("domain", "1");
+          u.searchParams.set("selection", selection);
+          u.searchParams.set("stats", "1");
+          const r = await fetch(u.toString(), { cache: "no-store" });
+          const data = await r.json() as Record<string, unknown>;
+          const insights = data.searchInsights as Record<string, unknown> | undefined;
+          const brands = (insights?.topBrandsWithCounts ?? {}) as Record<string, number>;
+          return {
+            category: catName,
+            tokensLeft: data.tokensLeft as number,
+            totalResults: data.totalResults as number,
+            brands,
+          };
+        }
+
+        const category = searchParams.get("category") ?? "Electronics";
+
+        // "All" mode — loop all categories sequentially (respect rate limit)
+        if (category === "All") {
+          const allBrands: Record<string, { count: number; categories: string[] }> = {};
+          const perCategory: { category: string; brands: Record<string, number>; totalResults: number }[] = [];
+          let lastTokensLeft = 0;
+
+          for (const [catName, catId] of Object.entries(ROOT_CATS)) {
+            const result = await fetchBrandsForCategory(catName, catId);
+            lastTokensLeft = result.tokensLeft;
+            perCategory.push({
+              category: catName,
+              brands: result.brands,
+              totalResults: result.totalResults,
+            });
+
+            // Merge brands — skip "generic" as it's not a real brand
+            for (const [brand, count] of Object.entries(result.brands)) {
+              const key = brand.toLowerCase();
+              if (key === "generic" || key === "unbranded" || key === "n/a") continue;
+              if (!allBrands[brand]) {
+                allBrands[brand] = { count: 0, categories: [] };
+              }
+              allBrands[brand].count += count;
+              allBrands[brand].categories.push(catName);
+            }
+
+            // Small delay between calls to respect rate limits
+            await new Promise((r) => setTimeout(r, 200));
+          }
+
+          // Sort by total count descending
+          const sorted = Object.entries(allBrands)
+            .sort((a, b) => b[1].count - a[1].count)
+            .map(([name, data]) => ({ name, count: data.count, categories: data.categories }));
+
+          return NextResponse.json({
+            endpoint: "product-finder",
+            mode: "all-categories",
+            categoriesQueried: Object.keys(ROOT_CATS).length,
+            uniqueBrands: sorted.length,
+            tokensLeft: lastTokensLeft,
+            brands: sorted,
+            perCategory,
+          });
+        }
+
+        // Single category mode
+        const rootCat = ROOT_CATS[category] ?? 172282;
+        const result = await fetchBrandsForCategory(category, rootCat);
+
+        return NextResponse.json({
+          endpoint: "product-finder",
+          category,
+          rootCategoryId: rootCat,
+          totalResults: result.totalResults,
+          tokensLeft: result.tokensLeft,
+          brands: result.brands,
+        });
+      }
+
       default:
         return NextResponse.json({
           usage: [
@@ -202,6 +314,7 @@ export async function GET(req: Request) {
             "/api/test-keepa?endpoint=prices&asins=B0CHWRXH8B,B09JQMJHXY",
             "/api/test-keepa?endpoint=deals&category=Electronics",
             "/api/test-keepa?endpoint=debug-prices&category=Electronics",
+            "/api/test-keepa?endpoint=product-finder&category=Electronics",
           ],
         });
     }

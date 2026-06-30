@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { DealPreferencesClient } from "@/components/settings/deal-preferences-client";
 import type { DealTypeConfigInput } from "@/components/settings/deal-preferences-client";
+import { FALLBACK_BRANDS } from "@/lib/constants/brands";
 
 export const metadata: Metadata = { title: "Deal Preferences — LTSD" };
 
@@ -56,11 +57,7 @@ export default async function DealPreferencesPage() {
     { slug: "grocery-gourmet-food",    name: "Grocery" },
   ];
 
-  const FALLBACK_BRANDS = [
-    "Apple", "Samsung", "Nike", "Sony", "Adidas", "LG", "Bose",
-    "Dell", "HP", "Levi's", "Under Armour", "Puma", "JBL", "Anker",
-    "Philips", "Dyson", "KitchenAid", "Instant Pot", "Ninja", "Logitech",
-  ];
+  // Imported at top of file
 
   const dbCategories = await db.category.findMany({
     select:  { slug: true, name: true },

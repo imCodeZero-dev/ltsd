@@ -26,12 +26,7 @@ const FALLBACK_POPULAR = [
   "electronics", "home-kitchen", "clothing", "beauty-personal-care", "sports-outdoors",
 ];
 
-// Well-known brands — always available in dropdown even if not in DB yet
-const FALLBACK_BRANDS = [
-  "Apple", "Samsung", "Nike", "Sony", "Adidas", "LG", "Bose",
-  "Dell", "HP", "Levi's", "Under Armour", "Puma", "JBL", "Anker",
-  "Philips", "Dyson", "KitchenAid", "Instant Pot", "Ninja", "Logitech",
-];
+import { FALLBACK_BRANDS } from "@/lib/constants/brands";
 
 export default async function OnboardingPage() {
   // Categories with active deals

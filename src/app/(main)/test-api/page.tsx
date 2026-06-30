@@ -103,6 +103,27 @@ const KEEPA_ENDPOINTS = [
     },
   },
   {
+    id:      "keepa-product-finder",
+    method:  "GET",
+    path:    "/api/test-keepa?endpoint=product-finder",
+    label:   "Product Finder (Brand Discovery)",
+    badge:   "Brands",
+    color:   "#0066FF",
+    desc:    "Calls Keepa product_finder to discover top brands for a category. Returns searchInsights with topBrandsWithCounts.",
+    usedFor: ["Brand dropdown", "Onboarding brands", "Settings brands", "Weekly brand sync"],
+    params: [
+      { key: "category", label: "Category", default: "Electronics", type: "select" as const,
+        options: ["All","Electronics","Home & Kitchen","Clothing","Sports & Outdoors","Health & Personal Care","Tools & Home Improvement","Automotive","Baby","Video Games","Office Products","Grocery","Toys & Games","Pet Supplies","Computers"] },
+    ],
+    buildUrl: (p: Record<string, string>) => `/api/test-keepa?endpoint=product-finder&category=${encodeURIComponent(p.category)}`,
+    fields: {
+      "brands":               "Merged brands across categories (All mode) or per-category brands",
+      "uniqueBrands":         "Total unique brands found (All mode)",
+      "perCategory":          "Brands breakdown per category (All mode)",
+      "tokensLeft":           "Remaining Keepa API tokens",
+    },
+  },
+  {
     id:      "keepa-raw-product",
     method:  "GET",
     path:    "/api/test-keepa?endpoint=raw-product",
