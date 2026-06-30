@@ -59,14 +59,14 @@ export async function POST(req: Request): Promise<Response> {
         brandPreferences: cfg.brands,
       }));
 
-    await db.$transaction([
-      // Ensure UserPreferences row exists (for notification settings etc.)
-      db.userPreferences.upsert({
-        where: { userId },
-        create: { userId },
-        update: {},
-      }),
+    // Ensure UserPreferences row exists (for notification settings etc.)
+    await db.userPreferences.upsert({
+      where: { userId },
+      create: { userId },
+      update: {},
+    });
 
+    await db.$transaction([
       // Replace deal type preferences
       db.dealTypePreference.deleteMany({ where: { userId } }),
 
