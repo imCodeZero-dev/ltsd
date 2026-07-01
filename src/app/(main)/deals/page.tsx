@@ -148,18 +148,42 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
 
   const hasFilter = filters.type || filters.category || filters.q || filters.sort;
 
-  // Curated strips — NO preference filtering. These are quality-curated sections
-  // and must always show content regardless of what the user saved in preferences.
+  const categorySlugs = prefs.categorySlugs;
+  const hasCatPrefs = categorySlugs.length > 0;
+  const catFilter = hasCatPrefs
+    ? { categories: { some: { category: { slug: { in: categorySlugs } } } } }
+    : {};
+  const CURATED_INCLUDE = { categories: { include: { category: { select: { name: true } } } } };
+
+  // Quality criteria for curated sections
+  const topPicksWhere = {
+    isActive: true, imageUrl: { not: null },
+    dealType: { not: "LIGHTNING_DEAL" as const },
+    rating: { gte: 4.2 }, reviewCount: { gte: 250 },
+    currentPrice: { gte: 15 }, discountPercent: { gte: 25, lte: 60 },
+  };
+  const hotPriceDropsWhere = {
+    isActive: true, imageUrl: { not: null },
+    dealType: { in: ["LIMITED_TIME" as const, "PRICE_DROP" as const] },
+    rating: { gte: 4.0 }, reviewCount: { gte: 100 },
+    currentPrice: { gte: 10 }, discountPercent: { gte: 20, lte: 70 },
+    createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+  };
+
+  // Fetch curated sections — when user has category prefs, fetch preferred + general
+  // in parallel so preferred-category deals appear first ("prefer first, then fill").
   const [
     { deals, total, usingPrefs },
     watchlistMap,
     categoryRows,
     weeklyRows,
     lightningRows,
-    topPicksRows,
-    limitedRows,
+    topPicksCatRows,
+    topPicksGenRows,
+    limitedCatRows,
+    limitedGenRows,
   ] = await Promise.all([
-    getDeals(filters, prefs.categorySlugs),
+    getDeals(filters, categorySlugs),
     getWatchlistMap(),
     db.category.findMany({
       select:  { slug: true, name: true },
@@ -171,44 +195,57 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
       where:   { isWeeklyDeal: true, isActive: true, imageUrl: { not: null } },
       orderBy: { weeklyDealSlot: "asc" },
       take:    7,
-      include: { categories: { include: { category: { select: { name: true } } } } },
+      include: CURATED_INCLUDE,
     }),
-    // Lightning Deals — quality strip, no pref filtering
+    // Lightning Deals — quality strip
     hasFilter ? Promise.resolve([]) : db.deal.findMany({
       where:   { dealType: "LIGHTNING_DEAL", isActive: true, expiresAt: { gt: new Date() } },
       orderBy: { expiresAt: "asc" },
       take:    30,
-      include: { categories: { include: { category: { select: { name: true } } } } },
+      include: CURATED_INCLUDE,
     }),
-    // Top Picks — tier 1 quality, no pref filtering
-    hasFilter ? Promise.resolve([]) : db.deal.findMany({
-      where: {
-        isActive: true, imageUrl: { not: null },
-        dealType: { not: "LIGHTNING_DEAL" },
-        rating: { gte: 4.2 }, reviewCount: { gte: 250 },
-        currentPrice: { gte: 15 }, discountPercent: { gte: 25, lte: 60 },
-      },
-      orderBy: { discountPercent: "desc" },
-      take:    12,
-      include: { categories: { include: { category: { select: { name: true } } } } },
+    // Top Picks — category-preferred pool (empty if no prefs)
+    hasFilter || !hasCatPrefs ? Promise.resolve([]) : db.deal.findMany({
+      where: { ...topPicksWhere, ...catFilter },
+      orderBy: { discountPercent: "desc" as const },
+      take: 12,
+      include: CURATED_INCLUDE,
     }),
-    // Hot Price Drops — tier 2 quality, last 7 days, no pref filtering
+    // Top Picks — general pool (always fetched)
     hasFilter ? Promise.resolve([]) : db.deal.findMany({
-      where: {
-        isActive: true, imageUrl: { not: null },
-        dealType: { in: ["LIMITED_TIME", "PRICE_DROP"] },
-        rating: { gte: 4.0 }, reviewCount: { gte: 100 },
-        currentPrice: { gte: 10 }, discountPercent: { gte: 20, lte: 70 },
-        createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-      },
-      orderBy: { discountPercent: "desc" },
-      take:    12,
-      include: { categories: { include: { category: { select: { name: true } } } } },
+      where: topPicksWhere,
+      orderBy: { discountPercent: "desc" as const },
+      take: 12,
+      include: CURATED_INCLUDE,
+    }),
+    // Hot Price Drops — category-preferred pool
+    hasFilter || !hasCatPrefs ? Promise.resolve([]) : db.deal.findMany({
+      where: { ...hotPriceDropsWhere, ...catFilter },
+      orderBy: { discountPercent: "desc" as const },
+      take: 12,
+      include: CURATED_INCLUDE,
+    }),
+    // Hot Price Drops — general pool
+    hasFilter ? Promise.resolve([]) : db.deal.findMany({
+      where: hotPriceDropsWhere,
+      orderBy: { discountPercent: "desc" as const },
+      take: 12,
+      include: CURATED_INCLUDE,
     }),
   ]);
 
+  // Merge curated: preferred-category first, then fill with general (dedup by id)
+  function mergePreferredFirst(catRows: unknown[], genRows: unknown[], limit: number) {
+    const mapped = mapDeals(catRows as RawDeal[]);
+    const ids = new Set(mapped.map((d) => d.id));
+    const general = mapDeals(genRows as RawDeal[]).filter((d) => !ids.has(d.id));
+    return [...mapped, ...general].slice(0, limit);
+  }
+  const topPicksRows = mergePreferredFirst(topPicksCatRows, topPicksGenRows, 12);
+  const limitedRows = mergePreferredFirst(limitedCatRows, limitedGenRows, 12);
+
   // Preference-aware scoring for curated sections — uses per-deal-type prefs.
-  // Scores: +2 brand match, +1 category match, +1 price-in-range, +1 meets min-discount.
+  // Scores: +2 brand match, +2 category match, +1 price-in-range, +1 meets min-discount.
   const prefSlugs  = new Set(prefs.categorySlugs);
   const dealTypeEntries = Object.values(prefs.byDealType);
   const hasAnyDealTypePrefs = dealTypeEntries.length > 0;
@@ -217,8 +254,8 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   /** Score a deal against a specific merged DealTypePrefs (for curated sections). */
   function prefScore(deal: DealItem, dtPrefs: DealTypePrefs | null): number {
     let score = 0;
-    // Category match (always available)
-    if (deal.category && prefSlugs.has(deal.category.toLowerCase().replace(/[^a-z0-9]+/g, "-"))) score += 1;
+    // Category match — weighted +2 so it dominates when no deal-type prefs set
+    if (deal.category && prefSlugs.has(deal.category.toLowerCase().replace(/[^a-z0-9]+/g, "-"))) score += 2;
     if (!dtPrefs) return score;
 
     // Brand match
@@ -266,10 +303,10 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
   })(), lightningDealTypePrefs);
   for (const d of lightningDeals) seenIds.add(d.id);
 
-  const topPicksDeals: DealItem[] = reorderByPrefs(mapDeals(topPicksRows as RawDeal[]).filter((d) => !seenIds.has(d.id)), allDealTypePrefs);
+  const topPicksDeals: DealItem[] = reorderByPrefs(topPicksRows.filter((d) => !seenIds.has(d.id)), allDealTypePrefs);
   for (const d of topPicksDeals) seenIds.add(d.id);
 
-  const limitedDeals: DealItem[] = reorderByPrefs(mapDeals(limitedRows as RawDeal[]).filter((d) => !seenIds.has(d.id)), hotPriceDropPrefs);
+  const limitedDeals: DealItem[] = reorderByPrefs(limitedRows.filter((d) => !seenIds.has(d.id)), hotPriceDropPrefs);
   for (const d of limitedDeals) seenIds.add(d.id);
 
   // Also remove curated IDs + title-level duplicates from the All Deals grid

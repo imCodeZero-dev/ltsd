@@ -31,18 +31,24 @@ export async function updateProfile(name: string): Promise<ActionResult> {
 export async function updateAvatar(dataUrl: string): Promise<ActionResult & { imageUrl?: string }> {
   const session = await requireAuth();
 
-  const { uploadAvatar } = await import("@/lib/cloudinary");
-  const result = await uploadAvatar(dataUrl, session.user.id);
+  try {
+    const { uploadAvatar } = await import("@/lib/cloudinary");
+    const result = await uploadAvatar(dataUrl, session.user.id);
 
-  await db.user.update({
-    where: { id: session.user.id },
-    data:  { image: result.url },
-  });
+    await db.user.update({
+      where: { id: session.user.id },
+      data:  { image: result.url },
+    });
 
-  // Revalidate layout so sidebar + dropdown pick up new image
-  revalidatePath("/settings", "layout");
-  revalidatePath("/", "layout");
-  return { imageUrl: result.url };
+    // Revalidate layout so sidebar + dropdown pick up new image
+    revalidatePath("/settings", "layout");
+    revalidatePath("/", "layout");
+    return { imageUrl: result.url };
+  } catch (e) {
+    console.error("[avatar] Upload failed:", e);
+    const msg = e instanceof Error ? e.message : String(e);
+    return { error: `Avatar upload failed: ${msg}` };
+  }
 }
 
 export async function changePassword(

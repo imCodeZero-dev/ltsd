@@ -80,10 +80,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
-        // PrismaAdapter doesn't pass custom fields (role, onboardingCompleted)
-        // for OAuth users — always fetch fresh from DB on sign-in
+      }
+      // Always refresh role + onboardingCompleted from DB so changes
+      // (e.g. completing onboarding) are picked up without re-login.
+      if (token.id) {
         const dbUser = await db.user.findUnique({
-          where:  { id: user.id as string },
+          where:  { id: token.id as string },
           select: { role: true, onboardingCompleted: true },
         });
         token.role                = dbUser?.role ?? "USER";
