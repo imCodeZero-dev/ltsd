@@ -340,7 +340,8 @@ function mapProduct(p: KeepaProduct): DealItem | null {
     currentPrice: currentCents,
     originalPrice: originalCents,
     discountPercent,
-    dealType: "LIMITED_TIME",
+    // Price Drop: current price is 15%+ below the 90-day average
+    dealType: hasAvg90 && currentRaw < avg90Raw! * 0.85 ? "PRICE_DROP" : "LIMITED_TIME",
     dealState: undefined,
     expiresAt: null,
     claimedCount: 0,
