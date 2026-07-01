@@ -29,13 +29,22 @@ export function Avatar({ src, name, size = 36, className }: AvatarProps) {
       style={{ width: size, height: size, fontSize: size * 0.38 }}
     >
       {src ? (
-        <Image
-          src={src}
-          alt={name ?? "avatar"}
-          fill
-          sizes={`${size}px`}
-          className="object-cover"
-        />
+        src.startsWith("data:") ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt={name ?? "avatar"}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <Image
+            src={src}
+            alt={name ?? "avatar"}
+            fill
+            sizes={`${size}px`}
+            className="object-cover"
+          />
+        )
       ) : (
         <span>{initials}</span>
       )}

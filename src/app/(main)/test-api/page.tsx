@@ -990,6 +990,14 @@ function SyncPanel() {
       highlight: true,
     },
     {
+      label: "🔍 Test Price Drop Detection",
+      action: "price-drop-test",
+      body: {},
+      color: "#FF1493",
+      desc: "Searches 3 keywords (headphones, laptop stand, phone case) and syncs ~15 deals. Shows how many got PRICE_DROP type. ~15 tokens.",
+      highlight: true,
+    },
+    {
       label: "Lightning Deals Only",
       action: "lightning",
       body: {},

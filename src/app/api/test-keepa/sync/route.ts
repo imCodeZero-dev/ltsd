@@ -131,6 +131,29 @@ export async function POST(req: Request) {
         return NextResponse.json({ action: "search", query, ...result });
       }
 
+      case "price-drop-test": {
+        // Lightweight test: search a few keywords likely to have price drops, sync to DB
+        const keywords = ["headphones", "laptop stand", "phone case"];
+        const allResults: { keyword: string; synced: number; errors: number }[] = [];
+        for (const kw of keywords) {
+          try {
+            const r = await syncSearch(kw, 5);
+            allResults.push({ keyword: kw, synced: r.synced, errors: r.errors.length });
+          } catch (e) {
+            allResults.push({ keyword: kw, synced: 0, errors: 1 });
+          }
+        }
+        // Check how many PRICE_DROP deals exist now
+        const priceDropCount = await db.deal.count({
+          where: { isActive: true, dealType: "PRICE_DROP" },
+        });
+        return NextResponse.json({
+          action: "price-drop-test",
+          results: allResults,
+          priceDropDealsInDB: priceDropCount,
+        });
+      }
+
       case "pref-brands": {
         const result = await syncPreferredBrands(10);
         return NextResponse.json({ action: "pref-brands", ...result });
