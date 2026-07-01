@@ -21,6 +21,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "*.keepa.com",
       },
+      // Google profile photos (OAuth avatars)
+      {
+        protocol: "https",
+        hostname: "lh3.googleusercontent.com",
+      },
       // Avatar placeholder for UI mockups
       {
         protocol: "https",
