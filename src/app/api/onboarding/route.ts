@@ -59,6 +59,14 @@ export async function POST(req: Request): Promise<Response> {
         brandPreferences: cfg.brands,
       }));
 
+    // Verify user actually exists in DB before creating preferences
+    const userExists = await db.user.findUnique({ where: { id: userId }, select: { id: true } });
+    console.log("[onboarding] userId:", userId, "exists:", !!userExists);
+
+    if (!userExists) {
+      return err(`User not found in DB: ${userId}`, 400);
+    }
+
     // Ensure UserPreferences row exists (for notification settings etc.)
     await db.userPreferences.upsert({
       where: { userId },
