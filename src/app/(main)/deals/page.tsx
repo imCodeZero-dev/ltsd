@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { DealFilters } from "@/components/deals/deal-filters";
-import { DealGrid } from "@/components/deals/deal-grid";
+import { DealCard } from "@/components/deals/deal-card";
 import { DealGridSkeleton } from "@/components/deals/deal-card-skeleton";
 import { db } from "@/lib/db";
 import { mapDeals, type RawDeal } from "@/lib/deal-mapper";
@@ -324,16 +324,17 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
         )}
       </div>
 
-      <Suspense fallback={<DealGridSkeleton count={16} />}>
-        <DealGrid deals={hasFilter ? deals : dedupedDeals} watchlistMap={watchlistMap} />
-      </Suspense>
-
-      <LoadMoreButton
-        filters={{ type: filters.type, category: filters.category, q: filters.q, sort: filters.sort }}
-        initialPage={1}
-        total={total}
-        pageSize={PAGE_SIZE}
-      />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {(hasFilter ? deals : dedupedDeals).map((deal) => (
+          <DealCard key={deal.id} deal={deal} watchlistItemId={watchlistMap?.get(deal.id)} />
+        ))}
+        <LoadMoreButton
+          filters={{ type: filters.type, category: filters.category, q: filters.q, sort: filters.sort }}
+          initialPage={1}
+          total={total}
+          pageSize={PAGE_SIZE}
+        />
+      </div>
     </div>
   );
 }

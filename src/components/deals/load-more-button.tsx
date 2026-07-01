@@ -70,18 +70,15 @@ export function LoadMoreButton({ filters, initialPage, total, pageSize }: Props)
 
   return (
     <>
-      {/* Extra loaded deals */}
-      {extraDeals.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-          {extraDeals.map((deal) => (
-            <DealCard key={deal.id} deal={deal} />
-          ))}
-        </div>
-      )}
+      {/* Extra loaded deals — rendered as individual cards, NOT in a separate grid.
+          The parent DealGrid already has the grid container; these continue filling it. */}
+      {extraDeals.map((deal) => (
+        <DealCard key={deal.id} deal={deal} />
+      ))}
 
       {/* Button */}
       {hasMore && (
-        <div className="flex justify-center pt-2">
+        <div className="flex justify-center pt-2 col-span-full">
           <button
             type="button"
             onClick={loadMore}
