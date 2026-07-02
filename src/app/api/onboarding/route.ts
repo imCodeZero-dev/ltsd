@@ -39,13 +39,41 @@ export async function POST(req: Request): Promise<Response> {
   const userId = session.user.id;
 
   try {
-    // Resolve category ids from slugs
-    const categoryRecords = categories.length
-      ? await db.category.findMany({
-          where: { slug: { in: categories } },
-          select: { id: true },
-        })
-      : [];
+    // Resolve category ids from slugs — create missing ones on the fly
+    let categoryRecords: { id: string }[] = [];
+    if (categories.length) {
+      // Slug → display name map for creating missing categories
+      const SLUG_NAMES: Record<string, string> = {
+        "electronics": "Electronics", "home-kitchen": "Home & Kitchen",
+        "sports-outdoors": "Sports & Outdoors", "clothing": "Clothing",
+        "beauty-personal-care": "Beauty & Personal Care", "video-games": "Video Games",
+        "tools-home-improvement": "Tools & DIY", "automotive": "Automotive",
+        "baby-products": "Baby Products", "computers-accessories": "Computers & Accessories",
+        "cell-phones-accessories": "Cell Phones", "toys-games": "Toys & Games",
+        "pet-supplies": "Pet Supplies", "office-products": "Office Products",
+        "grocery-gourmet-food": "Grocery", "camera-photo": "Camera & Photo",
+      };
+
+      const existing = await db.category.findMany({
+        where: { slug: { in: categories } },
+        select: { id: true, slug: true },
+      });
+      const existingSlugs = new Set(existing.map((c) => c.slug));
+
+      // Create any categories that don't exist yet
+      const missing = categories.filter((s) => !existingSlugs.has(s));
+      if (missing.length) {
+        await db.category.createMany({
+          data: missing.map((slug) => ({ slug, name: SLUG_NAMES[slug] ?? slug })),
+          skipDuplicates: true,
+        });
+      }
+
+      // Re-fetch all to get IDs (including newly created)
+      categoryRecords = missing.length
+        ? await db.category.findMany({ where: { slug: { in: categories } }, select: { id: true } })
+        : existing.map((c) => ({ id: c.id }));
+    }
 
     // Build DealTypePreference rows from configs
     const dealTypePrefRows = Object.entries(dealTypeConfigs)

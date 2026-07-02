@@ -114,15 +114,36 @@ export async function updateDealPreferences(input: {
   ]);
 
   try {
-    // Resolve category ids from slugs
-    const categoryRecords = input.categorySlugs.length
-      ? await db.category.findMany({
-          where:  { slug: { in: input.categorySlugs } },
-          select: { id: true },
-        })
-      : [];
-
-    // Build DealTypePreference rows from enabled configs
+    // Resolve category ids from slugs — create missing ones on the fly
+    const SLUG_NAMES: Record<string, string> = {
+      "electronics": "Electronics", "home-kitchen": "Home & Kitchen",
+      "sports-outdoors": "Sports & Outdoors", "clothing": "Clothing",
+      "beauty-personal-care": "Beauty & Personal Care", "video-games": "Video Games",
+      "tools-home-improvement": "Tools & DIY", "automotive": "Automotive",
+      "baby-products": "Baby Products", "computers-accessories": "Computers & Accessories",
+      "cell-phones-accessories": "Cell Phones", "toys-games": "Toys & Games",
+      "pet-supplies": "Pet Supplies", "office-products": "Office Products",
+      "grocery-gourmet-food": "Grocery", "camera-photo": "Camera & Photo",
+    };
+    let categoryRecords: { id: string }[] = [];
+    if (input.categorySlugs.length) {
+      const existing = await db.category.findMany({
+        where: { slug: { in: input.categorySlugs } },
+        select: { id: true, slug: true },
+      });
+      const existingSlugs = new Set(existing.map((c) => c.slug));
+      const missing = input.categorySlugs.filter((s) => !existingSlugs.has(s));
+      if (missing.length) {
+        await db.category.createMany({
+          data: missing.map((slug) => ({ slug, name: SLUG_NAMES[slug] ?? slug })),
+          skipDuplicates: true,
+        });
+      }
+      categoryRecords = missing.length
+        ? await db.category.findMany({ where: { slug: { in: input.categorySlugs } }, select: { id: true } })
+        : existing.map((c) => ({ id: c.id }));
+    }
+    // Build DealTypePreference rows from configs
     const dealTypePrefRows = Object.entries(input.dealTypeConfigs)
       .filter(([key]) => VALID_DEAL_TYPES.has(key))
       .map(([key, cfg]) => ({
