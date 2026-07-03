@@ -210,9 +210,9 @@ export function SignupForm() {
         style={{ fontFamily: "var(--font-inter)" }}
       >
         By signing up, you agree to the{" "}
-        <Link href="/terms" className="underline text-[#6B7280]">Terms of Service</Link>
+        <Link href="/terms-of-service" className="underline text-[#6B7280]">Terms of Service</Link>
         {" "}and{" "}
-        <Link href="/privacy" className="underline text-[#6B7280]">Privacy Policy</Link>.
+        <Link href="/privacy-policy" className="underline text-[#6B7280]">Privacy Policy</Link>.
       </p>
     </div>
   );

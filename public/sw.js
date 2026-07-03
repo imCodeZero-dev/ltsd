@@ -6,7 +6,7 @@ const OFFLINE_URL = "/offline";
 // Assets to pre-cache on install
 const PRECACHE_ASSETS = [
   OFFLINE_URL,
-  "/images/ltsd-logo.png",
+  "/images/ltsd-logo.webp",
   "/manifest.json",
 ];
 

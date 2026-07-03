@@ -16,7 +16,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="relative z-10 w-full max-w-91.5 flex flex-col items-center gap-6">
         {/* LTSD Logo */}
         <Image
-          src="/images/ltsd-logo.png"
+          src="/images/ltsd-logo.webp"
           alt="LTSD Super Deals"
           width={72}
           height={72}

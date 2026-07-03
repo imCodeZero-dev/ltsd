@@ -6,7 +6,7 @@ import { WatchlistContent, type TrackingItem } from "./watchlist-content";
 import type { DealItem } from "@/lib/deal-api/types";
 import { getUserDealPrefs } from "@/lib/get-user-prefs";
 
-export const metadata: Metadata = { title: "Watchlist — LTSD" };
+export const metadata: Metadata = { title: "Watchlist" };
 export const revalidate = 0; // always fresh — user-specific data
 
 // ── Page ──────────────────────────────────────────────────────────────────────

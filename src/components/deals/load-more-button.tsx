@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type { DealItem } from "@/lib/deal-api/types";
 import { DealCard } from "./deal-card";
 
@@ -13,12 +13,17 @@ interface Props {
   total: number;
   /** How many per page */
   pageSize: number;
+  /** Title prefixes (40 chars) already shown on the server-rendered page */
+  initialTitles?: string[];
 }
 
-export function LoadMoreButton({ filters, initialPage, total, pageSize }: Props) {
+export function LoadMoreButton({ filters, initialPage, total, pageSize, initialTitles = [] }: Props) {
   const [extraDeals, setExtraDeals] = useState<DealItem[]>([]);
   const [page, setPage]             = useState(initialPage);
   const [loading, setLoading]       = useState(false);
+
+  // Track all title prefixes seen so far (server + client) to avoid duplicates
+  const seenTitles = useRef(new Set(initialTitles));
 
   const hasMore = page * pageSize < total;
 
@@ -61,7 +66,17 @@ export function LoadMoreButton({ filters, initialPage, total, pageSize }: Props)
         isFeaturedDayDeal: false,
       }));
 
-      setExtraDeals(prev => [...prev, ...mapped]);
+      // Dedup by title prefix — same logic as server-side dedupedDeals
+      const fresh: DealItem[] = [];
+      for (const deal of mapped) {
+        const key = deal.title.slice(0, 40).toLowerCase();
+        if (!seenTitles.current.has(key)) {
+          seenTitles.current.add(key);
+          fresh.push(deal);
+        }
+      }
+
+      setExtraDeals(prev => [...prev, ...fresh]);
       setPage(nextPage);
     } finally {
       setLoading(false);

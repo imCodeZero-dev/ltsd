@@ -15,7 +15,7 @@ import { TopPicksSection } from "@/components/deals/top-picks-section";
 import type { DealItem } from "@/lib/deal-api/types";
 import { getUserDealPrefs, mergeDealTypePrefs, type DealTypePrefs } from "@/lib/get-user-prefs";
 
-export const metadata: Metadata = { title: "Dashboard — LTSD" };
+export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
 
 // ── Hardcoded category list — always shows full grid regardless of DB state ────

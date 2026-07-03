@@ -24,8 +24,8 @@ const dmSans = DM_Sans({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | LTSD — Limited Time Super Deals",
-    default: "LTSD — Limited Time Super Deals",
+    template: "%s | Limited Time Super Deals",
+    default: "Limited Time Super Deals — Personalized Amazon Deals",
   },
   description:
     "Discover personalized Amazon deals before they expire. Lightning deals, limited-time offers, and Prime exclusives — tailored to your interests.",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "LTSD",
+    title: "Limited Time Super Deals",
   },
   formatDetection: {
     telephone: false,

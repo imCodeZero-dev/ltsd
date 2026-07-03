@@ -17,7 +17,7 @@ export default function OnboardingLayout({ children }: { children: React.ReactNo
       {/* LTSD Logo — top-left */}
       <div className="absolute top-4 left-4 z-20">
         <Image
-          src="/images/ltsd-logo.png"
+          src="/images/ltsd-logo.webp"
           alt="LTSD Super Deals"
           width={56}
           height={56}

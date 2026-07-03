@@ -19,7 +19,7 @@ export function AppFooter() {
           {/* Brand */}
           <div className="space-y-4 max-w-70">
             <div className="flex items-center gap-3">
-              <Image src="/images/ltsd-logo.png" alt="LTSD" width={44} height={44} className="rounded-full" />
+              <Image src="/images/ltsd-logo.webp" alt="LTSD" width={44} height={44} className="rounded-full" />
               <span className="text-xl font-extrabold text-navy font-lato">LTSD</span>
             </div>
             <p className="text-sm text-body leading-relaxed font-lato">

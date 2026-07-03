@@ -8,7 +8,7 @@ import { AvatarUpload } from "@/components/settings/avatar-upload";
 import { ChangePasswordModal } from "@/components/settings/change-password-modal";
 import { DeleteAccountButton } from "@/components/settings/delete-account-modal";
 
-export const metadata: Metadata = { title: "Profile — LTSD" };
+export const metadata: Metadata = { title: "Profile" };
 
 // ── Responsive Section ───────────────────────────────────────────────────────
 // Mobile: stacked (label top, card below)
@@ -140,12 +140,12 @@ export default async function ProfilePage() {
               <span className="flex-1 text-sm font-medium text-navy">Deal Preferences</span>
               <ChevronRight className="w-4 h-4 text-body" />
             </Link>
-            <Link href="/terms" className="flex items-center gap-3 px-4 py-3.5 hover:bg-bg transition-colors">
+            <Link href="/terms-of-service" className="flex items-center gap-3 px-4 py-3.5 hover:bg-bg transition-colors">
               <FileText className="w-4 h-4 text-body shrink-0" />
               <span className="flex-1 text-sm font-medium text-navy">Terms of Service</span>
               <ChevronRight className="w-4 h-4 text-body" />
             </Link>
-            <Link href="/privacy" className="flex items-center gap-3 px-4 py-3.5 hover:bg-bg transition-colors">
+            <Link href="/privacy-policy" className="flex items-center gap-3 px-4 py-3.5 hover:bg-bg transition-colors">
               <Shield className="w-4 h-4 text-body shrink-0" />
               <span className="flex-1 text-sm font-medium text-navy">Privacy Policy</span>
               <ChevronRight className="w-4 h-4 text-body" />

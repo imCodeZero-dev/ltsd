@@ -31,7 +31,7 @@ export function AdminSidebar({ name, email, image }: AdminSidebarProps) {
     <div className="flex flex-col h-full w-full">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-5 border-b border-[#E7E8E9]">
-        <Image src="/images/ltsd-logo.png" alt="LTSD" width={40} height={40} className="rounded-full" />
+        <Image src="/images/ltsd-logo.webp" alt="LTSD" width={40} height={40} className="rounded-full" />
         <div className="min-w-0">
           <span className="text-base font-extrabold text-navy tracking-tight">LTSD</span>
           <span className="ml-2 text-2xs font-bold uppercase tracking-wider text-badge-bg bg-badge-bg/10 px-1.5 py-0.5 rounded">Admin</span>

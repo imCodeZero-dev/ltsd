@@ -89,8 +89,6 @@ export async function POST(req: Request): Promise<Response> {
 
     // Verify user actually exists in DB before creating preferences
     const userExists = await db.user.findUnique({ where: { id: userId }, select: { id: true } });
-    console.log("[onboarding] userId:", userId, "exists:", !!userExists);
-
     if (!userExists) {
       return err(`User not found in DB: ${userId}`, 400);
     }

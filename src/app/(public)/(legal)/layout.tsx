@@ -11,7 +11,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
         <div className="max-w-350 mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
           <Link href="/" className="shrink-0 flex items-center gap-2">
             <Image
-              src="/images/ltsd-logo.png"
+              src="/images/ltsd-logo.webp"
               alt="LTSD"
               width={36}
               height={36}

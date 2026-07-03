@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
 
+export const metadata: Metadata = { title: "Get Started" };
 export const dynamic = "force-dynamic";
 
 // Fallback categories — always shown so onboarding never looks empty

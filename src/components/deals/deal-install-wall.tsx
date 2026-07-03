@@ -24,7 +24,7 @@ export function DealInstallWall({ deal }: DealInstallWallProps) {
 
         {/* LTSD Logo */}
         <Image
-          src="/images/ltsd-logo.png"
+          src="/images/ltsd-logo.webp"
           alt="LTSD Super Deals"
           width={72}
           height={72}

@@ -38,7 +38,7 @@ export async function Header() {
           <div className="flex items-center gap-7">
             <Link href="/dashboard" aria-label="LTSD Home" className="shrink-0">
               <Image
-                src="/images/ltsd-logo.png"
+                src="/images/ltsd-logo.webp"
                 alt="LTSD"
                 width={44}
                 height={44}
@@ -73,7 +73,7 @@ export async function Header() {
         <div className="md:hidden px-4 h-14 flex items-center gap-3">
           <Link href="/dashboard" aria-label="LTSD Home" className="shrink-0">
             <Image
-              src="/images/ltsd-logo.png"
+              src="/images/ltsd-logo.webp"
               alt="LTSD"
               width={36}
               height={36}

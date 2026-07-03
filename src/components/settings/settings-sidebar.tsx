@@ -38,7 +38,7 @@ export function SettingsSidebar({ name, email, image, role }: SettingsSidebarPro
 
       {/* Logo — links back to dashboard */}
       <Link href="/dashboard" className="flex items-center gap-3 px-5 py-5 border-b border-[#E7E8E9] hover:opacity-80 transition-opacity">
-        <Image src="/images/ltsd-logo.png" alt="LTSD" width={40} height={40} className="rounded-full" />
+        <Image src="/images/ltsd-logo.webp" alt="LTSD" width={40} height={40} className="rounded-full" />
         <span className="text-base font-extrabold text-navy tracking-tight">LTSD</span>
       </Link>
 

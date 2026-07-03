@@ -1,5 +1,6 @@
 "use client";
 
+import { signIn } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 interface GoogleButtonProps {
@@ -11,7 +12,7 @@ export function GoogleButton({ label = "Continue with Google", className }: Goog
   return (
     <button
       type="button"
-      onClick={() => { /* TODO: signIn("google") */ }}
+      onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
       className={cn(
         "w-full flex items-center justify-center gap-3 h-11 px-4 rounded-xl",
         "border border-border bg-surface text-carbon",

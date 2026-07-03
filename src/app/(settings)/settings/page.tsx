@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { auth } from "@/lib/auth";
+
+export const metadata: Metadata = { title: "Settings" };
 import { db } from "@/lib/db";
 import { NotificationSettingsClient } from "@/components/settings/notification-settings-client";
 import type { NotificationPrefs } from "@/components/settings/notification-settings-client";

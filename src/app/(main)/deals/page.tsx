@@ -16,7 +16,7 @@ import { LimitedTimeSection } from "@/components/deals/limited-time-section";
 import { TopPicksSection } from "@/components/deals/top-picks-section";
 import { LoadMoreButton } from "@/components/deals/load-more-button";
 
-export const metadata: Metadata = { title: "Deal Feed — LTSD" };
+export const metadata: Metadata = { title: "Deal Feed" };
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 20;
@@ -362,7 +362,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {(hasFilter ? deals : dedupedDeals).map((deal) => (
+        {dedupedDeals.map((deal) => (
           <DealCard key={deal.id} deal={deal} watchlistItemId={watchlistMap?.get(deal.id)} />
         ))}
         <LoadMoreButton
@@ -370,6 +370,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
           initialPage={1}
           total={total}
           pageSize={PAGE_SIZE}
+          initialTitles={dedupedDeals.map((d) => d.title.slice(0, 40).toLowerCase())}
         />
       </div>
     </div>

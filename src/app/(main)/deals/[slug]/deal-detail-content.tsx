@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -212,6 +212,19 @@ function ImageCarousel({
   mobile?: boolean;
   stretch?: boolean;
 }) {
+  const [imgLoading, setImgLoading] = useState(false);
+  const prevIdx = useRef(activeImg);
+
+  // When the active image index changes, enter loading state
+  useEffect(() => {
+    if (prevIdx.current !== activeImg) {
+      prevIdx.current = activeImg;
+      setImgLoading(true);
+    }
+  }, [activeImg]);
+
+  const handleLoad = useCallback(() => setImgLoading(false), []);
+
   return (
     // stretch: flex col so main image grows to fill remaining height
     <div className={cn(stretch && "flex flex-col flex-1")}>
@@ -229,9 +242,20 @@ function ImageCarousel({
           alt="Product"
           fill
           sizes={mobile ? "100vw" : "600px"}
-          className="object-contain p-8 mix-blend-multiply"
+          className={cn(
+            "object-contain p-8 mix-blend-multiply transition-opacity duration-200",
+            imgLoading ? "opacity-0" : "opacity-100"
+          )}
+          onLoad={handleLoad}
           priority
         />
+
+        {/* Skeleton pulse while image loads */}
+        {imgLoading && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-full border-[3px] border-border border-t-badge-bg animate-spin" />
+          </div>
+        )}
 
         {/* Nav arrows */}
         {images.length > 1 && activeImg > 0 && (

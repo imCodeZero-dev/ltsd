@@ -5,7 +5,7 @@ import { DealPreferencesClient } from "@/components/settings/deal-preferences-cl
 import type { DealTypeConfigInput } from "@/components/settings/deal-preferences-client";
 import { FALLBACK_BRANDS } from "@/lib/constants/brands";
 
-export const metadata: Metadata = { title: "Deal Preferences — LTSD" };
+export const metadata: Metadata = { title: "Deal Preferences" };
 
 export default async function DealPreferencesPage() {
   const session = await auth();
