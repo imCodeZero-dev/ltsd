@@ -477,7 +477,15 @@ export class KeepaProvider implements DealApiProvider {
         const item = mapProduct(p);
         if (!item) return null;
         const info = dealInfoMap.get(p.asin);
-        if (info?.dealType !== undefined) item.dealType = mapDealType(info.dealType);
+        // Only override dealType for lightning: mapProduct() correctly detects
+        // PRICE_DROP via avg90 stats, but mapDealType() has no PRICE_DROP case
+        // (Keepa's /deal endpoint has no "price drop" type number) so a blanket
+        // override would silently replace every PRICE_DROP with LIMITED_TIME.
+        if (info?.dealType !== undefined) {
+          const mapped = mapDealType(info.dealType);
+          if (mapped === "LIGHTNING_DEAL") item.dealType = "LIGHTNING_DEAL";
+          // else: keep mapProduct()'s detection (PRICE_DROP or LIMITED_TIME)
+        }
         // Set expiresAt from lightningEnd for lightning deals
         if (info?.lightningEnd && info.lightningEnd > 0) {
           item.expiresAt  = keepaTimeToDate(info.lightningEnd);

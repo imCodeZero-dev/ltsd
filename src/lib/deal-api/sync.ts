@@ -146,8 +146,14 @@ async function upsertDeal(
  * Cost: 500 tokens for the full list.
  * Populates real: percentClaimed → claimedCount, rating, totalReviews, endTime.
  * Recommended schedule: every 4 hours.
+ *
+ * After upserting the live batch, expired lightning deals are cleaned up:
+ *   1. WatchlistItems for expired deals are deleted (lightning deals are
+ *      fire-and-forget — once the deal price is gone there's nothing to track).
+ *   2. The deals themselves are deactivated (isActive=false).
+ *   3. The existing daily cleanupStaleDealData() then hard-deletes them after 7 days.
  */
-export async function syncLightningDeals(): Promise<{ synced: number; errors: string[] }> {
+export async function syncLightningDeals(): Promise<{ synced: number; errors: string[]; expired: number }> {
   const { KeepaProvider, mapLightningDeal } = await import("./providers/keepa");
   const provider = new KeepaProvider();
 
@@ -155,19 +161,51 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
 
   const errors: string[] = [];
   let synced = 0;
+  const freshAsins = new Set<string>();
 
   for (const d of deals) {
     try {
       const item = mapLightningDeal(d);
       if (!item) continue;
       await upsertDeal(item);
+      freshAsins.add(d.asin);
       synced++;
     } catch (err) {
       errors.push(`${d.asin}: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  return { synced, errors };
+  // ── Expire stale lightning deals ──────────────────────────────────────────
+  // A lightning deal lasts 4–12 hours. Once expired, Keepa stops returning it
+  // in the AVAILABLE list — it will never appear in freshAsins again.
+  // Condition: expiresAt has passed AND not in today's live batch.
+  const now = new Date();
+  const expiredDeals = await db.deal.findMany({
+    where: {
+      isActive:  true,
+      dealType:  "LIGHTNING_DEAL",
+      expiresAt: { lt: now },
+      asin:      { notIn: [...freshAsins] },
+    },
+    select: { id: true },
+  });
+
+  if (expiredDeals.length > 0) {
+    const expiredIds = expiredDeals.map((d) => d.id);
+
+    // Delete watchlist entries first (Restrict FK — must clear before deactivating).
+    // Lightning deals are time-limited: once the deal price is gone, the watchlist
+    // entry has no actionable value. Users won't miss dead lightning deal entries.
+    await db.watchlistItem.deleteMany({ where: { dealId: { in: expiredIds } } });
+
+    // Deactivate the deals — daily cleanupStaleDealData() hard-deletes after 7 days.
+    await db.deal.updateMany({
+      where: { id: { in: expiredIds } },
+      data:  { isActive: false },
+    });
+  }
+
+  return { synced, errors, expired: expiredDeals.length };
 }
 
 /**
