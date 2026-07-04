@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LTSD - Deal Sections Overview</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=DM+Sans:wght@700;800&display=swap');
+    :root { --navy:#1A1F36; --orange:#FE9800; --orange-light:#FFF4E5; --body:#6B7280; --bg:#F8F9FA; --surface:#FFF; --border:#E7E8E9; --green:#10B981; --blue:#3B82F6; --purple:#7C3AED; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',-apple-system,sans-serif; background:var(--bg); color:var(--navy); line-height:1.6; -webkit-font-smoothing:antialiased; }
+
+    .cover { min-height:50vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:linear-gradient(135deg,#1A1F36,#2D3561); color:#fff; padding:3rem 2rem; position:relative; overflow:hidden; }
+    .cover::before { content:''; position:absolute; top:-50%; right:-30%; width:80%; height:200%; background:radial-gradient(ellipse,rgba(254,152,0,.12),transparent 70%); pointer-events:none; }
+    .cover h1 { font-family:'DM Sans',sans-serif; font-size:2.75rem; font-weight:800; letter-spacing:-.03em; line-height:1.15; margin-bottom:.75rem; }
+    .cover h1 span { color:var(--orange); }
+    .cover p { font-size:1rem; color:rgba(255,255,255,.65); max-width:440px; }
+    .cover-meta { margin-top:2rem; font-size:.75rem; color:rgba(255,255,255,.4); }
+
+    .container { max-width:900px; margin:0 auto; padding:0 2rem; }
+    .section { margin:2.5rem 0; }
+    .section h2 { font-family:'DM Sans',sans-serif; font-size:1.5rem; font-weight:800; letter-spacing:-.02em; margin-bottom:1.25rem; display:flex; align-items:center; gap:.5rem; }
+
+    .card { background:var(--surface); border-radius:1rem; border:1px solid var(--border); padding:1.5rem 2rem; margin-bottom:1.25rem; box-shadow:0 1px 3px rgba(0,0,0,.03); }
+    .card h3 { font-size:1rem; font-weight:700; margin-bottom:.5rem; }
+    .card p { color:var(--body); font-size:.875rem; }
+
+    /* Deal type banners */
+    .dt { border-radius:1rem; overflow:hidden; margin-bottom:1.25rem; border:1px solid var(--border); background:var(--surface); }
+    .dt-head { padding:1.25rem 1.75rem; color:#fff; display:flex; align-items:center; gap:.75rem; }
+    .dt-head h3 { font-family:'DM Sans',sans-serif; font-size:1.15rem; font-weight:800; }
+    .dt-body { padding:1.25rem 1.75rem; }
+    .dt-body p { color:var(--body); font-size:.875rem; margin-bottom:.75rem; }
+    .dt-body p:last-child { margin-bottom:0; }
+
+    .cg { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:.75rem; margin-top:.75rem; }
+    .ci { background:var(--bg); border-radius:.6rem; padding:.75rem 1rem; border:1px solid #EEEFF1; }
+    .ci-label { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--body); margin-bottom:.2rem; }
+    .ci-val { font-size:.95rem; font-weight:800; color:var(--navy); }
+
+    /* Tables */
+    table { width:100%; border-collapse:collapse; }
+    th { text-align:left; font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--body); padding:.7rem 1rem; background:var(--bg); border-bottom:1px solid var(--border); }
+    td { padding:.7rem 1rem; font-size:.825rem; color:var(--navy); border-bottom:1px solid #F5F5F5; vertical-align:top; }
+    tr:last-child td { border-bottom:none; }
+    td:first-child { font-weight:600; white-space:nowrap; }
+    .cc { color:var(--body); font-size:.8rem; line-height:1.5; }
+
+    .badge { display:inline-block; font-size:.65rem; font-weight:700; padding:.15rem .5rem; border-radius:5px; }
+    .b-o { background:var(--orange-light); color:#B36B00; }
+    .b-g { background:#ECFDF5; color:#047857; }
+    .b-p { background:#F3E8FF; color:#6D28D9; }
+    .b-b { background:#EFF6FF; color:#1D4ED8; }
+
+    .po { background:var(--surface); border-radius:1rem; border:1px solid var(--border); overflow:hidden; margin-bottom:1.25rem; }
+    .po-head { padding:1rem 1.5rem; border-bottom:1px solid var(--border); font-weight:700; font-size:1rem; }
+
+    .footer { text-align:center; padding:2rem; color:var(--body); font-size:.75rem; border-top:1px solid var(--border); margin-top:2rem; }
+
+    @media print { .cover{min-height:auto;padding:3rem 2rem;page-break-after:always;} .dt,.po{page-break-inside:avoid;} body{background:#fff;} }
+    @media (max-width:640px) { .cover h1{font-size:2rem;} .cg{grid-template-columns:1fr;} }
+  </style>
+</head>
+<body>
+
+  <div class="cover">
+    <h1>LTSD <span>Deal Sections</span> Overview</h1>
+    <p>How deals are sourced from Keepa, classified, and displayed across the platform.</p>
+    <div class="cover-meta">July 2026 &middot; Confidential</div>
+  </div>
+
+  <div class="container">
+
+    <!-- ── DEAL TYPES ── -->
+    <div class="section" id="types">
+      <h2>&#127991; Deal Types</h2>
+
+      <div class="dt">
+        <div class="dt-head" style="background:linear-gradient(135deg,#F59E0B,#D97706);">
+          <h3>&#9889; Lightning Deals</h3>
+        </div>
+        <div class="dt-body">
+          <p>Time-limited flash sales from Amazon (4&ndash;12 hours). Limited inventory with live % claimed tracking and countdown timer. Sourced via Keepa's <code>/lightningdeal</code> endpoint.</p>
+          <div class="cg">
+            <div class="ci"><div class="ci-label">Duration</div><div class="ci-val">4&ndash;12 hours</div></div>
+            <div class="ci"><div class="ci-label">Live Data</div><div class="ci-val">% Claimed + Timer</div></div>
+            <div class="ci"><div class="ci-label">Sync</div><div class="ci-val">3x daily</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dt">
+        <div class="dt-head" style="background:linear-gradient(135deg,#10B981,#059669);">
+          <h3>&#128200; Price Drop Deals</h3>
+        </div>
+        <div class="dt-body">
+          <p>Products currently <strong>10%+ below their Keepa 90-day average price</strong>. Verified through historical price data &mdash; not inflated "original" prices. Sourced via Keepa's <code>/deal</code> + <code>/product</code> endpoints.</p>
+          <p>Detection compares the current price against the <strong>weighted 90-day average</strong>, not the absolute 90-day low. This means a product at $82 with an average of $100 qualifies as a Price Drop even if it briefly hit $75 during a past sale event. The average-based approach catches more genuine deals without being thrown off by one-time spikes.</p>
+          <div class="cg">
+            <div class="ci"><div class="ci-label">Detection</div><div class="ci-val">90-day avg comparison</div></div>
+            <div class="ci"><div class="ci-label">Min Drop</div><div class="ci-val">10% below avg</div></div>
+            <div class="ci"><div class="ci-label">Sync</div><div class="ci-val">3x daily</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dt">
+        <div class="dt-head" style="background:linear-gradient(135deg,#3B82F6,#2563EB);">
+          <h3>&#9200; Limited Time Deals</h3>
+        </div>
+        <div class="dt-body">
+          <p>Products on sale with 10%+ discount that don't qualify as Price Drops (less than 10% below their 90-day average, or no average data available). Includes best sellers, category promotions, and general discounts. Same Keepa source endpoints as Price Drops.</p>
+          <div class="cg">
+            <div class="ci"><div class="ci-label">Min Discount</div><div class="ci-val">10% off</div></div>
+            <div class="ci"><div class="ci-label">Duration</div><div class="ci-val">Days to weeks</div></div>
+            <div class="ci"><div class="ci-label">Sync</div><div class="ci-val">3x daily</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── COMPARISON ── -->
+    <div class="section" id="comparison">
+      <h2>&#128203; Deal Types &mdash; Side by Side</h2>
+      <div class="po">
+        <div class="po-head">How do the three types differ?</div>
+        <table>
+          <thead><tr><th>Attribute</th><th>&#9889; Lightning</th><th>&#128200; Price Drop</th><th>&#9200; Limited Time</th></tr></thead>
+          <tbody>
+            <tr><td>Source</td><td class="cc">Keepa <code>/lightningdeal</code></td><td class="cc">Keepa <code>/deal</code> + <code>/product</code></td><td class="cc">Keepa <code>/deal</code> + <code>/product</code></td></tr>
+            <tr><td>How detected</td><td class="cc">Amazon runs the deal &mdash; Keepa lists it</td><td class="cc">Current price is 10%+ below the Keepa 90-day weighted average</td><td class="cc">On sale (10%+ off) but less than 10% below 90-day avg, or no avg data</td></tr>
+            <tr><td>Countdown timer</td><td class="cc">Yes &mdash; real expiry from Amazon</td><td class="cc">No &mdash; deal lasts as long as the price stays low</td><td class="cc">No &mdash; deal lasts as long as the sale is active</td></tr>
+            <tr><td>% Claimed</td><td class="cc">Yes &mdash; live inventory tracking</td><td class="cc">No</td><td class="cc">No</td></tr>
+            <tr><td>Duration</td><td class="cc">4&ndash;12 hours (flash)</td><td class="cc">Days to weeks (until price returns to normal)</td><td class="cc">Days to weeks (until sale ends)</td></tr>
+            <tr><td>Expiry method</td><td class="cc">Auto-removed when Amazon timer ends</td><td class="cc">Deactivated after 3 missed syncs; deleted after 7 days</td><td class="cc">Same as Price Drop</td></tr>
+            <tr><td>Typical volume</td><td class="cc">High &mdash; hundreds active at any time</td><td class="cc">Medium &mdash; grows with each sync</td><td class="cc">Medium &mdash; similar growth pattern</td></tr>
+            <tr><td>Quality gate</td><td class="cc">Amazon-vetted (no additional filter)</td><td class="cc">4.0&#9733;, 100+ reviews, $10+ price</td><td class="cc">4.0&#9733;, 100+ reviews, $10+ price</td></tr>
+            <tr><td>Watchlist</td><td class="cc">Cleared on expiry (deal price gone)</td><td class="cc">Kept until deal deactivated</td><td class="cc">Kept until deal deactivated</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── PAGES ── -->
+    <div class="section" id="pages">
+      <h2>&#128196; Sections by Page</h2>
+
+      <!-- Landing -->
+      <div class="po">
+        <div class="po-head">&#127968; Landing Page (Public)</div>
+        <table>
+          <thead><tr><th>Section</th><th>What</th><th>Criteria</th><th>Max</th></tr></thead>
+          <tbody>
+            <tr><td>&#127775; Showcase</td><td>Weekly curated picks</td><td class="cc">Admin-selected, fallback: top discount</td><td><span class="badge b-b">3</span></td></tr>
+            <tr><td>&#9889; Lightning</td><td>Active flash sales</td><td class="cc">Not expired, sorted by expiry</td><td><span class="badge b-o">8</span></td></tr>
+            <tr><td>&#128293; Hot Drops</td><td>Recent deals</td><td class="cc">Price Drop or Limited Time, 20%+ off, added within 48h</td><td><span class="badge b-o">8</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Dashboard -->
+      <div class="po">
+        <div class="po-head">&#128202; Dashboard (Logged-in, Personalized)</div>
+        <table>
+          <thead><tr><th>Section</th><th>What</th><th>Criteria</th><th>Max</th></tr></thead>
+          <tbody>
+            <tr><td>&#127912; Hero Carousel</td><td>Auto-rotating top deals</td><td class="cc">Top 10 by discount, scored by user prefs, best 3</td><td><span class="badge b-p">3</span></td></tr>
+            <tr><td>&#127942; Deal of Week</td><td>Admin-curated weekly</td><td class="cc">Set every Monday, slots 1&ndash;7</td><td><span class="badge b-p">7</span></td></tr>
+            <tr><td>&#9889; Lightning</td><td>Flash sales, deduped</td><td class="cc">Active, not expired, cheapest variant kept</td><td><span class="badge b-o">30</span></td></tr>
+            <tr><td>&#11088; Top Picks</td><td>Premium deals</td><td class="cc">4.2&#9733;, 250+ reviews, $15+, 25&ndash;60% off</td><td><span class="badge b-g">12</span></td></tr>
+            <tr><td>&#128293; Trending</td><td>3 tabs: Lightning / Price Drops / Best</td><td class="cc">Scored by preferences, top 4 per tab</td><td><span class="badge b-p">4/tab</span></td></tr>
+            <tr><td>&#128151; Watchlist</td><td>User's saved items</td><td class="cc">Most recent, with target price tracking</td><td><span class="badge b-p">5</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Deals Feed -->
+      <div class="po">
+        <div class="po-head">&#127991; Deals Feed (Main Browsing)</div>
+        <table>
+          <thead><tr><th>Section</th><th>What</th><th>Criteria</th><th>Max</th></tr></thead>
+          <tbody>
+            <tr><td>&#127942; Deal of Week</td><td>Same weekly picks</td><td class="cc">Admin-curated</td><td><span class="badge b-g">7</span></td></tr>
+            <tr><td>&#9889; Lightning</td><td>Flash sales, deduped</td><td class="cc">Sorted by expiry (urgent first)</td><td><span class="badge b-o">30</span></td></tr>
+            <tr><td>&#11088; Top Picks</td><td>Premium deals</td><td class="cc">4.2&#9733;, 250+ reviews, $15+, 25&ndash;60% off. User categories first.</td><td><span class="badge b-g">12</span></td></tr>
+            <tr><td>&#128293; Hot Price Drops</td><td>Recent price drops</td><td class="cc">4.0&#9733;, 100+ reviews, $10+, 20&ndash;70% off, within 7 days. User categories first.</td><td><span class="badge b-g">12</span></td></tr>
+            <tr><td>&#128203; All Deals</td><td>Full catalog + filters</td><td class="cc">4.0&#9733;, 100+ reviews, $10+, &le;70% off. Filter by type/category/search. Paginated.</td><td><span class="badge b-g">20/pg</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── QUALITY GATES ── -->
+    <div class="section" id="quality">
+      <h2>&#9989; Quality Gates</h2>
+      <div class="po">
+        <div class="po-head">Minimum criteria by section</div>
+        <table>
+          <thead><tr><th>Section</th><th>Rating</th><th>Reviews</th><th>Price</th><th>Discount</th></tr></thead>
+          <tbody>
+            <tr><td>All Deals (floor)</td><td>4.0&#9733;</td><td>100+</td><td>$10+</td><td>&le; 70%</td></tr>
+            <tr><td>Top Picks</td><td>4.2&#9733;</td><td>250+</td><td>$15+</td><td>25&ndash;60%</td></tr>
+            <tr><td>Hot Price Drops</td><td>4.0&#9733;</td><td>100+</td><td>$10+</td><td>20&ndash;70%</td></tr>
+            <tr><td>Lightning</td><td colspan="4" class="cc">No quality filter &mdash; Amazon-vetted flash sales</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <p><strong>Discount cap at 70%:</strong> Products above 70% off are almost always low-quality with inflated "original" prices. <strong>100+ reviews required:</strong> Ensures proven, real customer feedback.</p>
+      </div>
+    </div>
+
+    <!-- ── PERSONALIZATION ── -->
+    <div class="section" id="prefs">
+      <h2>&#127919; Personalization</h2>
+      <div class="card">
+        <p>User preferences (categories, brands, price range, min discount) <strong>score and reorder</strong> deals in every section &mdash; they don't filter them out. Relevant deals surface first.</p>
+        <div class="cg" style="margin-top:.75rem;">
+          <div class="ci"><div class="ci-label">Category Match</div><div class="ci-val">+2 pts</div></div>
+          <div class="ci"><div class="ci-label">Brand Match</div><div class="ci-val">+2 pts</div></div>
+          <div class="ci"><div class="ci-label">Price in Range</div><div class="ci-val">+1 pt</div></div>
+          <div class="ci"><div class="ci-label">Min Discount Met</div><div class="ci-val">+1 pt</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── LIFECYCLE ── -->
+    <div class="section" id="lifecycle">
+      <h2>&#128260; Deal Lifecycle</h2>
+      <div class="card">
+        <div class="cg" style="grid-template-columns:repeat(2,1fr);">
+          <div class="ci"><div class="ci-label">Lightning</div><div class="ci-val" style="font-size:.85rem;">Auto-removed when Amazon timer ends</div></div>
+          <div class="ci"><div class="ci-label">Price Drops / Limited</div><div class="ci-val" style="font-size:.85rem;">Deactivated after 3 missed syncs, deleted after 7 days</div></div>
+          <div class="ci"><div class="ci-label">Weekly Picks</div><div class="ci-val" style="font-size:.85rem;">Refreshed every Monday (top 7 auto-selected)</div></div>
+          <div class="ci"><div class="ci-label">Deduplication</div><div class="ci-val" style="font-size:.85rem;">No deal appears in two sections; product variants merged</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SYNC SCHEDULE ── -->
+    <div class="section" id="sync">
+      <h2>&#128338; Keepa Sync Schedule</h2>
+      <div class="po">
+        <div class="po-head">Daily schedule (PKT)</div>
+        <table>
+          <thead><tr><th>Time</th><th>What Runs</th><th>Keepa Tokens</th></tr></thead>
+          <tbody>
+            <tr><td>10:00 AM</td><td>Lightning Sync</td><td>500</td></tr>
+            <tr><td>12:00 PM</td><td>Deal Sync &mdash; 15 categories &times; 50 deals</td><td>~1,500</td></tr>
+            <tr><td>1:00 PM</td><td>Best Sellers &mdash; 6 categories</td><td>~540</td></tr>
+            <tr><td>4:00 PM</td><td>Deal Sync (PM run)</td><td>~1,500</td></tr>
+            <tr><td>6:00 PM</td><td>Lightning Sync (PM)</td><td>500</td></tr>
+            <tr><td>8:00 PM</td><td>Deal Sync (Evening run)</td><td>~1,500</td></tr>
+            <tr><td>11:00 PM</td><td>Maintenance &mdash; cleanup + expiry</td><td>~50</td></tr>
+          </tbody>
+          <tfoot><tr><td colspan="2" style="font-weight:700;">Daily Total</td><td style="font-weight:700;">~6,090 / 28,800 (21%)</td></tr></tfoot>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer">
+    <strong>LTSD &mdash; Limited Time Super Deals</strong> &middot; Confidential &middot; July 2026
+  </div>
+
+</body>
+</html>

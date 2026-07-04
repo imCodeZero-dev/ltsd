@@ -9,7 +9,7 @@ import { seedDeals, syncBestSellers } from "@/lib/deal-api/sync";
  *   ?mode=bestsellers     — top sellers from 6 categories
  *
  * Token cost:
- *   Deal feed:     ~450 tokens (15 categories × ~30 tokens)
+ *   Deal feed:     ~1500 tokens (15 categories × ~100 tokens)
  *   Best sellers:  ~540 tokens (6 categories × ~90 tokens)
  *
  * Schedule:
@@ -58,7 +58,7 @@ export async function GET(req: Request) {
     }
 
     // Default: 15 categories deal feed
-    const result = await seedDeals(undefined, 15);
+    const result = await seedDeals(undefined, 50);
 
     return NextResponse.json({
       ok:           true,

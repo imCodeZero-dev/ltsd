@@ -340,8 +340,8 @@ function mapProduct(p: KeepaProduct): DealItem | null {
     currentPrice: currentCents,
     originalPrice: originalCents,
     discountPercent,
-    // Price Drop: current price is 15%+ below the 90-day average
-    dealType: hasAvg90 && currentRaw < avg90Raw! * 0.85 ? "PRICE_DROP" : "LIMITED_TIME",
+    // Price Drop: current price is 10%+ below the 90-day average
+    dealType: hasAvg90 && currentRaw < avg90Raw! * 0.90 ? "PRICE_DROP" : "LIMITED_TIME",
     dealState: undefined,
     expiresAt: null,
     claimedCount: 0,
@@ -438,7 +438,8 @@ export class KeepaProvider implements DealApiProvider {
       deltaPercentRange: [10, 100],  // minimum 10% off
       minRating: 30,                 // minimum 3.0★ (integer 0-50 scale)
       hasReviews: true,
-      isLowest90: true,              // 90-day price low = genuine deal
+      // isLowest90 removed — avg90-based detection in mapProduct() is smarter
+      // (percentage-based vs binary). Removing this widens the funnel significantly.
       salesRankRange: [0, 500000],   // reasonably popular products
       singleVariation: true,         // no variation duplicates
       filterErotic: true,
