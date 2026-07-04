@@ -47,6 +47,7 @@ export async function GET(req: Request): Promise<Response> {
           expiresAt:          true,
           createdAt:          true,
           lastSyncedAt:       true,
+          affiliateUrl:       true,
           categories: { select: { category: { select: { name: true } } } },
         },
       }),

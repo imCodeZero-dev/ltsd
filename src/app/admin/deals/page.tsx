@@ -27,6 +27,7 @@ export default async function AdminDealsPage() {
         spotlightExpiresAt: true,
         expiresAt:          true,
         createdAt:          true,
+        affiliateUrl:       true,
         categories: { select: { category: { select: { name: true } } } },
       },
     }),

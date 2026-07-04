@@ -439,7 +439,7 @@ export default async function DashboardPage() {
     trendingPriceDrops = reorderByPrefs(mapDeals(priceDropRows as RawDeal[]), priceDropPrefs).slice(0, 4);
     trendingBestDeals = reorderByPrefs(mapDeals(bestDealRows as RawDeal[]), allDealTypePrefs).slice(0, 4);
 
-    // 5. Hero slides — fetch extra, score by prefs, pick top 3
+    // 5. Hero slides — fetch extra, score by prefs, pick top 8
     const heroRows = await db.deal.findMany({
       where: {
         isActive: true,
@@ -448,13 +448,13 @@ export default async function DashboardPage() {
         discountPercent: { gt: 0 },
       },
       orderBy: { discountPercent: "desc" },
-      take: 10,
+      take: 20,
       include: {
         categories: { include: { category: { select: { name: true } } } },
       },
     });
 
-    const scoredHeroDeals = reorderByPrefs(mapDeals(heroRows as RawDeal[]), allDealTypePrefs).slice(0, 3);
+    const scoredHeroDeals = reorderByPrefs(mapDeals(heroRows as RawDeal[]), allDealTypePrefs).slice(0, 8);
     heroSlides = scoredHeroDeals.map((item) => ({
       slug: item.slug ?? item.id,
       image: item.imageUrl,

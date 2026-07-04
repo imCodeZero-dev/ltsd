@@ -4,7 +4,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import {
   Search, RefreshCw, ChevronLeft, ChevronRight,
   MoreVertical, Star, Trash2, Loader2, X,
-  ChevronDown,
+  ChevronDown, ExternalLink, Eye,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ export interface AdminDeal {
   spotlightExpiresAt: string | null;
   expiresAt:          string | null;
   createdAt:          string;
+  affiliateUrl:       string;
   categories:         { category: { name: string } }[];
 }
 
@@ -84,6 +85,7 @@ const DEAL_TYPE_LABEL: Record<string, string> = {
 const DEAL_TYPE_COLOR: Record<string, string> = {
   PRICE_DROP:      "bg-[#E3F2FD] text-[#0D47A1]",
   LIGHTNING_DEAL:  "bg-[#FFF3E0] text-[#E65100]",
+  LIMITED_TIME:    "bg-[#F3E5F5] text-[#6A1B9A]",
   COUPON:          "bg-[#EDE7F6] text-[#4A148C]",
   DEAL_OF_DAY:     "bg-[#FCE4EC] text-[#880E4F]",
   PRIME_EXCLUSIVE: "bg-[#E8F5E9] text-[#1B5E20]",
@@ -92,9 +94,7 @@ const DEAL_TYPE_COLOR: Record<string, string> = {
 const DEAL_TYPE_OPTIONS = [
   { label: "Price Drop",      value: "PRICE_DROP"      },
   { label: "Lightning Deal",  value: "LIGHTNING_DEAL"  },
-  { label: "Coupon",          value: "COUPON"          },
-  { label: "Deal of Day",     value: "DEAL_OF_DAY"     },
-  { label: "Prime Exclusive", value: "PRIME_EXCLUSIVE" },
+  { label: "Limited Time",    value: "LIMITED_TIME"    },
 ];
 
 const DURATION_OPTIONS = [
@@ -307,6 +307,18 @@ function ActionsMenu({ deal, onSpotlight, onRemoveSpot, onDelete }: ActionsMenuP
 
       {open && (
         <div className="absolute right-0 top-full mt-1 z-30 bg-white border border-[#E7E8E9] rounded-xl shadow-xl overflow-hidden min-w-40">
+          <a href={`/deals/${deal.slug}`} target="_blank" rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-navy hover:bg-bg transition-colors">
+            <Eye className="w-3.5 h-3.5 text-body" /> View Deal
+          </a>
+          <div className="border-t border-[#F0F1F2]" />
+          <a href={deal.affiliateUrl} target="_blank" rel="noopener noreferrer"
+            onClick={() => setOpen(false)}
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-navy hover:bg-bg transition-colors">
+            <ExternalLink className="w-3.5 h-3.5 text-body" /> View on Amazon
+          </a>
+          <div className="border-t border-[#F0F1F2]" />
           {deal.isWeeklyDeal ? (
             <button type="button" onClick={() => { setOpen(false); onRemoveSpot(); }}
               className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-[#E65100] hover:bg-bg transition-colors text-left">
