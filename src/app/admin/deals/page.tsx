@@ -5,7 +5,7 @@ import type { AdminDeal, DealsMeta, WeeklyDeal, Candidate } from "@/components/a
 const PAGE_SIZE = 10;
 
 export default async function AdminDealsPage() {
-  const [deals, total, active, expired, featured, lastSynced] = await Promise.all([
+  const [deals, total, active, expired, featured, lastSynced, categories] = await Promise.all([
     db.deal.findMany({
       orderBy: { createdAt: "desc" },
       take:    PAGE_SIZE,
@@ -36,6 +36,7 @@ export default async function AdminDealsPage() {
     db.deal.count({ where: { isActive: false } }),
     db.deal.count({ where: { isFeatured: true } }),
     db.deal.findFirst({ orderBy: { lastSyncedAt: "desc" }, select: { lastSyncedAt: true } }),
+    db.category.findMany({ orderBy: { name: "asc" }, select: { name: true } }),
   ]);
 
   const initialDeals: AdminDeal[] = deals.map(d => ({
@@ -75,6 +76,7 @@ export default async function AdminDealsPage() {
         initialMeta={initialMeta}
         initialWeekly={initialWeekly}
         initialCandidates={initialCandidates}
+        categoryOptions={categories.map(c => ({ label: c.name, value: c.name }))}
       />
     </div>
   );

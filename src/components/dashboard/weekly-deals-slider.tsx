@@ -6,8 +6,8 @@ import { DealCard } from "@/components/deals/deal-card";
 import { cn } from "@/lib/utils";
 import type { DealItem } from "@/lib/deal-api/types";
 
-const SPEED = 0.45; // px per frame @ 60fps
-const GAP   = 12;
+const PX_PER_SEC = 27; // ~0.45px/frame × 60fps — consistent across refresh rates
+const GAP = 12;
 
 interface Props {
   deals:        DealItem[];
@@ -18,6 +18,8 @@ export function WeeklyDealsSlider({ deals, watchlistMap }: Props) {
   const trackRef   = useRef<HTMLDivElement>(null);
   const rafRef     = useRef<number>(0);
   const pausedRef  = useRef(false);
+  const hoverRef   = useRef(false);       // true while mouse is inside
+  const manualLock = useRef(false);        // true during manual scroll animation
   const manualPauseTimer = useRef<ReturnType<typeof setTimeout> | any>(null);
   const activeDotRef = useRef(0);
   const [activeDot, setActiveDot] = useState(0);
@@ -30,18 +32,26 @@ export function WeeklyDealsSlider({ deals, watchlistMap }: Props) {
     return first ? first.offsetWidth + GAP : 0;
   }, []);
 
+  // Pause auto-scroll for a manual interaction (arrow click or dot click).
+  // While manualLock is true, mouseLeave won't unpause — the timer handles it.
+  function manualPause() {
+    pausedRef.current = true;
+    manualLock.current = true;
+    clearTimeout(manualPauseTimer.current);
+    manualPauseTimer.current = setTimeout(() => {
+      manualLock.current = false;
+      // Only resume if the mouse isn't hovering
+      if (!hoverRef.current) pausedRef.current = false;
+    }, 3000);
+  }
+
   // Manual scroll
   function scrollBy(dir: -1 | 1) {
     const track = trackRef.current;
     if (!track) return;
     const s = getStride();
     if (s <= 0) return;
-
-    // Pause auto-scroll briefly after manual interaction
-    pausedRef.current = true;
-    clearTimeout(manualPauseTimer.current);
-    manualPauseTimer.current = setTimeout(() => { pausedRef.current = false; }, 3000);
-
+    manualPause();
     track.scrollBy({ left: dir * s, behavior: "smooth" });
   }
 
@@ -49,15 +59,21 @@ export function WeeklyDealsSlider({ deals, watchlistMap }: Props) {
     const track = trackRef.current;
     if (!track || deals.length === 0) return;
 
-    function animate() {
+    let lastTime = 0;
+
+    function animate(now: number) {
       if (!track) return;
+
+      if (lastTime === 0) lastTime = now;
+      const dt = (now - lastTime) / 1000; // seconds since last frame
+      lastTime = now;
 
       if (!pausedRef.current) {
         const s = getStride();
         const singleWidth = s * deals.length;
 
         if (s > 0 && singleWidth > 0) {
-          track.scrollLeft += SPEED;
+          track.scrollLeft += PX_PER_SEC * dt;
 
           if (track.scrollLeft >= singleWidth) {
             track.scrollLeft -= singleWidth;
@@ -69,6 +85,9 @@ export function WeeklyDealsSlider({ deals, watchlistMap }: Props) {
             setActiveDot(newDot);
           }
         }
+      } else {
+        // While paused, keep lastTime current so we don't get a big jump on resume
+        lastTime = now;
       }
 
       rafRef.current = requestAnimationFrame(animate);
@@ -90,12 +109,12 @@ export function WeeklyDealsSlider({ deals, watchlistMap }: Props) {
   return (
     <div
       className="relative group"
-      onMouseEnter={() => { pausedRef.current = true; }}
-      onMouseLeave={() => { pausedRef.current = false; }}
+      onMouseEnter={() => { hoverRef.current = true; pausedRef.current = true; }}
+      onMouseLeave={() => { hoverRef.current = false; if (!manualLock.current) pausedRef.current = false; }}
       onTouchStart={() => { pausedRef.current = true; }}
       onTouchEnd={() => { setTimeout(() => { pausedRef.current = false; }, 2000); }}
       onFocus={() => { pausedRef.current = true; }}
-      onBlur={() => { pausedRef.current = false; }}
+      onBlur={() => { if (!manualLock.current) pausedRef.current = false; }}
     >
       {/* Left arrow */}
       <button
@@ -144,10 +163,8 @@ export function WeeklyDealsSlider({ deals, watchlistMap }: Props) {
               const track = trackRef.current;
               const s = getStride();
               if (track && s > 0) {
+                manualPause();
                 track.scrollTo({ left: s * i, behavior: "smooth" });
-                pausedRef.current = true;
-                clearTimeout(manualPauseTimer.current);
-                manualPauseTimer.current = setTimeout(() => { pausedRef.current = false; }, 3000);
               }
             }}
             className={cn(

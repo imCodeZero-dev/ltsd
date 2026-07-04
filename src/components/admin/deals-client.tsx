@@ -71,6 +71,7 @@ interface Props {
   // kept for compat — no longer rendered
   initialWeekly:     WeeklyDeal[];
   initialCandidates: Candidate[];
+  categoryOptions:   { label: string; value: string }[];
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -306,7 +307,7 @@ function ActionsMenu({ deal, onSpotlight, onRemoveSpot, onDelete }: ActionsMenuP
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-30 bg-white border border-[#E7E8E9] rounded-xl shadow-xl overflow-hidden min-w-40">
+        <div className="absolute right-0 bottom-full mb-1 z-50 bg-white border border-[#E7E8E9] rounded-xl shadow-xl overflow-hidden min-w-40">
           <a href={`/deals/${deal.slug}`} target="_blank" rel="noopener noreferrer"
             onClick={() => setOpen(false)}
             className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-navy hover:bg-bg transition-colors">
@@ -394,12 +395,13 @@ function FilterDropdown({ label, options, value, onChange }: {
 
 // ─── Main component ────────────────────────────────────────────────────────────
 
-export function DealsClient({ initialDeals, initialMeta }: Props) {
+export function DealsClient({ initialDeals, initialMeta, categoryOptions }: Props) {
   const [deals,     setDeals]     = useState(initialDeals);
   const [meta,      setMeta]      = useState(initialMeta);
   const [selected,  setSelected]  = useState<Set<string>>(new Set());
   const [query,     setQuery]     = useState("");
   const [filterType,      setFilterType]      = useState("");
+  const [filterCategory,  setFilterCategory]  = useState("");
   const [filterStatus,    setFilterStatus]    = useState("");
   const [filterSpotlight, setFilterSpotlight] = useState("");
   const [loading,  setLoading]  = useState(false);
@@ -442,11 +444,12 @@ export function DealsClient({ initialDeals, initialMeta }: Props) {
 
   const fetchPage = useCallback(async (
     p: number, q: string,
-    type: string, status: string, spotlight: string,
+    type: string, category: string, status: string, spotlight: string,
   ) => {
     setLoading(true);
     const params = new URLSearchParams({ page: String(p), search: q });
     if (type)     params.set("dealType",  type);
+    if (category) params.set("category",  category);
     if (status)   params.set("status",    status);
     if (spotlight) params.set("spotlight", spotlight);
     try {
@@ -459,18 +462,20 @@ export function DealsClient({ initialDeals, initialMeta }: Props) {
     finally  { setLoading(false); }
   }, []);
 
-  function refetch(overrides: { q?: string; type?: string; status?: string; spotlight?: string; page?: number } = {}) {
-    const q  = overrides.q        ?? query;
-    const t  = overrides.type     ?? filterType;
-    const s  = overrides.status   ?? filterStatus;
-    const sp = overrides.spotlight ?? filterSpotlight;
-    const p  = overrides.page     ?? 1;
-    fetchPage(p, q, t, s, sp);
+  function refetch(overrides: { q?: string; type?: string; category?: string; status?: string; spotlight?: string; page?: number } = {}) {
+    const q   = overrides.q        ?? query;
+    const t   = overrides.type     ?? filterType;
+    const cat = overrides.category ?? filterCategory;
+    const s   = overrides.status   ?? filterStatus;
+    const sp  = overrides.spotlight ?? filterSpotlight;
+    const p   = overrides.page     ?? 1;
+    fetchPage(p, q, t, cat, s, sp);
   }
 
-  function handleSearch(v: string)     { setQuery(v);          refetch({ q: v }); }
-  function handleType(v: string)       { setFilterType(v);     refetch({ type: v }); }
-  function handleStatus(v: string)     { setFilterStatus(v);   refetch({ status: v }); }
+  function handleSearch(v: string)     { setQuery(v);           refetch({ q: v }); }
+  function handleType(v: string)       { setFilterType(v);      refetch({ type: v }); }
+  function handleCategory(v: string)   { setFilterCategory(v);  refetch({ category: v }); }
+  function handleStatus(v: string)     { setFilterStatus(v);    refetch({ status: v }); }
   function handleSpotlight(v: string)  { setFilterSpotlight(v); refetch({ spotlight: v }); }
   function goToPage(p: number)         { if (p < 1 || p > meta.totalPages) return; refetch({ page: p }); }
 
@@ -527,7 +532,7 @@ export function DealsClient({ initialDeals, initialMeta }: Props) {
         headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ""}` },
       });
       const json = await res.json();
-      if (json.ok) { toast.success(`Synced ${json.synced} deals`); fetchPage(1, query, filterType, filterStatus, filterSpotlight); }
+      if (json.ok) { toast.success(`Synced ${json.synced} deals`); fetchPage(1, query, filterType, filterCategory, filterStatus, filterSpotlight); }
       else          { toast.error(json.error ?? "Sync failed"); }
     } catch { toast.error("Sync request failed"); }
     finally { setSyncing(false); }
@@ -599,6 +604,12 @@ export function DealsClient({ initialDeals, initialMeta }: Props) {
               value={filterType}
               onChange={handleType}
               options={DEAL_TYPE_OPTIONS}
+            />
+            <FilterDropdown
+              label="Category"
+              value={filterCategory}
+              onChange={handleCategory}
+              options={categoryOptions}
             />
             <FilterDropdown
               label="Status"

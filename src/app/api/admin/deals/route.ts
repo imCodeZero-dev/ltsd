@@ -11,12 +11,14 @@ export async function GET(req: Request): Promise<Response> {
   const page      = Math.max(1, Number(searchParams.get("page") ?? 1));
   const search    = searchParams.get("search")?.trim() ?? "";
   const dealType  = searchParams.get("dealType")?.trim() ?? "";   // e.g. LIGHTNING_DEAL
+  const category  = searchParams.get("category")?.trim() ?? "";   // category name
   const status    = searchParams.get("status")?.trim() ?? "";     // active | expired
   const spotlight = searchParams.get("spotlight") === "1";        // 1 = spotlight only
 
   const where: Record<string, unknown> = {};
   if (search)    where.title    = { contains: search, mode: "insensitive" };
   if (dealType)  where.dealType = dealType;
+  if (category)  where.categories = { some: { category: { name: category } } };
   if (status === "active")  where.isActive = true;
   if (status === "expired") where.isActive = false;
   if (spotlight) { where.isWeeklyDeal = true; where.weeklyDealSlot = { not: null }; }
