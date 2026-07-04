@@ -60,12 +60,24 @@ export function WeeklyDealsSlider({ deals, watchlistMap }: Props) {
     if (!track || deals.length === 0) return;
 
     let lastTime = 0;
+    let ready = false; // true once we've measured a valid stride
 
     function animate(now: number) {
       if (!track) return;
 
+      // Wait for layout — keep retrying until cards have a measurable width
+      if (!ready) {
+        const s = getStride();
+        if (s <= 0) {
+          rafRef.current = requestAnimationFrame(animate);
+          return;
+        }
+        ready = true;
+        lastTime = now; // start timing from the moment layout is ready
+      }
+
       if (lastTime === 0) lastTime = now;
-      const dt = (now - lastTime) / 1000; // seconds since last frame
+      const dt = (now - lastTime) / 1000;
       lastTime = now;
 
       if (!pausedRef.current) {
@@ -86,22 +98,15 @@ export function WeeklyDealsSlider({ deals, watchlistMap }: Props) {
           }
         }
       } else {
-        // While paused, keep lastTime current so we don't get a big jump on resume
         lastTime = now;
       }
 
       rafRef.current = requestAnimationFrame(animate);
     }
 
-    // Small delay to ensure DOM is painted before reading widths
-    const timeout = setTimeout(() => {
-      rafRef.current = requestAnimationFrame(animate);
-    }, 100);
+    rafRef.current = requestAnimationFrame(animate);
 
-    return () => {
-      clearTimeout(timeout);
-      cancelAnimationFrame(rafRef.current);
-    };
+    return () => cancelAnimationFrame(rafRef.current);
   }, [deals.length, getStride]);
 
   if (!deals.length) return null;
@@ -139,7 +144,7 @@ export function WeeklyDealsSlider({ deals, watchlistMap }: Props) {
       {/* Track */}
       <div
         ref={trackRef}
-        className="flex gap-3 overflow-x-auto scrollbar-hide -mx-4 px-4 md:-mx-6 md:px-6 pb-2"
+        className="flex gap-3 overflow-x-auto scrollbar-none -mx-4 px-4 md:-mx-6 md:px-6 pb-2"
         style={{ willChange: "scroll-position" }}
       >
         {looped.map((deal, i) => (

@@ -80,7 +80,7 @@ export function LightningDealsSection({ deals, watchlistMap }: Props) {
       <div
         ref={scrollRef}
         onScroll={updateArrows}
-        className="grid grid-flow-col auto-cols-[calc(50%-6px)] sm:auto-cols-[calc(33.333%-8px)] lg:auto-cols-[calc(25%-9px)] gap-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 px-1"
+        className="grid grid-flow-col auto-cols-[calc(50%-6px)] sm:auto-cols-[calc(33.333%-8px)] lg:auto-cols-[calc(25%-9px)] gap-3 overflow-x-auto scrollbar-none pb-1 -mx-1 px-1"
       >
         {deals.map((deal) => (
           <div key={deal.id} className="flex flex-col min-w-0">

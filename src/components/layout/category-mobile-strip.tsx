@@ -18,7 +18,7 @@ export function CategoryMobileStrip() {
   const onDeals = pathname.startsWith("/deals");
 
   return (
-    <div className="md:hidden flex gap-2 overflow-x-auto scrollbar-hide px-4 pb-2.5 pt-1">
+    <div className="md:hidden flex gap-2 overflow-x-auto scrollbar-none px-4 pb-2.5 pt-1">
       {DEAL_TYPES.map((t) => (
         <Link
           key={t.value}
