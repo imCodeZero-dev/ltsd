@@ -5,11 +5,11 @@ import { seedDeals, syncBestSellers } from "@/lib/deal-api/sync";
  * GET /api/cron/deal-sync
  *
  * Syncs deals from Keepa → DB using two strategies:
- *   ?mode=deals (default) — 15 categories, quality-filtered price drops
+ *   ?mode=deals (default) — 19 categories, quality-filtered price drops
  *   ?mode=bestsellers     — top sellers from 6 categories
  *
  * Token cost:
- *   Deal feed:     ~1500 tokens (15 categories × ~100 tokens)
+ *   Deal feed:     ~1900 tokens (19 categories × ~100 tokens)
  *   Best sellers:  ~540 tokens (6 categories × ~90 tokens)
  *
  * Schedule:

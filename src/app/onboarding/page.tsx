@@ -1,28 +1,10 @@
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow";
+import { SYNCED_CATEGORIES } from "@/lib/constants/categories";
 
 export const metadata: Metadata = { title: "Get Started" };
 export const dynamic = "force-dynamic";
-
-// Fallback categories — always shown so onboarding never looks empty
-const FALLBACK_CATEGORIES = [
-  { slug: "electronics",              name: "Electronics" },
-  { slug: "home-kitchen",             name: "Home & Kitchen" },
-  { slug: "sports-outdoors",          name: "Sports & Outdoors" },
-  { slug: "clothing",                 name: "Clothing" },
-  { slug: "beauty-personal-care",     name: "Beauty & Personal Care" },
-  { slug: "video-games",              name: "Video Games" },
-  { slug: "tools-home-improvement",   name: "Tools & DIY" },
-  { slug: "automotive",               name: "Automotive" },
-  { slug: "baby-products",            name: "Baby Products" },
-  { slug: "computers-accessories",    name: "Computers & Accessories" },
-  { slug: "cell-phones-accessories",  name: "Cell Phones" },
-  { slug: "toys-games",              name: "Toys & Games" },
-  { slug: "pet-supplies",            name: "Pet Supplies" },
-  { slug: "office-products",         name: "Office Products" },
-  { slug: "grocery-gourmet-food",    name: "Grocery" },
-];
 
 const FALLBACK_POPULAR = [
   "electronics", "home-kitchen", "clothing", "beauty-personal-care", "sports-outdoors",
@@ -59,7 +41,7 @@ export default async function OnboardingPage() {
   const dbSlugs = new Set(catRows.map((c) => c.slug));
   const mergedCategories = [
     ...catRows,
-    ...FALLBACK_CATEGORIES.filter((fc) => !dbSlugs.has(fc.slug)),
+    ...SYNCED_CATEGORIES.filter((fc) => !dbSlugs.has(fc.slug)),
   ];
 
   const dbPopular = popularRows.map((r) => r.slug);

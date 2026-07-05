@@ -20,18 +20,18 @@ export const dynamic = "force-dynamic";
 
 // ── Hardcoded category list — always shows full grid regardless of DB state ────
 const CATEGORIES_LIST = [
-  { slug: "electronics",          name: "Electronics",          emoji: "⚡", bg: "#E8EFF8" },
-  { slug: "home-kitchen",         name: "Home & Kitchen",        emoji: "🏠", bg: "#EDE9E4" },
-  { slug: "sports-outdoors",      name: "Sports & Outdoors",     emoji: "⚽", bg: "#E4F0E4" },
-  { slug: "clothing",             name: "Clothing",              emoji: "👕", bg: "#F3EDE7" },
-  { slug: "health-personal-care", name: "Health & Beauty",       emoji: "💊", bg: "#E8F0F0" },
-  { slug: "video-games",          name: "Video Games",           emoji: "🎮", bg: "#F0EAF0" },
-  { slug: "tools-home-improvement", name: "Tools & DIY",         emoji: "🔧", bg: "#EAF0EC" },
-  { slug: "automotive",           name: "Automotive",            emoji: "🚗", bg: "#F5F0E8" },
-  { slug: "baby-products",        name: "Baby Products",         emoji: "👶", bg: "#FFF0F0" },
-  { slug: "office-products",      name: "Office Products",       emoji: "📎", bg: "#EEF0F8" },
-  { slug: "grocery-gourmet-food", name: "Grocery",               emoji: "🛒", bg: "#E8F4EC" },
-  { slug: "appliances",           name: "Appliances",            emoji: "🫧", bg: "#E8EFF8" },
+  { slug: "electronics",             name: "Electronics",              emoji: "⚡", bg: "#E8EFF8" },
+  { slug: "home-kitchen",            name: "Home & Kitchen",           emoji: "🏠", bg: "#EDE9E4" },
+  { slug: "sports-outdoors",         name: "Sports & Outdoors",        emoji: "⚽", bg: "#E4F0E4" },
+  { slug: "clothing",                name: "Clothing",                 emoji: "👕", bg: "#F3EDE7" },
+  { slug: "health-personal-care",    name: "Health & Personal Care",   emoji: "💊", bg: "#E8F0F0" },
+  { slug: "video-games",             name: "Video Games",              emoji: "🎮", bg: "#F0EAF0" },
+  { slug: "tools-home-improvement",  name: "Tools & Home Improvement", emoji: "🔧", bg: "#EAF0EC" },
+  { slug: "automotive",              name: "Automotive",               emoji: "🚗", bg: "#F5F0E8" },
+  { slug: "baby-products",           name: "Baby Products",            emoji: "👶", bg: "#FFF0F0" },
+  { slug: "office-products",         name: "Office Products",          emoji: "📎", bg: "#EEF0F8" },
+  { slug: "grocery-gourmet-food",    name: "Grocery & Gourmet Food",   emoji: "🛒", bg: "#E8F4EC" },
+  { slug: "appliances",              name: "Appliances",               emoji: "🫧", bg: "#E8EFF8" },
 ];
 
 // ── Category background colours (keyed by slug prefix) ────────────────────────

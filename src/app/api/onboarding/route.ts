@@ -7,6 +7,7 @@ import { ok, err } from "@/lib/api";
 import { requireAuthOrThrow } from "@/lib/auth-guard";
 import { OnboardingSchema } from "@/lib/schemas";
 import type { DealType } from "@prisma/client";
+import { SLUG_TO_NAME } from "@/lib/constants/categories";
 
 const VALID_DEAL_TYPES = new Set<string>([
   "PRICE_DROP",
@@ -42,18 +43,6 @@ export async function POST(req: Request): Promise<Response> {
     // Resolve category ids from slugs — create missing ones on the fly
     let categoryRecords: { id: string }[] = [];
     if (categories.length) {
-      // Slug → display name map for creating missing categories
-      const SLUG_NAMES: Record<string, string> = {
-        "electronics": "Electronics", "home-kitchen": "Home & Kitchen",
-        "sports-outdoors": "Sports & Outdoors", "clothing": "Clothing",
-        "beauty-personal-care": "Beauty & Personal Care", "video-games": "Video Games",
-        "tools-home-improvement": "Tools & DIY", "automotive": "Automotive",
-        "baby-products": "Baby Products", "computers-accessories": "Computers & Accessories",
-        "cell-phones-accessories": "Cell Phones", "toys-games": "Toys & Games",
-        "pet-supplies": "Pet Supplies", "office-products": "Office Products",
-        "grocery-gourmet-food": "Grocery", "camera-photo": "Camera & Photo",
-      };
-
       const existing = await db.category.findMany({
         where: { slug: { in: categories } },
         select: { id: true, slug: true },
@@ -64,7 +53,7 @@ export async function POST(req: Request): Promise<Response> {
       const missing = categories.filter((s) => !existingSlugs.has(s));
       if (missing.length) {
         await db.category.createMany({
-          data: missing.map((slug) => ({ slug, name: SLUG_NAMES[slug] ?? slug })),
+          data: missing.map((slug) => ({ slug, name: SLUG_TO_NAME[slug] ?? slug })),
           skipDuplicates: true,
         });
       }

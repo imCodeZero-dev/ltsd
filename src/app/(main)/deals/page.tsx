@@ -15,30 +15,12 @@ import { LightningDealsSection } from "@/components/deals/lightning-deals-sectio
 import { LimitedTimeSection } from "@/components/deals/limited-time-section";
 import { TopPicksSection } from "@/components/deals/top-picks-section";
 import { LoadMoreButton } from "@/components/deals/load-more-button";
+import { SYNCED_CATEGORIES } from "@/lib/constants/categories";
 
 export const metadata: Metadata = { title: "Deal Feed" };
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 20;
-
-// Same fallback categories used across onboarding, settings, and deals filter
-const FALLBACK_CATEGORIES = [
-  { slug: "electronics",              name: "Electronics" },
-  { slug: "home-kitchen",             name: "Home & Kitchen" },
-  { slug: "sports-outdoors",          name: "Sports & Outdoors" },
-  { slug: "clothing",                 name: "Clothing" },
-  { slug: "beauty-personal-care",     name: "Beauty & Personal Care" },
-  { slug: "video-games",              name: "Video Games" },
-  { slug: "tools-home-improvement",   name: "Tools & DIY" },
-  { slug: "automotive",               name: "Automotive" },
-  { slug: "baby-products",            name: "Baby Products" },
-  { slug: "computers-accessories",    name: "Computers & Accessories" },
-  { slug: "cell-phones-accessories",  name: "Cell Phones" },
-  { slug: "toys-games",              name: "Toys & Games" },
-  { slug: "pet-supplies",            name: "Pet Supplies" },
-  { slug: "office-products",         name: "Office Products" },
-  { slug: "grocery-gourmet-food",    name: "Grocery" },
-];
 
 const VALID_DEAL_TYPES = new Set([
   "PRICE_DROP", "LIGHTNING_DEAL", "LIMITED_TIME",
@@ -343,7 +325,7 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
       <Suspense fallback={<div className="h-12 rounded-xl bg-bg animate-pulse" />}>
         <DealFilters categories={(() => {
           const dbSlugs = new Set(categoryRows.map((c: { slug: string }) => c.slug));
-          return [...categoryRows, ...FALLBACK_CATEGORIES.filter((fc) => !dbSlugs.has(fc.slug))];
+          return [...categoryRows, ...SYNCED_CATEGORIES.filter((fc) => !dbSlugs.has(fc.slug))];
         })()} />
       </Suspense>
 

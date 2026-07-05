@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { DealPreferencesClient } from "@/components/settings/deal-preferences-client";
 import type { DealTypeConfigInput } from "@/components/settings/deal-preferences-client";
 import { FALLBACK_BRANDS } from "@/lib/constants/brands";
+import { SYNCED_CATEGORIES } from "@/lib/constants/categories";
 
 export const metadata: Metadata = { title: "Deal Preferences" };
 
@@ -38,27 +39,7 @@ export default async function DealPreferencesPage() {
     }
   }
 
-  // Categories from DB + fallbacks
-  const FALLBACK_CATEGORIES = [
-    { slug: "electronics",              name: "Electronics" },
-    { slug: "home-kitchen",             name: "Home & Kitchen" },
-    { slug: "sports-outdoors",          name: "Sports & Outdoors" },
-    { slug: "clothing",                 name: "Clothing" },
-    { slug: "beauty-personal-care",     name: "Beauty & Personal Care" },
-    { slug: "video-games",              name: "Video Games" },
-    { slug: "tools-home-improvement",   name: "Tools & DIY" },
-    { slug: "automotive",               name: "Automotive" },
-    { slug: "baby-products",            name: "Baby Products" },
-    { slug: "computers-accessories",    name: "Computers & Accessories" },
-    { slug: "cell-phones-accessories",  name: "Cell Phones" },
-    { slug: "toys-games",              name: "Toys & Games" },
-    { slug: "pet-supplies",            name: "Pet Supplies" },
-    { slug: "office-products",         name: "Office Products" },
-    { slug: "grocery-gourmet-food",    name: "Grocery" },
-  ];
-
-  // Imported at top of file
-
+  // Categories from DB merged with synced fallbacks
   const dbCategories = await db.category.findMany({
     select:  { slug: true, name: true },
     orderBy: { name: "asc" },
@@ -67,7 +48,7 @@ export default async function DealPreferencesPage() {
   const dbSlugs = new Set(dbCategories.map((c) => c.slug));
   const categories = [
     ...dbCategories,
-    ...FALLBACK_CATEGORIES.filter((fc) => !dbSlugs.has(fc.slug)),
+    ...SYNCED_CATEGORIES.filter((fc) => !dbSlugs.has(fc.slug)),
   ];
 
   const brandRows = await db.deal.findMany({
