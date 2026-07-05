@@ -334,6 +334,37 @@ model PasswordResetToken {
 }
 
 // ─────────────────────────────────────────
+// SYSTEM LOGS
+// ─────────────────────────────────────────
+
+enum LogType {
+  CRON
+  API_CALL
+  AUTH
+  ERROR
+}
+
+enum LogStatus {
+  SUCCESS
+  FAILURE
+  WARNING
+}
+
+model SystemLog {
+  id        String    @id @default(cuid())
+  type      LogType
+  status    LogStatus
+  source    String
+  message   String
+  metadata  Json?
+  duration  Int?
+  createdAt DateTime  @default(now())
+
+  @@index([type, createdAt])
+  @@index([status, createdAt])
+}
+
+// ─────────────────────────────────────────
 // NEWSLETTER
 // ─────────────────────────────────────────
 

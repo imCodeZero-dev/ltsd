@@ -3,6 +3,7 @@ import { ok, err } from "@/lib/api";
 import { requireAdminOrThrow } from "@/lib/auth-guard";
 import { revalidatePath } from "next/cache";
 import { sendPushToUser } from "@/lib/push";
+import { logAuth } from "@/lib/system-log";
 
 const MAX_SLOTS = 7;
 
@@ -97,6 +98,8 @@ export async function POST(
     ]);
   }
 
+  logAuth("admin:spotlight", { dealId: id, action: "added", slot, durationHours, notifyUsers: !!body.notifyUsers });
+
   return ok({ id, slot, expiresAt: expiresAt.toISOString() });
 }
 
@@ -123,6 +126,8 @@ export async function DELETE(
   revalidatePath("/");
   revalidatePath("/deals");
   revalidatePath("/dashboard");
+
+  logAuth("admin:spotlight", { dealId: id, action: "removed" });
 
   return ok({ id, removed: true });
 }

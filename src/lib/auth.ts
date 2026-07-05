@@ -5,6 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { LoginSchema } from "@/lib/schemas";
+import { logAuth } from "@/lib/system-log";
 
 // Augment the session type so role + onboardingCompleted flow through
 declare module "next-auth" {
@@ -45,12 +46,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await db.user.findUnique({
           where: { email: parsed.data.email },
         });
-        if (!user?.passwordHash) return null;
+        if (!user?.passwordHash) {
+          logAuth("login:failed", { email: parsed.data.email, reason: "user_not_found" });
+          return null;
+        }
 
         const valid = await bcrypt.compare(parsed.data.password, user.passwordHash);
-        if (!valid) return null;
+        if (!valid) {
+          logAuth("login:failed", { email: parsed.data.email, userId: user.id, reason: "invalid_password" });
+          return null;
+        }
 
-        if (!user.isActive) return null; // deactivated — treat same as wrong credentials
+        if (!user.isActive) {
+          logAuth("login:failed", { email: parsed.data.email, userId: user.id, reason: "account_deactivated" });
+          return null;
+        }
 
         return {
           id:                  user.id,

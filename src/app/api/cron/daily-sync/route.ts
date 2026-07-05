@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { syncPrices, markMissedDeals, cleanupStaleDealData } from "@/lib/deal-api/sync";
 import { pickWeeklyDeals } from "@/lib/deal-api/weekly-picker";
 import { db } from "@/lib/db";
+import { logCron, logAuth } from "@/lib/system-log";
 
 /**
  * GET /api/cron/daily-sync
@@ -19,9 +20,11 @@ import { db } from "@/lib/db";
 export async function GET(req: Request) {
   const auth = req.headers.get("authorization");
   if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+    logAuth("cron:unauthorized", { reason: "invalid_token", endpoint: "/api/cron/daily-sync" });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const startTime = Date.now();
   const results: Record<string, unknown> = {};
   const errors: string[] = [];
 
@@ -75,6 +78,22 @@ export async function GET(req: Request) {
       errors.push(`weeklyDeals: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
+
+  // ── 5. Clean up old system logs (>30 days) ────────────────────────────────
+  try {
+    const logCutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const deletedLogs = await db.systemLog.deleteMany({
+      where: { createdAt: { lt: logCutoff } },
+    });
+    results.logCleanup = { deleted: deletedLogs.count };
+  } catch (e) {
+    errors.push(`logCleanup: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  logCron("ltsd-maintenance", "/api/cron/daily-sync",
+    errors.length > 0 ? "WARNING" : "SUCCESS",
+    { ...results, errors: errors.length, errorDetails: errors.slice(0, 5) },
+    Date.now() - startTime);
 
   return NextResponse.json({
     ok:        errors.length === 0,

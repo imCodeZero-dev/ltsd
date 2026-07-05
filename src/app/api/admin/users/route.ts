@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { ok, err } from "@/lib/api";
 import { requireAdminOrThrow } from "@/lib/auth-guard";
+import { logAuth } from "@/lib/system-log";
 
 const PAGE_SIZE = 10;
 
@@ -110,6 +111,11 @@ export async function PATCH(req: Request): Promise<Response> {
     where:  { id: body.id },
     data:   { isActive: body.isActive },
     select: { id: true, isActive: true },
+  });
+
+  logAuth("admin:user-toggle", {
+    userId: body.id,
+    action: body.isActive ? "reactivated" : "deactivated",
   });
 
   return ok(updated);

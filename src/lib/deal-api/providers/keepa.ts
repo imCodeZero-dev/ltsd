@@ -262,15 +262,51 @@ interface KeepaBestSellersResponse {
 
 // ── Shared fetch helper ───────────────────────────────────────────────────────
 
+import { logApiCall, logError } from "@/lib/system-log";
+
 async function keepaFetch<T>(path: string, params: Record<string, string>): Promise<T> {
   const url = new URL(`${KEEPA_BASE}${path}`);
   url.searchParams.set("key", API_KEY);
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
+
+  const start = Date.now();
   const res = await fetch(url.toString(), { cache: "no-store" });
-  if (!res.ok) throw new Error(`Keepa API error ${res.status}: ${await res.text()}`);
-  return res.json() as Promise<T>;
+  const duration = Date.now() - start;
+
+  if (!res.ok) {
+    const body = await res.text();
+    logApiCall({
+      endpoint: path,
+      params,
+      responseStatus: res.status,
+      tokensConsumed: 0,
+      tokensLeft: undefined,
+    }, duration);
+    logError(`keepa:${path}`, new Error(`Keepa API error ${res.status}: ${body}`), { params });
+    throw new Error(`Keepa API error ${res.status}: ${body}`);
+  }
+
+  const data = await res.json();
+
+  // Every Keepa response includes token info at the top level
+  const tokensConsumed = typeof data.tokensConsumed === "number" ? data.tokensConsumed : undefined;
+  const tokensLeft = typeof data.tokensLeft === "number" ? data.tokensLeft : undefined;
+  const refillIn = typeof data.refillIn === "number" ? data.refillIn : undefined;
+  const refillRate = typeof data.refillRate === "number" ? data.refillRate : undefined;
+
+  logApiCall({
+    endpoint: path,
+    params,
+    tokensConsumed,
+    tokensLeft,
+    refillIn,
+    refillRate,
+    responseStatus: 200,
+  }, duration);
+
+  return data as T;
 }
 
 // ── Product mapper ────────────────────────────────────────────────────────────

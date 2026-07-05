@@ -16,6 +16,7 @@ import { getDealApi } from "./index";
 import type { DealItem, PriceStats } from "./types";
 import type { KeepaLightningDeal } from "./providers/keepa";
 import type { DealType as PrismaDealType, Prisma } from "@prisma/client";
+import { logError } from "@/lib/system-log";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -171,7 +172,9 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
       freshAsins.add(d.asin);
       synced++;
     } catch (err) {
-      errors.push(`${d.asin}: ${err instanceof Error ? err.message : String(err)}`);
+      const msg = `${d.asin}: ${err instanceof Error ? err.message : String(err)}`;
+      errors.push(msg);
+      logError("sync:lightning", err, { asin: d.asin });
     }
   }
 
@@ -228,6 +231,7 @@ export async function syncCategory(
       synced++;
     } catch (err) {
       errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
+      logError("sync:category", err, { asin: item.asin, category });
     }
   }
 
@@ -288,6 +292,7 @@ export async function syncBestSellers(
       }
     } catch (err) {
       errors.push(`batch ${i}: ${err instanceof Error ? err.message : String(err)}`);
+      logError("sync:bestsellers", err, { batch: i, categoryName });
     }
   }
 
@@ -312,6 +317,7 @@ export async function syncSearch(
       synced++;
     } catch (err) {
       errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
+      logError("sync:search", err, { asin: item.asin, query });
     }
   }
 
@@ -360,6 +366,7 @@ export async function syncPrices(
       updated++;
     } catch (err) {
       errors.push(`${p.asin}: ${err instanceof Error ? err.message : String(err)}`);
+      logError("sync:prices", err, { asin: p.asin });
     }
   }
 
