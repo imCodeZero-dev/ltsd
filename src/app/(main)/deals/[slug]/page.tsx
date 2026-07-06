@@ -95,8 +95,15 @@ export default async function DealDetailPage({
     if (row) {
       hydrateFromRow(row);
 
-      // If no price history, trigger on-demand Keepa sync then re-fetch
-      if (priceHistory.length === 0 && row.asin) {
+      // If no price history and deal hasn't been synced recently, trigger on-demand sync.
+      // Skip if the deal was synced within the last 6 hours to avoid burning Keepa tokens
+      // on repeated visits to the same page.
+      const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+      const needsSync = priceHistory.length === 0
+        && row.asin
+        && row.lastSyncedAt < sixHoursAgo;
+
+      if (needsSync) {
         try {
           await syncProductWithHistory(row.asin);
           row = await fetchDealRow({ slug });

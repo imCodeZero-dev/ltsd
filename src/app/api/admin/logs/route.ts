@@ -3,7 +3,7 @@ import { ok, err } from "@/lib/api";
 import { requireAdminOrThrow } from "@/lib/auth-guard";
 import type { LogType, LogStatus } from "@prisma/client";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 
 const VALID_TYPES = new Set<string>(["CRON", "API_CALL", "AUTH", "ERROR"]);
 const VALID_STATUSES = new Set<string>(["SUCCESS", "FAILURE", "WARNING"]);

@@ -10,7 +10,7 @@ import type {
 
 export const dynamic = "force-dynamic";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 50;
 const DAILY_BUDGET = 28_800;
 const REFILL_RATE = 20;
 
