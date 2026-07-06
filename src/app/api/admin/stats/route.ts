@@ -77,69 +77,60 @@ export async function GET(req: Request): Promise<Response> {
   }
 }
 
-// ── Chart data: monthly user + watchlist growth ─────────────────────────────
+// ── Chart data: monthly/weekly user + watchlist growth (DB-level aggregation) ─
+
+type BucketRow = { bucket: string; count: bigint };
 
 async function getChartData(range: string, since: Date) {
-  // Get user signups grouped by month
-  const users = await db.user.findMany({
-    where: { createdAt: { gte: since } },
-    select: { createdAt: true },
-  });
+  const trunc = range === "weekly" ? "week" : "month";
 
-  const watchlists = await db.watchlistItem.findMany({
-    where: { createdAt: { gte: since } },
-    select: { createdAt: true },
-  });
+  const [userRows, watchlistRows] = await Promise.all([
+    db.$queryRaw<BucketRow[]>`
+      SELECT DATE_TRUNC(${trunc}, "createdAt") AS bucket, COUNT(*)::bigint AS count
+      FROM "User"
+      WHERE "createdAt" >= ${since}
+      GROUP BY bucket ORDER BY bucket
+    `,
+    db.$queryRaw<BucketRow[]>`
+      SELECT DATE_TRUNC(${trunc}, "createdAt") AS bucket, COUNT(*)::bigint AS count
+      FROM "WatchlistItem"
+      WHERE "createdAt" >= ${since}
+      GROUP BY bucket ORDER BY bucket
+    `,
+  ]);
 
-  if (range === "weekly") {
-    return groupByWeek(users, watchlists);
-  }
-  return groupByMonth(users, watchlists);
-}
+  const userMap = new Map(userRows.map(r => [new Date(r.bucket).toISOString(), Number(r.count)]));
+  const watchMap = new Map(watchlistRows.map(r => [new Date(r.bucket).toISOString(), Number(r.count)]));
 
-function groupByMonth(
-  users: { createdAt: Date }[],
-  watchlists: { createdAt: Date }[],
-) {
-  const months: { label: string; users: number; watchlists: number }[] = [];
+  const buckets: { label: string; users: number; watchlists: number }[] = [];
   const now = new Date();
+  const count = 12;
 
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const label = d.toLocaleString("en-US", { month: "short" });
-    const monthStart = new Date(d.getFullYear(), d.getMonth(), 1);
-    const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+  for (let i = count - 1; i >= 0; i--) {
+    let bucketStart: Date;
+    let label: string;
 
-    months.push({
+    if (range === "weekly") {
+      bucketStart = new Date(now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000);
+      // Align to Monday (Postgres DATE_TRUNC('week') returns Monday)
+      bucketStart.setUTCHours(0, 0, 0, 0);
+      const day = bucketStart.getUTCDay();
+      bucketStart.setUTCDate(bucketStart.getUTCDate() - ((day + 6) % 7));
+      label = bucketStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    } else {
+      bucketStart = new Date(Date.UTC(now.getFullYear(), now.getMonth() - i, 1));
+      label = bucketStart.toLocaleString("en-US", { month: "short" });
+    }
+
+    const key = bucketStart.toISOString();
+    buckets.push({
       label,
-      users: users.filter(u => u.createdAt >= monthStart && u.createdAt < monthEnd).length,
-      watchlists: watchlists.filter(w => w.createdAt >= monthStart && w.createdAt < monthEnd).length,
+      users: userMap.get(key) ?? 0,
+      watchlists: watchMap.get(key) ?? 0,
     });
   }
 
-  return months;
-}
-
-function groupByWeek(
-  users: { createdAt: Date }[],
-  watchlists: { createdAt: Date }[],
-) {
-  const weeks: { label: string; users: number; watchlists: number }[] = [];
-  const now = new Date();
-
-  for (let i = 11; i >= 0; i--) {
-    const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-    const weekStart = new Date(weekEnd.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const label = weekStart.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-
-    weeks.push({
-      label,
-      users: users.filter(u => u.createdAt >= weekStart && u.createdAt < weekEnd).length,
-      watchlists: watchlists.filter(w => w.createdAt >= weekStart && w.createdAt < weekEnd).length,
-    });
-  }
-
-  return weeks;
+  return buckets;
 }
 
 // ── Recent activity from real DB events ─────────────────────────────────────

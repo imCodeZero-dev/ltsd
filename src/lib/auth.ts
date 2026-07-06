@@ -91,34 +91,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = user.id;
       }
-      // Always refresh role + onboardingCompleted from DB so changes
-      // (e.g. completing onboarding) are picked up without re-login.
+      // Single DB query per request — refresh all mutable fields from DB.
+      // The session callback reads these from the token (no extra query).
       if (token.id) {
         const dbUser = await db.user.findUnique({
           where:  { id: token.id as string },
-          select: { role: true, onboardingCompleted: true },
+          select: { role: true, onboardingCompleted: true, name: true, image: true, isActive: true },
         });
-        token.role                = dbUser?.role ?? "USER";
-        token.onboardingCompleted = dbUser?.onboardingCompleted ?? false;
+        if (!dbUser || !dbUser.isActive) {
+          // Deactivated or deleted — mark token so session callback can kill it
+          token.isActive = false;
+          return token;
+        }
+        token.role                = dbUser.role;
+        token.onboardingCompleted = dbUser.onboardingCompleted;
+        token.name                = dbUser.name;
+        token.image               = dbUser.image;
+        token.isActive            = true;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
+        if (token.isActive === false) return null as never; // kills the session
         session.user.id                  = token.id as string;
         session.user.role                = token.role as "USER" | "ADMIN";
         session.user.onboardingCompleted = token.onboardingCompleted as boolean;
-
-        // Always fetch fresh name + image from DB so profile edits are
-        // reflected immediately without requiring a new login.
-        // Also re-check isActive so deactivated users are booted on next request.
-        const fresh = await db.user.findUnique({
-          where:  { id: token.id as string },
-          select: { name: true, image: true, isActive: true },
-        });
-        if (!fresh || !fresh.isActive) return null as never; // kills the session
-        session.user.name  = fresh.name;
-        session.user.image = fresh.image;
+        session.user.name                = (token.name as string | null) ?? null;
+        session.user.image               = (token.image as string | null) ?? null;
       }
       return session;
     },

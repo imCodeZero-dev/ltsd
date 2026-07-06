@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { syncLightningDeals } from "@/lib/deal-api/sync";
 import { logCron, logAuth } from "@/lib/system-log";
+import { verifyCronSecret } from "@/lib/cron-auth";
 
 /**
  * GET /api/cron/lightning-sync
@@ -13,8 +14,7 @@ import { logCron, logAuth } from "@/lib/system-log";
  * Protected by CRON_SECRET bearer token.
  */
 export async function GET(req: Request) {
-  const auth = req.headers.get("authorization");
-  if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!verifyCronSecret(req.headers.get("authorization"))) {
     logAuth("cron:unauthorized", { reason: "invalid_token", endpoint: "/api/cron/lightning-sync" });
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -528,12 +528,10 @@ export function DealsClient({ initialDeals, initialMeta, categoryOptions }: Prop
   async function handleSync() {
     setSyncing(true);
     try {
-      const res = await fetch("/api/cron/deal-sync", {
-        headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ""}` },
-      });
+      const res = await fetch("/api/admin/trigger-sync", { method: "POST" });
       const json = await res.json();
-      if (json.ok) { toast.success(`Synced ${json.synced} deals`); fetchPage(1, query, filterType, filterCategory, filterStatus, filterSpotlight); }
-      else          { toast.error(json.error ?? "Sync failed"); }
+      if (json.data) { toast.success(`Synced ${json.data.synced} deals`); fetchPage(1, query, filterType, filterCategory, filterStatus, filterSpotlight); }
+      else           { toast.error(json.error ?? "Sync failed"); }
     } catch { toast.error("Sync request failed"); }
     finally { setSyncing(false); }
   }

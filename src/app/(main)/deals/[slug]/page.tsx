@@ -96,8 +96,7 @@ export default async function DealDetailPage({
       hydrateFromRow(row);
 
       // If no price history and deal hasn't been synced recently, trigger on-demand sync.
-      // Skip if the deal was synced within the last 6 hours to avoid burning Keepa tokens
-      // on repeated visits to the same page.
+      // Guards: per-deal 6h cooldown + global 10/hour cap to prevent token drain.
       const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
       const needsSync = priceHistory.length === 0
         && row.asin
@@ -105,9 +104,20 @@ export default async function DealDetailPage({
 
       if (needsSync) {
         try {
-          await syncProductWithHistory(row.asin);
-          row = await fetchDealRow({ slug });
-          hydrateFromRow(row);
+          // Global hourly cap: max 10 on-demand syncs per hour across all deals
+          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+          const recentSyncs = await db.systemLog.count({
+            where: { source: "on-demand-sync", createdAt: { gte: oneHourAgo } },
+          });
+
+          if (recentSyncs < 10) {
+            await db.systemLog.create({
+              data: { type: "API_CALL", status: "SUCCESS", source: "on-demand-sync", message: `On-demand sync: ${row.asin}` },
+            });
+            await syncProductWithHistory(row.asin);
+            row = await fetchDealRow({ slug });
+            hydrateFromRow(row);
+          }
         } catch (e) {
           void e;
         }
