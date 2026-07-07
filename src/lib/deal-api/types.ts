@@ -83,9 +83,16 @@ export interface PriceResult {
 
 // ── Provider interface ────────────────────────────────────────────────────────
 
+/** Product with price history and stats — returned by sync methods */
+export interface ProductWithHistory {
+  item: DealItem;
+  historyPoints: { date: Date; priceCents: number }[];
+  priceStats: PriceStats | null;
+}
+
 export interface DealApiProvider {
-  getDealsByCategory(category: string, limit?: number): Promise<DealItem[]>;
+  getDealsByCategory(category: string, limit?: number): Promise<ProductWithHistory[]>;
   getItemPrices(asins: string[]): Promise<PriceResult[]>;
   getItemMetadata(asin: string): Promise<Partial<DealItem>>;
-  searchItems(query: string, limit?: number): Promise<DealItem[]>;
+  searchItems(query: string, limit?: number): Promise<ProductWithHistory[]>;
 }

@@ -1,4 +1,4 @@
-import type { DealApiProvider, DealItem, DealState, DealType, PriceResult, PriceStats } from "../types";
+import type { DealApiProvider, DealItem, DealState, DealType, PriceResult, PriceStats, ProductWithHistory } from "../types";
 
 const KEEPA_BASE = "https://api.keepa.com";
 const API_KEY = process.env.KEEPA_API_KEY ?? "";
@@ -461,7 +461,7 @@ export class KeepaProvider implements DealApiProvider {
    * Uses priceTypes:[18] (Buy Box with shipping) for maximum coverage.
    * Then enriches with /product for full data (images, ratings, description).
    */
-  async getDealsByCategory(category: string, limit = 20): Promise<DealItem[]> {
+  async getDealsByCategory(category: string, limit = 20): Promise<ProductWithHistory[]> {
     const catId = Object.entries(CATEGORY_MAP).find(
       ([, name]) => name.toLowerCase() === category.toLowerCase()
     )?.[0] ?? "172282";
@@ -499,13 +499,14 @@ export class KeepaProvider implements DealApiProvider {
     const asins = [...dealInfoMap.keys()];
     if (!asins.length) return [];
 
-    // Enrich with /product for images, ratings, description
-    // rating=1 adds up to 1 extra token/ASIN but gives real rating data
+    // Enrich with /product for images, ratings, description, and price history
+    // history=1 + days=180 gives 6 months of price data in the same response
     const productData = await keepaFetch<KeepaProductResponse>("/product", {
       asin: asins.join(","),
       domain: "1",
       stats: "180",
-      history: "0",
+      history: "1",
+      days: "180",
       rating: "1",
     });
 
@@ -514,23 +515,32 @@ export class KeepaProvider implements DealApiProvider {
         const item = mapProduct(p);
         if (!item) return null;
         const info = dealInfoMap.get(p.asin);
-        // Only override dealType for lightning: mapProduct() correctly detects
-        // PRICE_DROP via avg90 stats, but mapDealType() has no PRICE_DROP case
-        // (Keepa's /deal endpoint has no "price drop" type number) so a blanket
-        // override would silently replace every PRICE_DROP with LIMITED_TIME.
         if (info?.dealType !== undefined) {
           const mapped = mapDealType(info.dealType);
           if (mapped === "LIGHTNING_DEAL") item.dealType = "LIGHTNING_DEAL";
-          // else: keep mapProduct()'s detection (PRICE_DROP or LIMITED_TIME)
         }
-        // Set expiresAt from lightningEnd for lightning deals
         if (info?.lightningEnd && info.lightningEnd > 0) {
           item.expiresAt  = keepaTimeToDate(info.lightningEnd);
           item.hasEndTime = true;
         }
-        return item;
+
+        // Parse price history + stats from the same response
+        const historyPoints = parseKeepaHistory(p.csv?.[1], 6);
+        const atl = p.stats?.atl?.[1];
+        const avg = p.stats?.avg90?.[1] ?? p.stats?.avg30?.[1];
+        const ath = p.stats?.ath?.[1];
+        const priceStats: PriceStats | null =
+          atl && atl > 0 && ath && ath > 0
+            ? {
+                allTimeLow:  Math.round(atl) / 100,
+                avgPrice:    avg && avg > 0 ? Math.round(avg) / 100 : (atl + ath) / 200,
+                allTimeHigh: Math.round(ath) / 100,
+              }
+            : null;
+
+        return { item, historyPoints, priceStats };
       })
-      .filter((d): d is DealItem => d !== null);
+      .filter((d): d is NonNullable<typeof d> => d !== null);
   }
 
   /**
@@ -582,9 +592,9 @@ export class KeepaProvider implements DealApiProvider {
 
   /**
    * Search products by keyword.
-   * Two-step: /search for ASINs, then /product for full data.
+   * Two-step: /search for ASINs, then /product for full data + history.
    */
-  async searchItems(query: string, limit = 20): Promise<DealItem[]> {
+  async searchItems(query: string, limit = 20): Promise<ProductWithHistory[]> {
     const searchData = await keepaFetch<KeepaProductResponse>("/search", {
       term: query,
       domain: "1",
@@ -597,17 +607,7 @@ export class KeepaProvider implements DealApiProvider {
       .filter(Boolean);
     if (!asins.length) return [];
 
-    const productData = await keepaFetch<KeepaProductResponse>("/product", {
-      asin: asins.join(","),
-      domain: "1",
-      stats: "180",
-      history: "0",
-      rating: "1",
-    });
-
-    return (productData.products ?? [])
-      .map(mapProduct)
-      .filter((d): d is DealItem => d !== null);
+    return this.getProductsWithHistory(asins);
   }
 
   /**
@@ -639,6 +639,47 @@ export class KeepaProvider implements DealApiProvider {
       range: String(range),
     });
     return data.bestSellersList?.asinList ?? [];
+  }
+
+  /**
+   * Batch fetch products with price history + stats.
+   * Used by syncBestSellers and anywhere we need full data for multiple ASINs.
+   * Cost: 1-2 tokens per ASIN.
+   */
+  async getProductsWithHistory(asins: string[]): Promise<{
+    item: DealItem;
+    historyPoints: { date: Date; priceCents: number }[];
+    priceStats: PriceStats | null;
+  }[]> {
+    if (!asins.length) return [];
+    const data = await keepaFetch<KeepaProductResponse>("/product", {
+      asin: asins.join(","),
+      domain: "1",
+      stats: "180",
+      history: "1",
+      days: "180",
+      rating: "1",
+    });
+
+    return (data.products ?? [])
+      .map((p) => {
+        const item = mapProduct(p);
+        if (!item) return null;
+        const historyPoints = parseKeepaHistory(p.csv?.[1], 6);
+        const atl = p.stats?.atl?.[1];
+        const avg = p.stats?.avg90?.[1] ?? p.stats?.avg30?.[1];
+        const ath = p.stats?.ath?.[1];
+        const priceStats: PriceStats | null =
+          atl && atl > 0 && ath && ath > 0
+            ? {
+                allTimeLow:  Math.round(atl) / 100,
+                avgPrice:    avg && avg > 0 ? Math.round(avg) / 100 : (atl + ath) / 200,
+                allTimeHigh: Math.round(ath) / 100,
+              }
+            : null;
+        return { item, historyPoints, priceStats };
+      })
+      .filter((d): d is NonNullable<typeof d> => d !== null);
   }
 
   /**

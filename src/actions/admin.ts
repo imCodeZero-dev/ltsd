@@ -29,9 +29,9 @@ export async function syncDeals(): Promise<{ synced: number }> {
   let synced       = 0;
 
   for (const cat of categories) {
-    const deals = await api.getDealsByCategory(cat.slug, 10);
+    const results = await api.getDealsByCategory(cat.slug, 10);
 
-    for (const deal of deals) {
+    for (const { item: deal } of results) {
       if (!deal.asin) continue;
 
       await db.deal.upsert({
@@ -39,7 +39,7 @@ export async function syncDeals(): Promise<{ synced: number }> {
         create: {
           asin:           deal.asin,
           title:          deal.title,
-          slug:           deal.asin, // fallback slug — provider should supply a proper one
+          slug:           deal.asin,
           brand:          deal.brand,
           imageUrl:       deal.imageUrl,
           affiliateUrl:   deal.affiliateUrl,

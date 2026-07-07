@@ -220,14 +220,15 @@ export async function syncCategory(
   category: string,
   limit = 20
 ): Promise<{ synced: number; errors: string[] }> {
-  const api = await getDealApi();
-  const items = await api.getDealsByCategory(category, limit);
+  const { KeepaProvider } = await import("./providers/keepa");
+  const provider = new KeepaProvider();
+  const results = await provider.getDealsByCategory(category, limit);
   const errors: string[] = [];
   let synced = 0;
 
-  for (const item of items) {
+  for (const { item, historyPoints, priceStats } of results) {
     try {
-      await upsertDeal(item, category);
+      await upsertDeal(item, category, { priceStats, historyPoints });
       synced++;
     } catch (err) {
       errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
@@ -240,7 +241,7 @@ export async function syncCategory(
 
 /**
  * Sync best sellers for a category.
- * Cost: 50 (bestsellers) + up to limit tokens (product batch).
+ * Cost: 50 (bestsellers) + up to limit tokens (product batch with history).
  * Recommended schedule: once per day.
  */
 export async function syncBestSellers(
@@ -250,45 +251,27 @@ export async function syncBestSellers(
 ): Promise<{ synced: number; errors: string[] }> {
   const { KeepaProvider } = await import("./providers/keepa");
   const provider = new KeepaProvider();
-  const api = await getDealApi();
 
   const allAsins = await provider.getBestSellerAsins(categoryId, 0);
   const asins = allAsins.slice(0, limit);
   if (!asins.length) return { synced: 0, errors: [] };
 
-  // Batch fetch product data (up to 100 per call)
   const errors: string[] = [];
   let synced = 0;
 
+  // Fetch full product data with history (up to 100 per call)
   for (let i = 0; i < asins.length; i += 100) {
     const batch = asins.slice(i, i + 100);
     try {
-      const prices = await api.getItemPrices(batch);
-      for (const p of prices) {
-        if (p.currentPrice <= 0) continue;
-        const item: DealItem = {
-          id:                p.asin,
-          asin:              p.asin,
-          title:             p.asin,
-          brand:             "",
-          category:          categoryName,
-          imageUrl:          `https://m.media-amazon.com/images/P/${p.asin}.01.LZZZZZZZ.jpg`,
-          currentPrice:      p.currentPrice,
-          originalPrice:     p.originalPrice,
-          discountPercent:   p.originalPrice > p.currentPrice
-            ? Math.round(((p.originalPrice - p.currentPrice) / p.originalPrice) * 100)
-            : 0,
-          dealType:          "LIMITED_TIME",
-          expiresAt:         null,
-          claimedCount:      0,
-          totalCount:        0,
-          rating:            0,
-          reviewCount:       0,
-          affiliateUrl:      `https://www.amazon.com/dp/${p.asin}`,
-          isFeaturedDayDeal: false,
-        };
-        await upsertDeal(item, categoryName);
-        synced++;
+      const products = await provider.getProductsWithHistory(batch);
+      for (const { item, historyPoints, priceStats } of products) {
+        try {
+          await upsertDeal(item, categoryName, { priceStats, historyPoints });
+          synced++;
+        } catch (err) {
+          errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
+          logError("sync:bestsellers", err, { asin: item.asin, categoryName });
+        }
       }
     } catch (err) {
       errors.push(`batch ${i}: ${err instanceof Error ? err.message : String(err)}`);
@@ -307,13 +290,13 @@ export async function syncSearch(
   limit = 20
 ): Promise<{ synced: number; errors: string[] }> {
   const api = await getDealApi();
-  const items = await api.searchItems(query, limit);
+  const results = await api.searchItems(query, limit);
   const errors: string[] = [];
   let synced = 0;
 
-  for (const item of items) {
+  for (const { item, historyPoints, priceStats } of results) {
     try {
-      await upsertDeal(item, item.category);
+      await upsertDeal(item, item.category, { priceStats, historyPoints });
       synced++;
     } catch (err) {
       errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);

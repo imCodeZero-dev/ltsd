@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import type { DealApiProvider, DealItem, PriceResult } from "../types";
+import type { DealApiProvider, DealItem, PriceResult, ProductWithHistory } from "../types";
 
 // ── AWS Signature V4 ──────────────────────────────────────────────────────────
 const SERVICE = "ProductAdvertisingAPI";
@@ -192,7 +192,7 @@ export class AmazonProvider implements DealApiProvider {
     };
   }
 
-  async searchItems(query: string, limit = 20): Promise<DealItem[]> {
+  async searchItems(query: string, limit = 20): Promise<ProductWithHistory[]> {
     const res = await paApiFetch<SearchResponse>(
       this.config,
       "/paapi5/searchitems",
@@ -216,10 +216,14 @@ export class AmazonProvider implements DealApiProvider {
         ],
       },
     );
-    return (res.SearchResult?.Items ?? []).map((i) => mapItem(i, this.config.associateTag));
+    return (res.SearchResult?.Items ?? []).map((i) => ({
+      item: mapItem(i, this.config.associateTag),
+      historyPoints: [],
+      priceStats: null,
+    }));
   }
 
-  async getDealsByCategory(category: string, limit = 20): Promise<DealItem[]> {
+  async getDealsByCategory(category: string, limit = 20): Promise<ProductWithHistory[]> {
     // Map our category slugs to PA API SearchIndex values
     const indexMap: Record<string, string> = {
       electronics:  "Electronics",
@@ -259,7 +263,11 @@ export class AmazonProvider implements DealApiProvider {
         ],
       },
     );
-    return (res.SearchResult?.Items ?? []).map((i) => mapItem(i, this.config.associateTag));
+    return (res.SearchResult?.Items ?? []).map((i) => ({
+      item: mapItem(i, this.config.associateTag),
+      historyPoints: [],
+      priceStats: null,
+    }));
   }
 
   async getItemPrices(asins: string[]): Promise<PriceResult[]> {
