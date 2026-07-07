@@ -96,7 +96,7 @@ export default async function DealDetailPage({
       hydrateFromRow(row);
 
       // If no price history and deal hasn't been synced recently, trigger on-demand sync.
-      // Guards: per-deal 6h cooldown + global 10/hour cap to prevent token drain.
+      // Guards: per-deal 6h cooldown + 3/hour global cap + token balance check.
       const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
       const needsSync = priceHistory.length === 0
         && row.asin
@@ -104,19 +104,31 @@ export default async function DealDetailPage({
 
       if (needsSync) {
         try {
-          // Global hourly cap: max 10 on-demand syncs per hour across all deals
-          const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-          const recentSyncs = await db.systemLog.count({
-            where: { source: "on-demand-sync", createdAt: { gte: oneHourAgo } },
+          // Check last known token balance — skip entirely if tokens are low
+          // (reserve tokens for scheduled crons which are more important)
+          const lastApiLog = await db.systemLog.findFirst({
+            where: { type: "API_CALL", source: { not: "on-demand-sync" } },
+            orderBy: { createdAt: "desc" },
+            select: { metadata: true },
           });
+          const lastTokens = (lastApiLog?.metadata as Record<string, unknown> | null)?.tokensLeft;
+          const hasEnoughTokens = typeof lastTokens === "number" ? lastTokens > 500 : true;
 
-          if (recentSyncs < 10) {
-            await db.systemLog.create({
-              data: { type: "API_CALL", status: "SUCCESS", source: "on-demand-sync", message: `On-demand sync: ${row.asin}` },
+          if (hasEnoughTokens) {
+            // Global hourly cap: max 3 on-demand syncs per hour (~300 tokens)
+            const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+            const recentSyncs = await db.systemLog.count({
+              where: { source: "on-demand-sync", createdAt: { gte: oneHourAgo } },
             });
-            await syncProductWithHistory(row.asin);
-            row = await fetchDealRow({ slug });
-            hydrateFromRow(row);
+
+            if (recentSyncs < 3) {
+              await db.systemLog.create({
+                data: { type: "API_CALL", status: "SUCCESS", source: "on-demand-sync", message: `On-demand sync: ${row.asin}` },
+              });
+              await syncProductWithHistory(row.asin);
+              row = await fetchDealRow({ slug });
+              hydrateFromRow(row);
+            }
           }
         } catch (e) {
           void e;

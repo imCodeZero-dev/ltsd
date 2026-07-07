@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { seedDeals, syncBestSellers } from "@/lib/deal-api/sync";
 import { logCron, logAuth } from "@/lib/system-log";
-import { verifyCronSecret } from "@/lib/cron-auth";
+import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
 
 /**
  * GET /api/cron/deal-sync
@@ -29,6 +29,21 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const mode = searchParams.get("mode") ?? "deals";
   const startTime = Date.now();
+
+  // Pre-flight token check — skip if not enough tokens for the job
+  const requiredTokens = mode === "bestsellers" ? 600 : 2100;
+  const estimatedTokens = await getLastKnownTokens();
+  if (estimatedTokens !== null && estimatedTokens < requiredTokens) {
+    const cronName = mode === "bestsellers" ? "ltsd-bestsellers" : "ltsd-category-feed";
+    logCron(cronName, "/api/cron/deal-sync", "WARNING",
+      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~${requiredTokens}`] },
+      0);
+    return NextResponse.json({
+      ok: false, skipped: true, mode,
+      reason: `Insufficient tokens (~${estimatedTokens} available, ~${requiredTokens} needed). Will retry next cycle.`,
+      timestamp: new Date().toISOString(),
+    });
+  }
 
   try {
     if (mode === "bestsellers") {

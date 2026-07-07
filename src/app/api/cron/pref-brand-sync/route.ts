@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { syncPreferredBrands } from "@/lib/deal-api/pref-sync";
 import { logCron, logAuth } from "@/lib/system-log";
-import { verifyCronSecret } from "@/lib/cron-auth";
+import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
 
 /**
  * GET /api/cron/pref-brand-sync
@@ -22,6 +22,18 @@ export async function GET(req: Request) {
   }
 
   const startTime = Date.now();
+
+  // Pre-flight token check — skip if not enough tokens
+  const estimatedTokens = await getLastKnownTokens();
+  if (estimatedTokens !== null && estimatedTokens < 700) {
+    logCron("ltsd-pref-brands", "/api/cron/pref-brand-sync", "WARNING",
+      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~700`] }, 0);
+    return NextResponse.json({
+      ok: false, skipped: true,
+      reason: `Insufficient tokens (~${estimatedTokens} available, ~700 needed). Will retry next cycle.`,
+      timestamp: new Date().toISOString(),
+    });
+  }
 
   try {
     const result = await syncPreferredBrands(10);

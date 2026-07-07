@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { syncLightningDeals } from "@/lib/deal-api/sync";
 import { logCron, logAuth } from "@/lib/system-log";
-import { verifyCronSecret } from "@/lib/cron-auth";
+import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
 
 /**
  * GET /api/cron/lightning-sync
@@ -20,6 +20,18 @@ export async function GET(req: Request) {
   }
 
   const startTime = Date.now();
+
+  // Pre-flight token check — skip if not enough tokens
+  const estimatedTokens = await getLastKnownTokens();
+  if (estimatedTokens !== null && estimatedTokens < 550) {
+    logCron("ltsd-lightning", "/api/cron/lightning-sync", "WARNING",
+      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~550`] }, 0);
+    return NextResponse.json({
+      ok: false, skipped: true,
+      reason: `Insufficient tokens (~${estimatedTokens} available, ~550 needed). Will retry next cycle.`,
+      timestamp: new Date().toISOString(),
+    });
+  }
 
   try {
     const result = await syncLightningDeals();

@@ -3,7 +3,7 @@ import { syncPrices, markMissedDeals, cleanupStaleDealData } from "@/lib/deal-ap
 import { pickWeeklyDeals } from "@/lib/deal-api/weekly-picker";
 import { db } from "@/lib/db";
 import { logCron, logAuth } from "@/lib/system-log";
-import { verifyCronSecret } from "@/lib/cron-auth";
+import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
 
 /**
  * GET /api/cron/daily-sync
@@ -25,6 +25,19 @@ export async function GET(req: Request) {
   }
 
   const startTime = Date.now();
+
+  // Pre-flight token check — skip if not enough tokens
+  const estimatedTokens = await getLastKnownTokens();
+  if (estimatedTokens !== null && estimatedTokens < 100) {
+    logCron("ltsd-maintenance", "/api/cron/daily-sync", "WARNING",
+      { errors: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~100`] }, 0);
+    return NextResponse.json({
+      ok: false, skipped: true,
+      reason: `Insufficient tokens (~${estimatedTokens} available, ~100 needed). Will retry next cycle.`,
+      timestamp: new Date().toISOString(),
+    });
+  }
+
   const results: Record<string, unknown> = {};
   const errors: string[] = [];
 
