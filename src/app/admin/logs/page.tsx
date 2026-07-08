@@ -128,9 +128,16 @@ export default async function AdminLogsPage() {
 
   let keepaStatus: KeepaStatus;
   if (keepaLog?.metadata && typeof keepaLog.metadata === "object") {
-    const meta       = keepaLog.metadata as Record<string, unknown>;
-    const tokensLeft = typeof meta.tokensLeft === "number" ? meta.tokensLeft : null;
-    const refillIn   = typeof meta.refillIn   === "number" ? meta.refillIn   : null;
+    const meta         = keepaLog.metadata as Record<string, unknown>;
+    const rawTokens    = typeof meta.tokensLeft === "number" ? meta.tokensLeft : null;
+    const refillIn     = typeof meta.refillIn   === "number" ? meta.refillIn   : null;
+
+    // Estimate current balance: raw value + refill since last Keepa call
+    let tokensLeft = rawTokens;
+    if (rawTokens !== null) {
+      const minutesSince = (Date.now() - keepaLog.createdAt.getTime()) / 60_000;
+      tokensLeft = Math.min(DAILY_BUDGET, rawTokens + Math.floor(minutesSince * REFILL_RATE));
+    }
 
     let estimatedFullRefill: string | null = null;
     if (tokensLeft !== null && tokensLeft < DAILY_BUDGET) {
