@@ -323,6 +323,38 @@ export function DealPreferencesClient({
                     <span key={l} className="text-2xs text-body">{l}</span>
                   ))}
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-body">Min</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={activeConfig.priceMin}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/\D/g, "");
+                        if (v === "") { updateActiveConfig({ priceMin: 0 }); return; }
+                        updateActiveConfig({ priceMin: Math.min(Number(v), activeConfig.priceMax - 10) });
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-[#E7E8E9] text-sm text-navy outline-none focus:border-badge-bg cursor-text"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs font-medium text-body">Max</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={activeConfig.priceMax}
+                      onChange={(e) => {
+                        const v = e.target.value.replace(/\D/g, "");
+                        if (v === "") { updateActiveConfig({ priceMax: 0 }); return; }
+                        updateActiveConfig({ priceMax: Math.max(Number(v), activeConfig.priceMin + 10) });
+                      }}
+                      className="w-full px-3 py-2 rounded-lg border border-[#E7E8E9] text-sm text-navy outline-none focus:border-badge-bg cursor-text"
+                    />
+                  </div>
+                </div>
               </div>
 
               {/* Minimum Discount */}

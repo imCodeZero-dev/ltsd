@@ -29,10 +29,17 @@ export async function GET(): Promise<Response> {
     }
 
     const meta = latest.metadata as Record<string, unknown>;
-    const tokensLeft = typeof meta.tokensLeft === "number" ? meta.tokensLeft : null;
+    const rawTokens  = typeof meta.tokensLeft === "number" ? meta.tokensLeft : null;
     const refillIn   = typeof meta.refillIn === "number" ? meta.refillIn : null;
 
-    // Estimate when tokens will be full based on current balance
+    // Add estimated refill since last log (20 tokens/min, capped at 28,800)
+    let tokensLeft = rawTokens;
+    if (rawTokens !== null) {
+      const minutesSince = (Date.now() - latest.createdAt.getTime()) / 60_000;
+      tokensLeft = Math.min(DAILY_BUDGET, rawTokens + Math.floor(minutesSince * REFILL_RATE));
+    }
+
+    // Estimate when tokens will be full based on estimated balance
     let estimatedFullRefill: string | null = null;
     if (tokensLeft !== null && tokensLeft < DAILY_BUDGET) {
       const deficit = DAILY_BUDGET - tokensLeft;

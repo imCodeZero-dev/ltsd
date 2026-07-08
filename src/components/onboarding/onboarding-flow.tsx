@@ -516,10 +516,15 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
                       <span className="text-xs font-medium text-[rgba(0,0,0,0.5)]"
                         style={{ fontFamily: "var(--font-inter)" }}>Min</span>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={activeConfig.priceMin}
-                        min={PRICE_MIN} max={PRICE_MAX}
-                        onChange={(e) => updateActiveConfig({ priceMin: Math.min(Number(e.target.value), activeConfig.priceMax - 10) })}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/\D/g, "");
+                          if (v === "") { updateActiveConfig({ priceMin: 0 }); return; }
+                          updateActiveConfig({ priceMin: Math.min(Number(v), activeConfig.priceMax - 10) });
+                        }}
                         className="w-full px-3 py-2 rounded-[8px] border border-[#E5E7EB] text-sm text-[#000A1E] outline-none focus:border-[#FE9800] cursor-text"
                         style={{ fontFamily: "var(--font-inter)" }}
                       />
@@ -528,10 +533,15 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
                       <span className="text-xs font-medium text-[rgba(0,0,0,0.5)]"
                         style={{ fontFamily: "var(--font-inter)" }}>Max</span>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
                         value={activeConfig.priceMax}
-                        min={PRICE_MIN} max={PRICE_MAX}
-                        onChange={(e) => updateActiveConfig({ priceMax: Math.max(Number(e.target.value), activeConfig.priceMin + 10) })}
+                        onChange={(e) => {
+                          const v = e.target.value.replace(/\D/g, "");
+                          if (v === "") { updateActiveConfig({ priceMax: 0 }); return; }
+                          updateActiveConfig({ priceMax: Math.max(Number(v), activeConfig.priceMin + 10) });
+                        }}
                         className="w-full px-3 py-2 rounded-[8px] border border-[#E5E7EB] text-sm text-[#000A1E] outline-none focus:border-[#FE9800] cursor-text"
                         style={{ fontFamily: "var(--font-inter)" }}
                       />
