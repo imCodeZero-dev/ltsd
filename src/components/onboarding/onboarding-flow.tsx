@@ -523,7 +523,12 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
                         onChange={(e) => {
                           const v = e.target.value.replace(/\D/g, "");
                           if (v === "") { updateActiveConfig({ priceMin: 0 }); return; }
-                          updateActiveConfig({ priceMin: Math.min(Number(v), activeConfig.priceMax - 10) });
+                          updateActiveConfig({ priceMin: Math.min(PRICE_MAX, Number(v)) });
+                        }}
+                        onBlur={() => {
+                          if (activeConfig.priceMin > activeConfig.priceMax - 10) {
+                            updateActiveConfig({ priceMin: Math.max(0, activeConfig.priceMax - 10) });
+                          }
                         }}
                         className="w-full px-3 py-2 rounded-[8px] border border-[#E5E7EB] text-sm text-[#000A1E] outline-none focus:border-[#FE9800] cursor-text"
                         style={{ fontFamily: "var(--font-inter)" }}
@@ -540,7 +545,12 @@ export function OnboardingFlow({ categories, popularSlugs, apiBrands }: Props) {
                         onChange={(e) => {
                           const v = e.target.value.replace(/\D/g, "");
                           if (v === "") { updateActiveConfig({ priceMax: 0 }); return; }
-                          updateActiveConfig({ priceMax: Math.min(PRICE_MAX, Math.max(Number(v), activeConfig.priceMin + 10)) });
+                          updateActiveConfig({ priceMax: Math.min(PRICE_MAX, Number(v)) });
+                        }}
+                        onBlur={() => {
+                          if (activeConfig.priceMax < activeConfig.priceMin + 10) {
+                            updateActiveConfig({ priceMax: Math.min(PRICE_MAX, activeConfig.priceMin + 10) });
+                          }
                         }}
                         className="w-full px-3 py-2 rounded-[8px] border border-[#E5E7EB] text-sm text-[#000A1E] outline-none focus:border-[#FE9800] cursor-text"
                         style={{ fontFamily: "var(--font-inter)" }}
