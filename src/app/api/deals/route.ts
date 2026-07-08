@@ -2,9 +2,34 @@ import { db } from "@/lib/db";
 import { ok, err } from "@/lib/api";
 import { requireAdminOrThrow } from "@/lib/auth-guard";
 import { AdminDealSchema } from "@/lib/schemas";
-import { getUserDealPrefs } from "@/lib/get-user-prefs";
+import { getUserDealPrefs, type DealTypePrefs } from "@/lib/get-user-prefs";
 
 const PAGE_SIZE = 20;
+
+const QUALITY_FLOOR = {
+  isActive:        true,
+  rating:          { gte: 4.0 },
+  reviewCount:     { gte: 100 },
+  currentPrice:    { gte: 10 },
+  discountPercent: { lte: 70 },
+};
+
+function buildDealTypeWhere(dealType: string, dtPrefs: DealTypePrefs) {
+  const where: Record<string, unknown> = { dealType: dealType as never };
+  if (dtPrefs.minPrice && dtPrefs.minPrice > 0) {
+    where.currentPrice = { ...(where.currentPrice as object ?? {}), gte: dtPrefs.minPrice };
+  }
+  if (dtPrefs.maxPrice && dtPrefs.maxPrice < 1000) {
+    where.currentPrice = { ...(where.currentPrice as object ?? {}), lte: dtPrefs.maxPrice };
+  }
+  if (dtPrefs.minDiscount && dtPrefs.minDiscount > 0) {
+    where.discountPercent = { ...(where.discountPercent as object ?? {}), gte: dtPrefs.minDiscount };
+  }
+  if (dtPrefs.brands.length > 0) {
+    where.brand = { in: dtPrefs.brands, mode: "insensitive" };
+  }
+  return where;
+}
 
 export async function GET(req: Request): Promise<Response> {
   const { searchParams } = new URL(req.url);
@@ -15,49 +40,76 @@ export async function GET(req: Request): Promise<Response> {
   const q        = searchParams.get("q")        ?? undefined;
 
   try {
-    const hasExplicitFilter = !!(category || type || q);
+    const orderBy =
+      sort === "discount" ? { discountPercent: "desc" as const }
+      : sort === "rating" ? { rating: "desc" as const }
+      :                     { createdAt: "desc" as const };
 
-    // Load category preferences for scoring (Load More matches "All Deals" behavior)
-    const prefs = hasExplicitFilter ? null : await getUserDealPrefs();
-    const hasCatPrefs = prefs && prefs.categorySlugs.length > 0;
-
-    const fetchSize = hasCatPrefs ? PAGE_SIZE * 3 : PAGE_SIZE;
-
-    const deals = await db.deal.findMany({
-      where: {
-        isActive: true,
+    // URL search/category — no preference filtering
+    if (category || q) {
+      const where = {
+        ...QUALITY_FLOOR,
         ...(category && { categories: { some: { category: { slug: category } } } }),
-        ...(type     && { dealType: type as never }),
-        ...(q        && { title: { contains: q, mode: "insensitive" } }),
-      },
-      orderBy:
-        sort === "discount" ? { discountPercent: "desc" }
-        : sort === "rating" ? { rating: "desc" }
-        :                     { createdAt: "desc" },
-      take:    hasCatPrefs ? fetchSize : PAGE_SIZE,
-      skip:    (page - 1) * PAGE_SIZE,
-      include: {
-        categories: {
-          include: { category: { select: { id: true, name: true, slug: true } } },
-        },
-      },
-    });
-
-    if (hasCatPrefs && prefs) {
-      // Score by category match only — matches "All Deals" grid behavior
-      const prefSlugs = new Set(prefs.categorySlugs);
-
-      const scored = deals.map((deal) => {
-        const dealCatSlugs = deal.categories.map((dc) => dc.category.slug);
-        const score = dealCatSlugs.some((s) => prefSlugs.has(s)) ? 1 : 0;
-        return { deal, score };
+        ...(q && { title: { contains: q, mode: "insensitive" as const } }),
+      };
+      const deals = await db.deal.findMany({
+        where, orderBy, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE,
+        include: { categories: { include: { category: { select: { id: true, name: true, slug: true } } } } },
       });
-
-      scored.sort((a, b) => b.score - a.score || (b.deal.discountPercent ?? 0) - (a.deal.discountPercent ?? 0));
-      const reordered = scored.slice(0, PAGE_SIZE).map((s) => s.deal);
-      return ok(reordered, { page, hasMore: deals.length === fetchSize });
+      return ok(deals, { page, hasMore: deals.length === PAGE_SIZE });
     }
 
+    // Load user preferences
+    const prefs = await getUserDealPrefs();
+    const hasCatPrefs = prefs.categorySlugs.length > 0;
+    const hasDealTypePrefs = Object.keys(prefs.byDealType).length > 0;
+    const catWhere = hasCatPrefs
+      ? { categories: { some: { category: { slug: { in: prefs.categorySlugs } } } } }
+      : {};
+
+    // URL type filter — apply that type's prefs
+    if (type) {
+      const dtPrefs = prefs.byDealType[type];
+      const dtWhere = dtPrefs ? (() => { const w = buildDealTypeWhere(type, dtPrefs); delete w.dealType; return w; })() : {};
+      const where = {
+        ...QUALITY_FLOOR, ...catWhere, ...dtWhere,
+        dealType: type as never,
+        currentPrice:    { ...QUALITY_FLOOR.currentPrice,    ...(dtWhere.currentPrice as object ?? {}) },
+        discountPercent: { ...QUALITY_FLOOR.discountPercent,  ...(dtWhere.discountPercent as object ?? {}) },
+      };
+      const deals = await db.deal.findMany({
+        where, orderBy, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE,
+        include: { categories: { include: { category: { select: { id: true, name: true, slug: true } } } } },
+      });
+      return ok(deals, { page, hasMore: deals.length === PAGE_SIZE });
+    }
+
+    // No URL filters — apply full preference filtering (matches My Deals page)
+    if (hasDealTypePrefs) {
+      const orClauses = Object.entries(prefs.byDealType).map(
+        ([dealType, dtPrefs]) => {
+          const dtWhere = buildDealTypeWhere(dealType, dtPrefs);
+          return {
+            ...QUALITY_FLOOR, ...catWhere, ...dtWhere,
+            currentPrice:    { ...QUALITY_FLOOR.currentPrice,    ...(dtWhere.currentPrice as object ?? {}) },
+            discountPercent: { ...QUALITY_FLOOR.discountPercent,  ...(dtWhere.discountPercent as object ?? {}) },
+          };
+        },
+      );
+      const where = orClauses.length === 1 ? orClauses[0] : { OR: orClauses };
+      const deals = await db.deal.findMany({
+        where, orderBy, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE,
+        include: { categories: { include: { category: { select: { id: true, name: true, slug: true } } } } },
+      });
+      return ok(deals, { page, hasMore: deals.length === PAGE_SIZE });
+    }
+
+    // Category prefs only or no prefs
+    const where = { ...QUALITY_FLOOR, ...catWhere };
+    const deals = await db.deal.findMany({
+      where, orderBy, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE,
+      include: { categories: { include: { category: { select: { id: true, name: true, slug: true } } } } },
+    });
     return ok(deals, { page, hasMore: deals.length === PAGE_SIZE });
   } catch {
     return err("Failed to fetch deals", 500);

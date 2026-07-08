@@ -41,7 +41,7 @@ export function AppFooter() {
             <p className="text-sm font-bold text-navy font-lato mb-5">Product</p>
             <div className="flex gap-10">
               <div className="space-y-4">
-                {[{ label: "Deals", href: "/deals" }, { label: "Watchlist", href: "/watchlist" }].map((l) => (
+                {[{ label: "My Deals", href: "/deals" }, { label: "Watchlist", href: "/watchlist" }].map((l) => (
                   <p key={l.label}>
                     <Link href={l.href} className="text-sm text-body hover:text-navy transition-colors font-lato">{l.label}</Link>
                   </p>

@@ -12,6 +12,7 @@ import { DealOfWeekSection } from "@/components/dashboard/deal-of-week-section";
 import { TrendingDealsSection } from "@/components/dashboard/trending-deals-section";
 import { LightningDealsSection } from "@/components/deals/lightning-deals-section";
 import { TopPicksSection } from "@/components/deals/top-picks-section";
+import { LimitedTimeSection } from "@/components/deals/limited-time-section";
 import type { DealItem } from "@/lib/deal-api/types";
 import { getUserDealPrefs, mergeDealTypePrefs, type DealTypePrefs } from "@/lib/get-user-prefs";
 
@@ -341,6 +342,7 @@ export default async function DashboardPage() {
   let dealOfWeekDeals: DealItem[] = [];
   let lightningDeals: DealItem[] = [];
   let topPicksDeals: DealItem[] = [];
+  let hotPriceDropsDeals: DealItem[] = [];
   let trendingLightning: DealItem[] = [];
   let trendingPriceDrops: DealItem[] = [];
   let trendingBestDeals: DealItem[] = [];
@@ -367,8 +369,8 @@ export default async function DashboardPage() {
     dealOfWeekDeals = mapDeals(dealOfWeekRows as RawDeal[]);
     const dealOfWeekIds = dealOfWeekRows.map((d) => d.id);
 
-    // 2. Lightning Deals + Top Picks for dedicated sections
-    const [liveRows, topPicksRows] = await Promise.all([
+    // 2. Lightning Deals + Top Picks + Hot Price Drops for dedicated sections
+    const [liveRows, topPicksRows, hotPriceDropsRows] = await Promise.all([
       db.deal.findMany({
         where: { dealType: "LIGHTNING_DEAL", isActive: true, expiresAt: { gt: new Date() } },
         orderBy: { expiresAt: "asc" },
@@ -381,6 +383,18 @@ export default async function DashboardPage() {
           dealType: { not: "LIGHTNING_DEAL" },
           rating: { gte: 4.2 }, reviewCount: { gte: 250 },
           currentPrice: { gte: 15 }, discountPercent: { gte: 25, lte: 60 },
+        },
+        orderBy: { discountPercent: "desc" },
+        take: 12,
+        include: { categories: { include: { category: { select: { name: true } } } } },
+      }),
+      db.deal.findMany({
+        where: {
+          isActive: true, imageUrl: { not: null },
+          dealType: { in: ["LIMITED_TIME", "PRICE_DROP"] },
+          rating: { gte: 4.0 }, reviewCount: { gte: 100 },
+          currentPrice: { gte: 10 }, discountPercent: { gte: 20, lte: 70 },
+          createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
         },
         orderBy: { discountPercent: "desc" },
         take: 12,
@@ -406,6 +420,9 @@ export default async function DashboardPage() {
       ...lightningDeals.map((d) => d.id),
     ]);
     topPicksDeals = reorderByPrefs(mapDeals(topPicksRows as RawDeal[]).filter((d) => !seenIds.has(d.id)), allDealTypePrefs);
+    for (const d of topPicksDeals) seenIds.add(d.id);
+
+    hotPriceDropsDeals = reorderByPrefs(mapDeals(hotPriceDropsRows as RawDeal[]).filter((d) => !seenIds.has(d.id)), priceDropPrefs);
 
     // 4. Trending — fetch 3 types for tabbed section
     const trendingBase = {
@@ -532,6 +549,11 @@ export default async function DashboardPage() {
       {/* Top Picks */}
       {topPicksDeals.length > 0 && (
         <TopPicksSection deals={topPicksDeals} watchlistMap={watchlistMap} />
+      )}
+
+      {/* Hot Price Drops */}
+      {hotPriceDropsDeals.length >= 3 && (
+        <LimitedTimeSection deals={hotPriceDropsDeals} watchlistMap={watchlistMap} />
       )}
 
       {/* Live Watchlist */}

@@ -46,7 +46,7 @@ export function CategoryNavDropdown() {
             : "font-medium text-body border-transparent hover:text-navy hover:border-badge-bg/40",
         )}
       >
-        {onDeals && activeLabel ? activeLabel : "Deals"}
+        {onDeals && activeLabel ? activeLabel : "My Deals"}
         <ChevronDown className={cn("w-3.5 h-3.5 transition-transform duration-200", open && "rotate-180")} />
       </button>
 
