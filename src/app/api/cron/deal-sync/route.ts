@@ -33,7 +33,7 @@ export async function GET(req: Request) {
   // Pre-flight token check — skip if not enough tokens for the job
   const requiredTokens = mode === "bestsellers" ? 600 : 2100;
   const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens !== null && estimatedTokens < requiredTokens) {
+  if (estimatedTokens === null || estimatedTokens < requiredTokens) {
     const cronName = mode === "bestsellers" ? "ltsd-bestsellers" : "ltsd-category-feed";
     logCron(cronName, "/api/cron/deal-sync", "WARNING",
       { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~${requiredTokens}`] },

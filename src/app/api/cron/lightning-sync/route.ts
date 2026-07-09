@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
   // Pre-flight token check — skip if not enough tokens
   const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens !== null && estimatedTokens < 550) {
+  if (estimatedTokens === null || estimatedTokens < 550) {
     logCron("ltsd-lightning", "/api/cron/lightning-sync", "WARNING",
       { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~550`] }, 0);
     return NextResponse.json({

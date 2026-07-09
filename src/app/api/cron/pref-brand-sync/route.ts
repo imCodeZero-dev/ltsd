@@ -25,7 +25,7 @@ export async function GET(req: Request) {
 
   // Pre-flight token check — skip if not enough tokens
   const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens !== null && estimatedTokens < 700) {
+  if (estimatedTokens === null || estimatedTokens < 700) {
     logCron("ltsd-pref-brands", "/api/cron/pref-brand-sync", "WARNING",
       { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~700`] }, 0);
     return NextResponse.json({

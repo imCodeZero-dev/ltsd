@@ -1,5 +1,6 @@
 import { ok, err } from "@/lib/api";
 import { requireAdminOrThrow } from "@/lib/auth-guard";
+import { getLastKnownTokens } from "@/lib/cron-auth";
 import {
   syncCategory,
   syncSearch,
@@ -8,6 +9,15 @@ import {
   seedDeals,
   cleanupInvalidDeals,
 } from "@/lib/deal-api/sync";
+
+/** Minimum token thresholds per action to avoid draining cron budget */
+const ACTION_TOKEN_COST: Record<string, number> = {
+  category: 110,
+  search:   20,
+  product:  5,
+  prices:   100,
+  seed:     2100,
+};
 
 /**
  * POST /api/deals/sync
@@ -32,6 +42,18 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const body = (await req.json()) as Record<string, unknown>;
     const action = body.action as string;
+
+    // Token budget guard — prevent admin syncs from draining cron budget
+    const requiredTokens = ACTION_TOKEN_COST[action];
+    if (requiredTokens) {
+      const estimated = await getLastKnownTokens();
+      if (estimated !== null && estimated < requiredTokens) {
+        return err(
+          `Insufficient tokens (~${estimated} available, ~${requiredTokens} needed). Wait for refill.`,
+          429,
+        );
+      }
+    }
 
     switch (action) {
       case "category": {

@@ -403,9 +403,17 @@ export async function seedDeals(
   const allErrors: string[] = [];
 
   for (const cat of categories) {
-    const result = await syncCategory(cat, limitPerCategory);
-    total += result.synced;
-    allErrors.push(...result.errors);
+    try {
+      const result = await syncCategory(cat, limitPerCategory);
+      total += result.synced;
+      allErrors.push(...result.errors);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      allErrors.push(`${cat}: ${msg}`);
+      logError("sync:seed", err, { category: cat });
+      // Stop early on 429 — no point trying remaining categories
+      if (msg.includes("429")) break;
+    }
   }
 
   return { total, errors: allErrors };

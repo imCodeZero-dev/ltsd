@@ -28,7 +28,7 @@ export async function GET(req: Request) {
 
   // Pre-flight token check — skip if not enough tokens
   const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens !== null && estimatedTokens < 100) {
+  if (estimatedTokens === null || estimatedTokens < 100) {
     logCron("ltsd-maintenance", "/api/cron/daily-sync", "WARNING",
       { errors: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~100`] }, 0);
     return NextResponse.json({

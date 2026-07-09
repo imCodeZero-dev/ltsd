@@ -272,8 +272,31 @@ async function keepaFetch<T>(path: string, params: Record<string, string>): Prom
   }
 
   const start = Date.now();
-  const res = await fetch(url.toString(), { cache: "no-store" });
-  const duration = Date.now() - start;
+  let res = await fetch(url.toString(), { cache: "no-store" });
+  let duration = Date.now() - start;
+
+  // 429 retry: wait for tokens to refill, then retry once
+  if (res.status === 429) {
+    const retryBody = await res.text();
+    let waitMs = 30_000; // default 30s
+    try {
+      const errData = JSON.parse(retryBody);
+      if (typeof errData.refillIn === "number" && errData.refillIn > 0) {
+        waitMs = Math.min(errData.refillIn, 60_000); // cap at 60s
+      }
+    } catch { /* use default wait */ }
+
+    logApiCall({
+      endpoint: path, params, responseStatus: 429,
+      tokensConsumed: 0, tokensLeft: undefined,
+    }, duration);
+
+    await new Promise((r) => setTimeout(r, waitMs));
+
+    const retryStart = Date.now();
+    res = await fetch(url.toString(), { cache: "no-store" });
+    duration = Date.now() - retryStart;
+  }
 
   if (!res.ok) {
     const body = await res.text();

@@ -18,13 +18,20 @@ export function verifyCronSecret(authHeader: string | null): boolean {
 
 /**
  * Check last known Keepa token balance from system logs.
- * Returns the tokensLeft from the most recent Keepa API call
+ * Returns the tokensLeft from the most recent SUCCESSFUL Keepa API call
  * plus estimated refill since that call (20 tokens/min, capped at 28,800).
  * On every real Keepa call the estimate resets to the actual balance.
+ *
+ * Skips 429/error logs (they have undefined tokensLeft) so the estimator
+ * always works from a real baseline.
  */
 export async function getLastKnownTokens(): Promise<number | null> {
   const log = await db.systemLog.findFirst({
-    where: { type: "API_CALL", source: { startsWith: "keepa:" } },
+    where: {
+      type: "API_CALL",
+      source: { startsWith: "keepa:" },
+      status: "SUCCESS",
+    },
     orderBy: { createdAt: "desc" },
     select: { metadata: true, createdAt: true },
   });
