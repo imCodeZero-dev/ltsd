@@ -10,9 +10,9 @@ import type {
 
 export const dynamic = "force-dynamic";
 
+import { TOKEN_POOL_MAX, REFILL_RATE } from "@/lib/cron-auth";
+
 const PAGE_SIZE = 50;
-const DAILY_BUDGET = 28_800;
-const REFILL_RATE = 20;
 
 // Known cron sources — used to query last run for each
 const CRON_SOURCES = [
@@ -136,12 +136,12 @@ export default async function AdminLogsPage() {
     let tokensLeft = rawTokens;
     if (rawTokens !== null) {
       const minutesSince = (Date.now() - keepaLog.createdAt.getTime()) / 60_000;
-      tokensLeft = Math.min(DAILY_BUDGET, rawTokens + Math.floor(minutesSince * REFILL_RATE));
+      tokensLeft = Math.min(TOKEN_POOL_MAX, rawTokens + Math.floor(minutesSince * REFILL_RATE));
     }
 
     let estimatedFullRefill: string | null = null;
-    if (tokensLeft !== null && tokensLeft < DAILY_BUDGET) {
-      const deficit      = DAILY_BUDGET - tokensLeft;
+    if (tokensLeft !== null && tokensLeft < TOKEN_POOL_MAX) {
+      const deficit      = TOKEN_POOL_MAX - tokensLeft;
       const minutesToFull = deficit / REFILL_RATE;
       estimatedFullRefill = new Date(
         Date.now() + minutesToFull * 60_000
@@ -153,7 +153,7 @@ export default async function AdminLogsPage() {
       refillRate:          REFILL_RATE,
       refillIn,
       lastUpdated:         keepaLog.createdAt.toISOString(),
-      dailyBudget:         DAILY_BUDGET,
+      dailyBudget:         TOKEN_POOL_MAX,
       estimatedFullRefill,
     };
   } else {
@@ -162,7 +162,7 @@ export default async function AdminLogsPage() {
       refillRate:          REFILL_RATE,
       refillIn:            null,
       lastUpdated:         null,
-      dailyBudget:         DAILY_BUDGET,
+      dailyBudget:         TOKEN_POOL_MAX,
       estimatedFullRefill: null,
     };
   }

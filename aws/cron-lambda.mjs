@@ -9,18 +9,18 @@
  *   2. Set environment variables: APP_URL, CRON_SECRET
  *   3. Create 6 EventBridge rules (see below)
  *
- * Schedule (all times UTC, spaced 4h+ to avoid token exhaustion):
+ * Schedule (all times UTC, spaced 1h+ so pool fully refills):
  *
  *   ltsd-lightning-am       cron(0 2 * * ? *)     /api/cron/lightning-sync         500 tokens
- *   ltsd-category-feed      cron(0 6 * * ? *)     /api/cron/deal-sync              ~1,995 tokens (19 cats × ~105)
- *   ltsd-bestsellers        cron(0 10 * * ? *)    /api/cron/deal-sync?mode=bestsellers  ~540 tokens
- *   ltsd-pref-brands        cron(0 11 * * ? *)    /api/cron/pref-brand-sync        ~600 tokens (varies by brand count)
+ *   ltsd-category-feed      cron(0 6 * * ? *)     /api/cron/deal-sync              ~665 tokens (19 cats × ~35)
+ *   ltsd-bestsellers        cron(0 10 * * ? *)    /api/cron/deal-sync?mode=bestsellers  ~480 tokens
+ *   ltsd-pref-brands        cron(0 11 * * ? *)    /api/cron/pref-brand-sync        ~300 tokens (varies by brand count)
  *   ltsd-lightning-pm       cron(0 14 * * ? *)    /api/cron/lightning-sync          500 tokens
  *   ltsd-maintenance        cron(0 18 * * ? *)    /api/cron/daily-sync             ~50 tokens
  *                                                  (price check + soft expiry + cleanup + weekly picks + log cleanup)
  *
- * Token budget: ~4,185/day out of 28,800 (14.5%)
- * Min gap between heavy jobs: 4 hours = 4,800 tokens refill
+ * Token pool: 1,200 max (20/min × 60 min expiry — NOT 28,800/day)
+ * Pool fully refills in 60 minutes. Jobs spaced 1h+ apart.
  */
 
 export const handler = async (event) => {

@@ -1,9 +1,7 @@
 import { db } from "@/lib/db";
 import { ok, err } from "@/lib/api";
 import { requireAdminOrThrow } from "@/lib/auth-guard";
-
-const DAILY_BUDGET = 28_800;
-const REFILL_RATE  = 20; // tokens per minute
+import { TOKEN_POOL_MAX, REFILL_RATE } from "@/lib/cron-auth";
 
 export async function GET(): Promise<Response> {
   try { await requireAdminOrThrow(); } catch (e) { return e as Response; }
@@ -22,7 +20,7 @@ export async function GET(): Promise<Response> {
         refillRate:          REFILL_RATE,
         refillIn:            null,
         lastUpdated:         null,
-        dailyBudget:         DAILY_BUDGET,
+        dailyBudget:         TOKEN_POOL_MAX,
         estimatedFullRefill: null,
         message:             "No API call logs yet",
       });
@@ -32,17 +30,17 @@ export async function GET(): Promise<Response> {
     const rawTokens  = typeof meta.tokensLeft === "number" ? meta.tokensLeft : null;
     const refillIn   = typeof meta.refillIn === "number" ? meta.refillIn : null;
 
-    // Add estimated refill since last log (20 tokens/min, capped at 28,800)
+    // Add estimated refill since last log (20 tokens/min, capped at 1,200)
     let tokensLeft = rawTokens;
     if (rawTokens !== null) {
       const minutesSince = (Date.now() - latest.createdAt.getTime()) / 60_000;
-      tokensLeft = Math.min(DAILY_BUDGET, rawTokens + Math.floor(minutesSince * REFILL_RATE));
+      tokensLeft = Math.min(TOKEN_POOL_MAX, rawTokens + Math.floor(minutesSince * REFILL_RATE));
     }
 
     // Estimate when tokens will be full based on estimated balance
     let estimatedFullRefill: string | null = null;
-    if (tokensLeft !== null && tokensLeft < DAILY_BUDGET) {
-      const deficit = DAILY_BUDGET - tokensLeft;
+    if (tokensLeft !== null && tokensLeft < TOKEN_POOL_MAX) {
+      const deficit = TOKEN_POOL_MAX - tokensLeft;
       const minutesToFull = deficit / REFILL_RATE;
       estimatedFullRefill = new Date(Date.now() + minutesToFull * 60_000).toISOString();
     }
@@ -52,7 +50,7 @@ export async function GET(): Promise<Response> {
       refillRate:  REFILL_RATE,
       refillIn,
       lastUpdated: latest.createdAt.toISOString(),
-      dailyBudget: DAILY_BUDGET,
+      dailyBudget: TOKEN_POOL_MAX,
       estimatedFullRefill,
     });
   } catch {

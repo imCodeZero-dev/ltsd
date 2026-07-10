@@ -10,9 +10,9 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  *   ?mode=deals (default) — 19 categories, quality-filtered price drops
  *   ?mode=bestsellers     — top sellers from 6 categories
  *
- * Token cost:
- *   Deal feed:     ~1995 tokens (19 categories × ~105 tokens)
- *   Best sellers:  ~540 tokens (6 categories × ~90 tokens)
+ * Token cost (pool max = 1,200):
+ *   Deal feed:     ~665 tokens (19 categories × ~35 tokens)
+ *   Best sellers:  ~480 tokens (6 categories × ~80 tokens)
  *
  * Schedule:
  *   Deal feed:    once per day (6 AM UTC)
@@ -31,7 +31,8 @@ export async function GET(req: Request) {
   const startTime = Date.now();
 
   // Pre-flight token check — skip if not enough tokens for the job
-  const requiredTokens = mode === "bestsellers" ? 600 : 2100;
+  // Pool max = 1,200 (20/min × 60 min expiry). Tokens refill during sequential processing.
+  const requiredTokens = mode === "bestsellers" ? 500 : 700;
   const estimatedTokens = await getLastKnownTokens();
   if (estimatedTokens === null || estimatedTokens < requiredTokens) {
     const cronName = mode === "bestsellers" ? "ltsd-bestsellers" : "ltsd-category-feed";
@@ -60,7 +61,7 @@ export async function GET(req: Request) {
       const allErrors: string[] = [];
 
       for (const cat of CATEGORIES) {
-        const result = await syncBestSellers(cat.id, cat.name, 40);
+        const result = await syncBestSellers(cat.id, cat.name, 30);
         total += result.synced;
         allErrors.push(...result.errors);
       }
@@ -80,8 +81,8 @@ export async function GET(req: Request) {
       });
     }
 
-    // Default: 19 categories deal feed
-    const result = await seedDeals(undefined, 50);
+    // Default: 19 categories deal feed (limit=30 fits within 1,200 token pool)
+    const result = await seedDeals(undefined, 30);
 
     logCron("ltsd-category-feed", "/api/cron/deal-sync",
       result.errors.length > 0 ? "WARNING" : "SUCCESS",

@@ -10,13 +10,13 @@ import {
   cleanupInvalidDeals,
 } from "@/lib/deal-api/sync";
 
-/** Minimum token thresholds per action to avoid draining cron budget */
+/** Minimum token thresholds per action (pool max = 1,200) */
 const ACTION_TOKEN_COST: Record<string, number> = {
-  category: 110,
+  category: 30,    // 5 (deal) + up to 20 (product)
   search:   20,
   product:  5,
   prices:   100,
-  seed:     2100,
+  seed:     500,   // 19 cats × ~25 tokens with default limit=20
 };
 
 /**

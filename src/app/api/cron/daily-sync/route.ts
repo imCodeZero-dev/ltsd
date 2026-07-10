@@ -16,6 +16,7 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  *   4. Weekly picks — auto-pick deals of the week (Mondays only)
  *
  * Schedule: cron(0 18 * * ? *)  [6 PM UTC daily]
+ * Token pool max = 1,200 (20/min × 60 min expiry).
  * Protected by CRON_SECRET bearer token.
  */
 export async function GET(req: Request) {
@@ -28,12 +29,12 @@ export async function GET(req: Request) {
 
   // Pre-flight token check — skip if not enough tokens
   const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens === null || estimatedTokens < 100) {
+  if (estimatedTokens === null || estimatedTokens < 60) {
     logCron("ltsd-maintenance", "/api/cron/daily-sync", "WARNING",
-      { errors: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~100`] }, 0);
+      { errors: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~60`] }, 0);
     return NextResponse.json({
       ok: false, skipped: true,
-      reason: `Insufficient tokens (~${estimatedTokens} available, ~100 needed). Will retry next cycle.`,
+      reason: `Insufficient tokens (~${estimatedTokens} available, ~60 needed). Will retry next cycle.`,
       timestamp: new Date().toISOString(),
     });
   }

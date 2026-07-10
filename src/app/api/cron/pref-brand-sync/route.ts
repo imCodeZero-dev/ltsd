@@ -10,7 +10,7 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  * Aggregates unique brands across all users, then searches Keepa once per brand.
  *
  * Token cost: ~15 tokens per unique brand.
- * 40 brands = ~600 tokens. Budget: 28,800/day.
+ * 40 brands = ~600 tokens. Pool max = 1,200 (20/min × 60 min expiry).
  *
  * Schedule: once per day (11 AM UTC).
  * Protected by CRON_SECRET bearer token.
@@ -25,12 +25,12 @@ export async function GET(req: Request) {
 
   // Pre-flight token check — skip if not enough tokens
   const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens === null || estimatedTokens < 700) {
+  if (estimatedTokens === null || estimatedTokens < 400) {
     logCron("ltsd-pref-brands", "/api/cron/pref-brand-sync", "WARNING",
-      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~700`] }, 0);
+      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~400`] }, 0);
     return NextResponse.json({
       ok: false, skipped: true,
-      reason: `Insufficient tokens (~${estimatedTokens} available, ~700 needed). Will retry next cycle.`,
+      reason: `Insufficient tokens (~${estimatedTokens} available, ~400 needed). Will retry next cycle.`,
       timestamp: new Date().toISOString(),
     });
   }

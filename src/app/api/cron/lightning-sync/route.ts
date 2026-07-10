@@ -9,7 +9,7 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  * Syncs all currently AVAILABLE Lightning Deals from Keepa → DB.
  * Populates real: percentClaimed, rating, totalReviews, endTime (countdown timer).
  *
- * Token cost: 500 per run.
+ * Token cost: 500 per run (pool max = 1,200).
  * Recommended schedule: every 4 hours (lightning deals cycle frequently).
  * Protected by CRON_SECRET bearer token.
  */
@@ -23,12 +23,12 @@ export async function GET(req: Request) {
 
   // Pre-flight token check — skip if not enough tokens
   const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens === null || estimatedTokens < 550) {
+  if (estimatedTokens === null || estimatedTokens < 500) {
     logCron("ltsd-lightning", "/api/cron/lightning-sync", "WARNING",
-      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~550`] }, 0);
+      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~500`] }, 0);
     return NextResponse.json({
       ok: false, skipped: true,
-      reason: `Insufficient tokens (~${estimatedTokens} available, ~550 needed). Will retry next cycle.`,
+      reason: `Insufficient tokens (~${estimatedTokens} available, ~500 needed). Will retry next cycle.`,
       timestamp: new Date().toISOString(),
     });
   }

@@ -4,11 +4,8 @@
  * All pages read from DB — never from Keepa directly at request time.
  * Keepa is called only from cron jobs or one-time detail page on-demand sync.
  *
- * Token budget: 20/min = 28,800/day
- * Schedule:
- *   Every 4h  → syncLightningDeals()     500 tokens × 6 = 3,000/day
- *   Every 6h  → syncCategory() × 3       ~165 tokens × 4 = 660/day
- *   Once/day  → syncBestSellers() × 3    ~270 tokens/day
+ * Token pool: 1,200 max (20/min × 60 min expiry — tokens expire after 60 min).
+ * Pool fully refills in 60 minutes. Jobs spaced 1h+ apart.
  */
 
 import { db } from "@/lib/db";

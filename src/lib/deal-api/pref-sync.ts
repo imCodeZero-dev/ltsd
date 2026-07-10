@@ -17,7 +17,7 @@
  *   - Nothing is ever deleted here
  *
  * Token cost: ~15 tokens per brand (1 search + 1 product batch)
- * With 40 unique brands = ~600 tokens. Budget: 28,800/day.
+ * With 40 unique brands = ~600 tokens. Pool max: 1,200 (20/min × 60 min expiry).
  */
 
 import { db } from "@/lib/db";
