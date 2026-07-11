@@ -225,7 +225,13 @@ export async function syncCategory(
 
   for (const { item, historyPoints, priceStats } of results) {
     try {
-      await upsertDeal(item, category, { priceStats, historyPoints });
+      // Use the product's actual category from Keepa's categoryTree, not the
+      // queried category. Keepa's /deal endpoint returns misclassified products
+      // (e.g. shoes under "Cell Phones") — the /product categoryTree is accurate.
+      const actualCategory = item.category && item.category !== "General"
+        ? item.category
+        : category;
+      await upsertDeal(item, actualCategory, { priceStats, historyPoints });
       synced++;
     } catch (err) {
       errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
