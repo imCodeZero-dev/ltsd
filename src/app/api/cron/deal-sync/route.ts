@@ -10,13 +10,16 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  *   ?mode=deals (default) — 19 categories, quality-filtered price drops
  *   ?mode=bestsellers     — top sellers from 6 categories
  *
- * Supports batching via ?batch=0|1|2|3 to stay within CloudFront's
- * ~30 second gateway timeout. The Lambda calls this 4 times sequentially
+ * Supports batching via ?batch=0..6 to stay within CloudFront's
+ * ~30 second gateway timeout. The Lambda calls this 7 times sequentially
  * for category feed, 2 times for bestsellers.
  *
  * Token cost per batch (pool max = 1,200):
- *   Deal feed batch:     ~250 tokens (5 categories × ~50 tokens)
+ *   Deal feed batch:     ~130 tokens (3 categories × ~45 tokens)
  *   Best sellers batch:  ~240 tokens (3 categories × ~80 tokens)
+ *   Total category feed: ~855 tokens (19 cats × ~45)
+ *
+ * Actual /product cost is ~2 tokens/ASIN (history=1 doubles it).
  *
  * Schedule:
  *   Deal feed:    once per day (6 AM UTC)
@@ -25,12 +28,16 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  * Protected by CRON_SECRET bearer token.
  */
 
-// 19 categories split into 4 batches for category feed
+// 19 categories split into 7 batches of 3 (last has 1) for category feed
+// Smaller batches keep each request under CloudFront's ~30s timeout
 const DEAL_BATCHES = [
-  ["Appliances", "Automotive", "Baby Products", "Beauty & Personal Care", "Camera & Photo"],
-  ["Cell Phones & Accessories", "Clothing", "Computers & Accessories", "Electronics", "Grocery & Gourmet Food"],
-  ["Health & Household", "Health & Personal Care", "Home & Kitchen", "Office Products", "Pet Supplies"],
-  ["Sports & Outdoors", "Tools & Home Improvement", "Toys & Games", "Video Games"],
+  ["Appliances", "Automotive", "Baby Products"],
+  ["Beauty & Personal Care", "Camera & Photo", "Cell Phones & Accessories"],
+  ["Clothing", "Computers & Accessories", "Electronics"],
+  ["Grocery & Gourmet Food", "Health & Household", "Health & Personal Care"],
+  ["Home & Kitchen", "Office Products", "Pet Supplies"],
+  ["Sports & Outdoors", "Tools & Home Improvement", "Toys & Games"],
+  ["Video Games"],
 ];
 
 // 6 categories split into 2 batches for bestsellers
@@ -58,8 +65,8 @@ export async function GET(req: Request) {
   const batchParam = searchParams.get("batch");
   const startTime = Date.now();
 
-  // Pre-flight token check — lower threshold for batched calls
-  const requiredTokens = batchParam !== null ? 250 : (mode === "bestsellers" ? 500 : 700);
+  // Pre-flight token check — lower threshold for batched calls (3 cats × ~45 tokens)
+  const requiredTokens = batchParam !== null ? 150 : (mode === "bestsellers" ? 500 : 700);
   const estimatedTokens = await getLastKnownTokens();
   if (estimatedTokens === null || estimatedTokens < requiredTokens) {
     const cronName = mode === "bestsellers" ? "ltsd-bestsellers" : "ltsd-category-feed";
@@ -84,7 +91,7 @@ export async function GET(req: Request) {
       const allErrors: string[] = [];
 
       for (const cat of categories) {
-        const result = await syncBestSellers(cat.id, cat.name, 30);
+        const result = await syncBestSellers(cat.id, cat.name, 20);
         total += result.synced;
         allErrors.push(...result.errors);
       }
@@ -108,7 +115,7 @@ export async function GET(req: Request) {
       ? DEAL_BATCHES[batchIndex]
       : undefined; // undefined = all 19 (seedDeals default)
 
-    const result = await seedDeals(categories, 30);
+    const result = await seedDeals(categories, 20);
 
     logCron("ltsd-category-feed", "/api/cron/deal-sync",
       result.errors.length > 0 ? "WARNING" : "SUCCESS",

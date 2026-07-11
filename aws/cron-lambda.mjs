@@ -27,7 +27,7 @@
  *   bestsellers (6 cats) take longer than 30s as a single call → 504.
  *   This Lambda splits them into sequential batches that each finish
  *   within ~15s:
- *     - deal-sync (category feed): 4 batches (batch=0,1,2,3)
+ *     - deal-sync (category feed): 7 batches (batch=0..6), 3 cats each
  *     - deal-sync?mode=bestsellers: 2 batches (batch=0,1)
  *   No EventBridge changes needed — the Lambda handles the splitting.
  */
@@ -63,11 +63,11 @@ export const handler = async (event) => {
   const isBestsellers = endpoint === "/api/cron/deal-sync?mode=bestsellers";
 
   if (isCategoryFeed) {
-    // 19 categories → 4 batches of 5/5/5/4
+    // 19 categories → 7 batches of 3 (last has 1)
     const results = [];
-    for (let batch = 0; batch < 4; batch++) {
+    for (let batch = 0; batch < 7; batch++) {
       const url = `${APP_URL}/api/cron/deal-sync?batch=${batch}`;
-      console.log(`[LTSD Cron] Category feed batch ${batch}/3: ${url}`);
+      console.log(`[LTSD Cron] Category feed batch ${batch}/6: ${url}`);
       const result = await callEndpoint(url, CRON_SECRET);
       results.push({ batch, ...result });
       if (!result.ok) {
