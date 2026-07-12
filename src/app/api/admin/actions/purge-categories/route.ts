@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { requireAdminOrThrow } from "@/lib/auth-guard";
+import { verifyCronSecret } from "@/lib/cron-auth";
 
 /**
  * POST /api/admin/actions/purge-categories
@@ -15,7 +15,9 @@ import { requireAdminOrThrow } from "@/lib/auth-guard";
  * DELETE THIS FILE after use.
  */
 export async function POST(req: Request): Promise<Response> {
-  try { await requireAdminOrThrow(); } catch (e) { return e as Response; }
+  if (!verifyCronSecret(req.headers.get("authorization"))) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const deleted = await db.dealCategory.deleteMany({});
 
