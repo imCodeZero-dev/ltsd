@@ -373,7 +373,9 @@ function mapProduct(p: KeepaProduct): DealItem | null {
     ? Math.round(((originalCents - currentCents) / originalCents) * 100)
     : 0;
 
-  const categoryId = p.categoryTree?.[0]?.catId;
+  // Scan all categoryTree levels for a known category (root→leaf order from Keepa).
+  // Using [0] alone misses cases where the matching catId is deeper in the tree.
+  const categoryId = p.categoryTree?.find((c: { catId: number }) => CATEGORY_MAP[c.catId] !== undefined)?.catId;
   const category   = categoryId ? (CATEGORY_MAP[categoryId] ?? "General") : "General";
 
   // Rating stored as integer ×10 (e.g. 43 = 4.3★)
