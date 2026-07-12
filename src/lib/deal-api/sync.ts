@@ -103,7 +103,7 @@ async function upsertDeal(
     update: data,
   });
 
-  // Link to category — replace old links so misclassified deals get corrected
+  // Link to category — upsert so deals can belong to multiple categories
   if (categoryName) {
     const catSlug = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const category = await db.category.upsert({
@@ -111,9 +111,10 @@ async function upsertDeal(
       create: { name: categoryName, slug: catSlug },
       update: {},
     });
-    await db.dealCategory.deleteMany({ where: { dealId: deal.id } });
-    await db.dealCategory.create({
-      data: { dealId: deal.id, categoryId: category.id },
+    await db.dealCategory.upsert({
+      where:  { dealId_categoryId: { dealId: deal.id, categoryId: category.id } },
+      create: { dealId: deal.id, categoryId: category.id },
+      update: {},
     });
   }
 
@@ -224,13 +225,7 @@ export async function syncCategory(
 
   for (const { item, historyPoints, priceStats } of results) {
     try {
-      // Use the product's actual category from Keepa's categoryTree, not the
-      // queried category. Keepa's /deal endpoint returns misclassified products
-      // (e.g. shoes under "Cell Phones") — the /product categoryTree is accurate.
-      const actualCategory = item.category && item.category !== "General"
-        ? item.category
-        : category;
-      await upsertDeal(item, actualCategory, { priceStats, historyPoints });
+      await upsertDeal(item, category, { priceStats, historyPoints });
       synced++;
     } catch (err) {
       errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
