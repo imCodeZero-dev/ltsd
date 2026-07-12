@@ -490,6 +490,7 @@ export class KeepaProvider implements DealApiProvider {
     const catId = Object.entries(CATEGORY_MAP).find(
       ([, name]) => name.toLowerCase() === category.toLowerCase()
     )?.[0] ?? "172282";
+    const queriedCatId = Number(catId);
 
     const selection = {
       page: 0,
@@ -540,18 +541,18 @@ export class KeepaProvider implements DealApiProvider {
         const item = mapProduct(p);
         if (!item) return null;
 
-        // Cross-category junk filter: if the product's resolved category is a
-        // KNOWN different category (not "General"), skip it. "General" means the
-        // product's root catId isn't in our map (a sub-category) — allow those
-        // through since they legitimately belong to the queried category.
-        // Example: garden tool resolved as "Sports & Outdoors" when queried under
-        // "Toys & Games" → skip. Phone case resolved as "General" when queried
-        // under "Cell Phones" → keep (it's a sub-node of Cell Phones).
-        if (
-          item.category &&
-          item.category !== "General" &&
-          item.category.toLowerCase() !== category.toLowerCase()
-        ) {
+        // Strong category validation: the queried root catId MUST appear somewhere
+        // in the product's categoryTree (the full ancestor path, leaf→root).
+        // If our catId isn't an ancestor of the product, it doesn't belong here.
+        // This catches BOTH failure modes:
+        //   (a) Products from unmapped categories that resolve to "General"
+        //       (e.g. drum pedal returned under Beauty & Personal Care)
+        //   (b) Products from a known different mapped category
+        //       (e.g. phone case returned under Camera & Photo)
+        const catIdInTree = p.categoryTree?.some(
+          (c: { catId: number }) => c.catId === queriedCatId
+        ) ?? false;
+        if (!catIdInTree) {
           return null;
         }
 
