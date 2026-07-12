@@ -25,13 +25,8 @@ const VALID_DEAL_TYPES = new Set([
   "COUPON", "DEAL_OF_DAY", "PRIME_EXCLUSIVE",
 ]);
 
-// Base quality floor (PDF tier 2) — never relaxed
 const QUALITY_FLOOR = {
-  isActive:        true,
-  rating:          { gte: 4.0 },
-  reviewCount:     { gte: 100 },
-  currentPrice:    { gte: 10 },
-  discountPercent: { lte: 70 },
+  isActive: true,
 };
 
 /**
@@ -112,9 +107,6 @@ async function getDeals(
         ...catWhere,
         ...dtWhere,
         dealType: filters.type as never,
-        // Deep-merge nested price/discount so quality floor isn't lost
-        currentPrice:    { ...QUALITY_FLOOR.currentPrice,    ...(dtWhere.currentPrice as object ?? {}) },
-        discountPercent: { ...QUALITY_FLOOR.discountPercent,  ...(dtWhere.discountPercent as object ?? {}) },
       };
 
       const [rows, total] = await Promise.all([
@@ -134,9 +126,6 @@ async function getDeals(
             ...QUALITY_FLOOR,
             ...catWhere,
             ...dtWhere,
-            // Deep-merge nested price/discount so quality floor isn't lost
-            currentPrice:    { ...QUALITY_FLOOR.currentPrice,    ...(dtWhere.currentPrice as object ?? {}) },
-            discountPercent: { ...QUALITY_FLOOR.discountPercent,  ...(dtWhere.discountPercent as object ?? {}) },
           };
         },
       );

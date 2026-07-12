@@ -7,11 +7,7 @@ import { getUserDealPrefs, type DealTypePrefs } from "@/lib/get-user-prefs";
 const PAGE_SIZE = 20;
 
 const QUALITY_FLOOR = {
-  isActive:        true,
-  rating:          { gte: 4.0 },
-  reviewCount:     { gte: 100 },
-  currentPrice:    { gte: 10 },
-  discountPercent: { lte: 70 },
+  isActive: true,
 };
 
 function buildDealTypeWhere(dealType: string, dtPrefs: DealTypePrefs) {
@@ -74,8 +70,6 @@ export async function GET(req: Request): Promise<Response> {
       const where = {
         ...QUALITY_FLOOR, ...catWhere, ...dtWhere,
         dealType: type as never,
-        currentPrice:    { ...QUALITY_FLOOR.currentPrice,    ...(dtWhere.currentPrice as object ?? {}) },
-        discountPercent: { ...QUALITY_FLOOR.discountPercent,  ...(dtWhere.discountPercent as object ?? {}) },
       };
       const deals = await db.deal.findMany({
         where, orderBy, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE,
@@ -91,8 +85,6 @@ export async function GET(req: Request): Promise<Response> {
           const dtWhere = buildDealTypeWhere(dealType, dtPrefs);
           return {
             ...QUALITY_FLOOR, ...catWhere, ...dtWhere,
-            currentPrice:    { ...QUALITY_FLOOR.currentPrice,    ...(dtWhere.currentPrice as object ?? {}) },
-            discountPercent: { ...QUALITY_FLOOR.discountPercent,  ...(dtWhere.discountPercent as object ?? {}) },
           };
         },
       );
