@@ -103,7 +103,7 @@ async function upsertDeal(
     update: data,
   });
 
-  // Link to category
+  // Link to category — replace old links so misclassified deals get corrected
   if (categoryName) {
     const catSlug = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const category = await db.category.upsert({
@@ -111,10 +111,9 @@ async function upsertDeal(
       create: { name: categoryName, slug: catSlug },
       update: {},
     });
-    await db.dealCategory.upsert({
-      where:  { dealId_categoryId: { dealId: deal.id, categoryId: category.id } },
-      create: { dealId: deal.id, categoryId: category.id },
-      update: {},
+    await db.dealCategory.deleteMany({ where: { dealId: deal.id } });
+    await db.dealCategory.create({
+      data: { dealId: deal.id, categoryId: category.id },
     });
   }
 
