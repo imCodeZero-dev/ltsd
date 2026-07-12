@@ -533,8 +533,18 @@ export class KeepaProvider implements DealApiProvider {
       rating: "1",
     });
 
+    const queriedCatId = Number(catId);
+
     return (productData.products ?? [])
       .map((p) => {
+        // Validate: product's categoryTree must contain the queried category ID
+        // at ANY level. This filters out Keepa's cross-listed junk (e.g. DVDs
+        // returned under "Toys & Games", phone cases under "Camera & Photo").
+        const productCatIds = (p.categoryTree ?? []).map((c: { catId: number }) => c.catId);
+        if (productCatIds.length > 0 && !productCatIds.includes(queriedCatId)) {
+          return null;
+        }
+
         const item = mapProduct(p);
         if (!item) return null;
         const info = dealInfoMap.get(p.asin);
