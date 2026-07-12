@@ -533,20 +533,26 @@ export class KeepaProvider implements DealApiProvider {
       rating: "1",
     });
 
-    const queriedCatId = Number(catId);
-
     return (productData.products ?? [])
       .map((p) => {
-        // Validate: product's categoryTree must contain the queried category ID
-        // at ANY level. This filters out Keepa's cross-listed junk (e.g. DVDs
-        // returned under "Toys & Games", phone cases under "Camera & Photo").
-        const productCatIds = (p.categoryTree ?? []).map((c: { catId: number }) => c.catId);
-        if (productCatIds.length > 0 && !productCatIds.includes(queriedCatId)) {
+        const item = mapProduct(p);
+        if (!item) return null;
+
+        // Cross-category junk filter: if the product's resolved category is a
+        // KNOWN different category (not "General"), skip it. "General" means the
+        // product's root catId isn't in our map (a sub-category) — allow those
+        // through since they legitimately belong to the queried category.
+        // Example: garden tool resolved as "Sports & Outdoors" when queried under
+        // "Toys & Games" → skip. Phone case resolved as "General" when queried
+        // under "Cell Phones" → keep (it's a sub-node of Cell Phones).
+        if (
+          item.category &&
+          item.category !== "General" &&
+          item.category.toLowerCase() !== category.toLowerCase()
+        ) {
           return null;
         }
 
-        const item = mapProduct(p);
-        if (!item) return null;
         const info = dealInfoMap.get(p.asin);
         if (info?.dealType !== undefined) {
           const mapped = mapDealType(info.dealType);
