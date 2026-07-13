@@ -385,7 +385,6 @@ export async function seedDeals(
     "Electronics",
     "Grocery & Gourmet Food",
     "Health & Household",
-    "Health & Personal Care",
     "Home & Kitchen",
     "Office Products",
     "Pet Supplies",

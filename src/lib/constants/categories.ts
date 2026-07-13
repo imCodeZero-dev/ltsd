@@ -27,7 +27,6 @@ export const SYNCED_CATEGORIES: CategoryDef[] = [
   { slug: "electronics",             name: "Electronics" },
   { slug: "grocery-gourmet-food",    name: "Grocery & Gourmet Food" },
   { slug: "health-household",        name: "Health & Household" },
-  { slug: "health-personal-care",    name: "Health & Personal Care" },
   { slug: "home-kitchen",            name: "Home & Kitchen" },
   { slug: "office-products",         name: "Office Products" },
   { slug: "pet-supplies",            name: "Pet Supplies" },

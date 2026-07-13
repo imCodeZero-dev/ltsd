@@ -63,9 +63,9 @@ export const handler = async (event) => {
   const isBestsellers = endpoint === "/api/cron/deal-sync?mode=bestsellers";
 
   if (isCategoryFeed) {
-    // 19 categories → 7 batches of 3 (last has 1)
+    // 18 categories → 6 batches of 3
     const results = [];
-    for (let batch = 0; batch < 7; batch++) {
+    for (let batch = 0; batch < 6; batch++) {
       const url = `${APP_URL}/api/cron/deal-sync?batch=${batch}`;
       console.log(`[LTSD Cron] Category feed batch ${batch}/6: ${url}`);
       const result = await callEndpoint(url, CRON_SECRET);

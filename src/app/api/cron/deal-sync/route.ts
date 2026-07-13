@@ -28,16 +28,15 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  * Protected by CRON_SECRET bearer token.
  */
 
-// 19 categories split into 7 batches of 3 (last has 1) for category feed
+// 18 categories split into 6 batches of 3 for category feed
 // Smaller batches keep each request under CloudFront's ~30s timeout
 const DEAL_BATCHES = [
   ["Appliances", "Automotive", "Baby Products"],
   ["Beauty & Personal Care", "Camera & Photo", "Cell Phones & Accessories"],
   ["Clothing", "Computers & Accessories", "Electronics"],
-  ["Grocery & Gourmet Food", "Health & Household", "Health & Personal Care"],
-  ["Home & Kitchen", "Office Products", "Pet Supplies"],
-  ["Sports & Outdoors", "Tools & Home Improvement", "Toys & Games"],
-  ["Video Games"],
+  ["Grocery & Gourmet Food", "Health & Household", "Home & Kitchen"],
+  ["Office Products", "Pet Supplies", "Sports & Outdoors"],
+  ["Tools & Home Improvement", "Toys & Games", "Video Games"],
 ];
 
 // 6 categories split into 2 batches for bestsellers
