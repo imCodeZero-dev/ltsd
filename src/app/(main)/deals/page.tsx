@@ -98,14 +98,11 @@ async function getDeals(
       return { deals: mapDeals(rows as RawDeal[]), total, usingPrefs: false };
     }
 
-    // URL type filter — apply that type's preferences if user has them
+    // URL type filter — user is explicitly browsing by type, don't apply saved
+    // category prefs. Category filtering only comes from URL ?category= param.
     if (filters.type && VALID_DEAL_TYPES.has(filters.type)) {
-      const dtPrefs = prefs.byDealType[filters.type];
-      const dtWhere = dtPrefs ? buildDealTypeWhere(filters.type, dtPrefs) : {};
       const typeWhere = {
         ...QUALITY_FLOOR,
-        ...catWhere,
-        ...dtWhere,
         dealType: filters.type as never,
       };
 
@@ -118,16 +115,13 @@ async function getDeals(
 
     // No URL filters — "My Deals" view. Apply full preference filtering.
     if (hasDealTypePrefs) {
-      // Build OR clause: one condition per deal type the user configured.
-      // Lightning Deals are synced without category links — skip catWhere for them
-      // so they always appear when the user has Lightning Deals selected.
+      // Build OR clause: one condition per deal type the user configured
       const orClauses = Object.entries(prefs.byDealType).map(
         ([dealType, dtPrefs]) => {
           const dtWhere = buildDealTypeWhere(dealType, dtPrefs);
-          const applyCat = dealType !== "LIGHTNING_DEAL" ? catWhere : {};
           return {
             ...QUALITY_FLOOR,
-            ...applyCat,
+            ...catWhere,
             ...dtWhere,
           };
         },

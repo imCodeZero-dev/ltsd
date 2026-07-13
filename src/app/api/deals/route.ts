@@ -63,12 +63,11 @@ export async function GET(req: Request): Promise<Response> {
       ? { categories: { some: { category: { slug: { in: prefs.categorySlugs } } } } }
       : {};
 
-    // URL type filter — apply that type's prefs
+    // URL type filter — user is explicitly browsing by type, don't apply saved
+    // category prefs. Category filtering only comes from URL ?category= param.
     if (type) {
-      const dtPrefs = prefs.byDealType[type];
-      const dtWhere = dtPrefs ? (() => { const w = buildDealTypeWhere(type, dtPrefs); delete w.dealType; return w; })() : {};
       const where = {
-        ...QUALITY_FLOOR, ...catWhere, ...dtWhere,
+        ...QUALITY_FLOOR,
         dealType: type as never,
       };
       const deals = await db.deal.findMany({
