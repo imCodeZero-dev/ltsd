@@ -107,32 +107,43 @@ export function parseKeepaHistory(
 
 // ── Category map ──────────────────────────────────────────────────────────────
 
-/** Amazon root browse node IDs → display name */
+/**
+ * Amazon US root browse node IDs → display name.
+ * All IDs verified against amazon.com category URLs (July 2026).
+ *
+ * Key corrections vs. prior versions:
+ *   11091801  = Musical Instruments  (NOT Beauty — removed)
+ *   7301146011 = unknown/wrong        (NOT Cell Phones — removed)
+ *   2335752011 = Cell Phones & Accessories (was mislabeled Camera & Photo)
+ *   502394     = Camera & Photo       (was missing entirely)
+ *   3760911    = Beauty & Personal Care (was mislabeled Health & Personal Care)
+ *   17861673011 = Health & Personal Care (was missing entirely)
+ */
 const CATEGORY_MAP: Record<number, string> = {
-  172282:      "Electronics",
-  1055398:     "Home & Kitchen",
-  3375251:     "Sports & Outdoors",
-  3760911:     "Health & Personal Care",
-  3760901:     "Health & Household",
-  7141123011:  "Clothing",
-  228013011:   "Tools & Home Improvement",
-  1064954:     "Office Products",
-  229534:      "Software",
-  15684181:    "Automotive",
-  10971181011: "Industrial & Scientific",
-  2619525011:  "Appliances",
-  165796011:   "Baby Products",
-  16310101:    "Grocery & Gourmet Food",
-  2625373011:  "Movies & TV",
-  468642:      "Video Games",
-  541966:      "Computers & Accessories",
-  11091801:    "Beauty & Personal Care",
-  2972638011:  "Toys & Games",
-  2619533011:  "Pet Supplies",
-  283155:      "Books",
-  7301146011:  "Cell Phones & Accessories",
-  2335752011:  "Camera & Photo",
-  3760931:     "Vitamins & Supplements",
+  172282:       "Electronics",
+  1055398:      "Home & Kitchen",
+  3375251:      "Sports & Outdoors",
+  3760911:      "Beauty & Personal Care",   // amazon.com/b?node=3760911
+  3760901:      "Health & Household",       // amazon.com/b?node=3760901
+  17861673011:  "Health & Personal Care",   // amazon.com/b?node=17861673011
+  7141123011:   "Clothing",
+  228013011:    "Tools & Home Improvement",
+  1064954:      "Office Products",
+  229534:       "Software",
+  15684181:     "Automotive",
+  10971181011:  "Industrial & Scientific",
+  2619525011:   "Appliances",
+  165796011:    "Baby Products",
+  16310101:     "Grocery & Gourmet Food",
+  2625373011:   "Movies & TV",
+  468642:       "Video Games",
+  541966:       "Computers & Accessories",
+  2972638011:   "Toys & Games",
+  2619533011:   "Pet Supplies",
+  283155:       "Books",
+  2335752011:   "Cell Phones & Accessories", // amazon.com/b?node=2335752011
+  502394:       "Camera & Photo",             // amazon.com/b?node=502394
+  3760931:      "Vitamins & Supplements",
 };
 
 // ── Keepa API type definitions ────────────────────────────────────────────────
