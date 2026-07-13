@@ -118,13 +118,16 @@ async function getDeals(
 
     // No URL filters — "My Deals" view. Apply full preference filtering.
     if (hasDealTypePrefs) {
-      // Build OR clause: one condition per deal type the user configured
+      // Build OR clause: one condition per deal type the user configured.
+      // Lightning Deals are synced without category links — skip catWhere for them
+      // so they always appear when the user has Lightning Deals selected.
       const orClauses = Object.entries(prefs.byDealType).map(
         ([dealType, dtPrefs]) => {
           const dtWhere = buildDealTypeWhere(dealType, dtPrefs);
+          const applyCat = dealType !== "LIGHTNING_DEAL" ? catWhere : {};
           return {
             ...QUALITY_FLOOR,
-            ...catWhere,
+            ...applyCat,
             ...dtWhere,
           };
         },

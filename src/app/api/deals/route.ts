@@ -83,8 +83,9 @@ export async function GET(req: Request): Promise<Response> {
       const orClauses = Object.entries(prefs.byDealType).map(
         ([dealType, dtPrefs]) => {
           const dtWhere = buildDealTypeWhere(dealType, dtPrefs);
+          const applyCat = dealType !== "LIGHTNING_DEAL" ? catWhere : {};
           return {
-            ...QUALITY_FLOOR, ...catWhere, ...dtWhere,
+            ...QUALITY_FLOOR, ...applyCat, ...dtWhere,
           };
         },
       );
