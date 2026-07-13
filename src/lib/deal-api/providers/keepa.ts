@@ -127,7 +127,7 @@ const CATEGORY_MAP: Record<number, string> = {
   3760901:      "Health & Household",       // amazon.com/b?node=3760901
   17861673011:  "Health & Personal Care",   // amazon.com/b?node=17861673011
   7141123011:   "Clothing",
-  228013011:    "Tools & Home Improvement",
+  228013:       "Tools & Home Improvement",    // amazon.com/b?node=228013
   1064954:      "Office Products",
   229534:       "Software",
   15684181:     "Automotive",
