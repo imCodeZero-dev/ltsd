@@ -28,7 +28,9 @@ import { syncSearch } from "./sync";
  * Returns deduplicated, case-normalized list.
  */
 async function getPreferredBrands(): Promise<string[]> {
-  const rows = await db.userPreferences.findMany({
+  // Read from DealTypePreference — brands are stored per deal type in new schema.
+  // UserPreferences.brandPreferences is legacy and no longer written to by the UI.
+  const rows = await db.dealTypePreference.findMany({
     where:  { brandPreferences: { isEmpty: false } },
     select: { brandPreferences: true },
   });

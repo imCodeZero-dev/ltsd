@@ -110,7 +110,7 @@ async function getDeals(
         db.deal.findMany({ where: typeWhere, orderBy, take: PAGE_SIZE, include }),
         db.deal.count({ where: typeWhere }),
       ]);
-      return { deals: mapDeals(rows as RawDeal[]), total, usingPrefs: !!dtPrefs };
+      return { deals: mapDeals(rows as RawDeal[]), total, usingPrefs: false };
     }
 
     // No URL filters — "My Deals" view. Apply full preference filtering.
