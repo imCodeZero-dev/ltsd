@@ -51,7 +51,7 @@ export function TopPicksSection({ deals, watchlistMap }: Props) {
           </div>
           <div>
             <h2 className="type-section-title">Top Picks</h2>
-            <p className="text-xs text-body mt-0.5 line-clamp-1">Highly rated · 4.2★+ · 250+ reviews · genuine discounts</p>
+            <p className="text-xs text-body mt-0.5 line-clamp-1">Best deals matching your preferences · sorted by quality</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">

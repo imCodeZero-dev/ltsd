@@ -45,12 +45,14 @@ export interface RawDeal {
   isFeaturedDayDeal: boolean;
   hasEndTime: boolean;
   isAllTimeLow: boolean;
-  categories?: { category: { name: string } }[];
+  categories?: { category: { name: string; slug?: string } }[];
 }
 
 export function mapDeal(raw: RawDeal): DealItem {
   const category =
     raw.categories?.[0]?.category?.name ?? "General";
+  const categorySlugs =
+    raw.categories?.map((c) => c.category.slug).filter((s): s is string => !!s) ?? [];
 
   return {
     id: raw.id,
@@ -59,6 +61,7 @@ export function mapDeal(raw: RawDeal): DealItem {
     title: raw.title,
     brand: raw.brand ?? "",
     category,
+    ...(categorySlugs.length > 0 ? { categorySlugs } : {}),
     imageUrl: raw.imageUrl ?? "/placeholder-product.png",
     currentPrice: Math.round(raw.currentPrice * 100),    // dollars → cents
     originalPrice: Math.round((raw.originalPrice ?? raw.currentPrice) * 100),

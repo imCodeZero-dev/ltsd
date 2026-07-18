@@ -8,6 +8,7 @@ const PAGE_SIZE = 20;
 
 const QUALITY_FLOOR = {
   isActive: true,
+  currentPrice: { gt: 0 },
 };
 
 function buildDealTypeWhere(dealType: string, dtPrefs: DealTypePrefs) {

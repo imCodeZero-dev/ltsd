@@ -32,6 +32,7 @@ export interface DealItem {
   title: string;
   brand: string;
   category: string;
+  categorySlugs?: string[]; // all category slugs from DB — used for preference matching
   description?: string;    // product description / feature bullets (from features[] or description)
   imageUrl: string;        // primary image CDN URL (from images[0].l)
   images?: string[];       // all product images carousel (from images[].l)

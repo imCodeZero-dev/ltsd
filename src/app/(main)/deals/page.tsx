@@ -27,6 +27,7 @@ const VALID_DEAL_TYPES = new Set([
 
 const QUALITY_FLOOR = {
   isActive: true,
+  currentPrice: { gt: 0 },
 };
 
 /**

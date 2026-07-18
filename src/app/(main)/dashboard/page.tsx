@@ -19,21 +19,21 @@ import { getUserDealPrefs, mergeDealTypePrefs, type DealTypePrefs } from "@/lib/
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
 
-// ── Hardcoded category list — always shows full grid regardless of DB state ────
-const CATEGORIES_LIST = [
-  { slug: "electronics",             name: "Electronics",              emoji: "⚡", bg: "#E8EFF8" },
-  { slug: "home-kitchen",            name: "Home & Kitchen",           emoji: "🏠", bg: "#EDE9E4" },
-  { slug: "sports-outdoors",         name: "Sports & Outdoors",        emoji: "⚽", bg: "#E4F0E4" },
-  { slug: "clothing",                name: "Clothing",                 emoji: "👕", bg: "#F3EDE7" },
-  { slug: "health-personal-care",    name: "Health & Personal Care",   emoji: "💊", bg: "#E8F0F0" },
-  { slug: "video-games",             name: "Video Games",              emoji: "🎮", bg: "#F0EAF0" },
-  { slug: "tools-home-improvement",  name: "Tools & Home Improvement", emoji: "🔧", bg: "#EAF0EC" },
-  { slug: "automotive",              name: "Automotive",               emoji: "🚗", bg: "#F5F0E8" },
-  { slug: "baby-products",           name: "Baby Products",            emoji: "👶", bg: "#FFF0F0" },
-  { slug: "office-products",         name: "Office Products",          emoji: "📎", bg: "#EEF0F8" },
-  { slug: "grocery-gourmet-food",    name: "Grocery & Gourmet Food",   emoji: "🛒", bg: "#E8F4EC" },
-  { slug: "appliances",              name: "Appliances",               emoji: "🫧", bg: "#E8EFF8" },
-];
+// ── Hardcoded category list — kept for reference, replaced by DB query ────
+// const CATEGORIES_LIST = [
+//   { slug: "electronics",             name: "Electronics",              emoji: "⚡", bg: "#E8EFF8" },
+//   { slug: "home-kitchen",            name: "Home & Kitchen",           emoji: "🏠", bg: "#EDE9E4" },
+//   { slug: "sports-outdoors",         name: "Sports & Outdoors",        emoji: "⚽", bg: "#E4F0E4" },
+//   { slug: "clothing",                name: "Clothing",                 emoji: "👕", bg: "#F3EDE7" },
+//   { slug: "health-personal-care",    name: "Health & Personal Care",   emoji: "💊", bg: "#E8F0F0" },
+//   { slug: "video-games",             name: "Video Games",              emoji: "🎮", bg: "#F0EAF0" },
+//   { slug: "tools-home-improvement",  name: "Tools & Home Improvement", emoji: "🔧", bg: "#EAF0EC" },
+//   { slug: "automotive",              name: "Automotive",               emoji: "🚗", bg: "#F5F0E8" },
+//   { slug: "baby-products",           name: "Baby Products",            emoji: "👶", bg: "#FFF0F0" },
+//   { slug: "office-products",         name: "Office Products",          emoji: "📎", bg: "#EEF0F8" },
+//   { slug: "grocery-gourmet-food",    name: "Grocery & Gourmet Food",   emoji: "🛒", bg: "#E8F4EC" },
+//   { slug: "appliances",              name: "Appliances",               emoji: "🫧", bg: "#E8EFF8" },
+// ];
 
 // ── Category background colours (keyed by slug prefix) ────────────────────────
 const CAT_BG: Record<string, string> = {
@@ -57,22 +57,17 @@ function getCatBg(slug: string): string {
   return "#F0F0F0";
 }
 
-interface CategoryWithImage {
-  slug: string;
-  name: string;
-  imageUrl: string | null;
-}
 
-// ── Mobile category pills ──────────────────────────────────────────────────────
-const CATEGORY_PILLS = [
-  { value: "",             label: "All" },
-  { value: "electronics",  label: "Electronic" },
-  { value: "fashion",      label: "Fashion" },
-  { value: "shoes",        label: "Shoes" },
-  { value: "furniture",    label: "Furniture" },
-  { value: "beauty",       label: "Beauty" },
-  { value: "home",         label: "Home" },
-];
+// ── Mobile category pills — replaced by DB query ──────────────────────────────
+// const CATEGORY_PILLS = [
+//   { value: "",             label: "All" },
+//   { value: "electronics",  label: "Electronic" },
+//   { value: "fashion",      label: "Fashion" },
+//   { value: "shoes",        label: "Shoes" },
+//   { value: "furniture",    label: "Furniture" },
+//   { value: "beauty",       label: "Beauty" },
+//   { value: "home",         label: "Home" },
+// ];
 
 // ── Watchlist item shape from DB ───────────────────────────────────────────────
 interface WatchlistDashItem {
@@ -142,7 +137,7 @@ function PersonalizationBar({ userName }: { userName: string }) {
 }
 
 // ── Categories row ─────────────────────────────────────────────────────────────
-function CategoriesRow() {
+function CategoriesRow({ categories }: { categories: { slug: string; name: string }[] }) {
   return (
     <section>
       <SectionHeading title="Our Categories" viewAllHref="/deals" />
@@ -155,7 +150,7 @@ function CategoriesRow() {
         >
           All
         </Link>
-        {CATEGORIES_LIST.map(({ slug, name }) => (
+        {categories.map(({ slug, name }) => (
           <Link
             key={slug}
             href={`/deals?category=${slug}`}
@@ -177,7 +172,7 @@ function CategoriesRow() {
         </button>
 
         <div className="flex-1 flex gap-6 overflow-x-auto scrollbar-none pb-2">
-          {CATEGORIES_LIST.map(({ slug, name, emoji, bg }) => (
+          {categories.map(({ slug, name }) => (
             <Link
               key={slug}
               href={`/deals?category=${slug}`}
@@ -185,9 +180,9 @@ function CategoriesRow() {
             >
               <div
                 className="w-28 h-28 rounded-full flex items-center justify-center transition-transform group-hover:scale-105"
-                style={{ background: bg }}
+                style={{ background: getCatBg(slug) }}
               >
-                <span className="text-4xl">{emoji}</span>
+                <span className="text-4xl">{getCatEmoji(slug)}</span>
               </div>
               <span className="text-sm font-medium text-navy text-center leading-tight max-w-[100px]">{name}</span>
             </Link>
@@ -315,8 +310,8 @@ export default async function DashboardPage() {
   /** Score a deal against a specific merged DealTypePrefs. */
   function prefScore(deal: DealItem, dtPrefs: DealTypePrefs | null): number {
     let score = 0;
-    // Category match (always available)
-    if (deal.category && prefSlugs.has(deal.category.toLowerCase().replace(/[^a-z0-9]+/g, "-"))) score += 1;
+    // Category match — check ALL category slugs from DB, not just first
+    if (deal.categorySlugs?.some((s) => prefSlugs.has(s))) score += 1;
     if (!dtPrefs) return score;
 
     // Brand match
@@ -347,7 +342,7 @@ export default async function DashboardPage() {
   let trendingPriceDrops: DealItem[] = [];
   let trendingBestDeals: DealItem[] = [];
   let watchlistItems: WatchlistDashItem[] = [];
-  let categories: CategoryWithImage[] = [];
+  let categories: { slug: string; name: string }[] = [];
   let topBrands: string[] = [];
   let watchlistMap = new Map<string, string>();
 
@@ -358,6 +353,7 @@ export default async function DashboardPage() {
         isWeeklyDeal: true,
         isActive:     true,
         imageUrl:     { not: null },
+        currentPrice: { gt: 0 },
       },
       orderBy: { weeklyDealSlot: "asc" },
       take: 7,
@@ -369,36 +365,29 @@ export default async function DashboardPage() {
     dealOfWeekDeals = mapDeals(dealOfWeekRows as RawDeal[]);
     const dealOfWeekIds = dealOfWeekRows.map((d) => d.id);
 
-    // 2. Lightning Deals + Top Picks + Hot Price Drops for dedicated sections
-    const [liveRows, topPicksRows, hotPriceDropsRows] = await Promise.all([
+    // 2. Lightning + Top Picks — run in parallel, they use different pools
+    const catFilter = prefSlugs.size > 0
+      ? { categories: { some: { category: { slug: { in: prefs.categorySlugs } } } } }
+      : {};
+    const nonLightningBase = { isActive: true, imageUrl: { not: null }, currentPrice: { gt: 0 }, dealType: { not: "LIGHTNING_DEAL" as never } };
+
+    const [liveRows, topPicksRows] = await Promise.all([
       db.deal.findMany({
-        where: { dealType: "LIGHTNING_DEAL", isActive: true, expiresAt: { gt: new Date() } },
+        where: { dealType: "LIGHTNING_DEAL", isActive: true, currentPrice: { gt: 0 }, expiresAt: { gt: new Date() } },
         orderBy: { expiresAt: "asc" },
         take: 30,
-        include: { categories: { include: { category: { select: { name: true } } } } },
+        include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
       }),
       db.deal.findMany({
         where: {
-          isActive: true, imageUrl: { not: null },
-          dealType: { not: "LIGHTNING_DEAL" },
-          rating: { gte: 4.2 }, reviewCount: { gte: 250 },
-          currentPrice: { gte: 15 }, discountPercent: { gte: 25, lte: 60 },
+          ...nonLightningBase, ...catFilter,
+          // Quality caps — commented out so preference filtering always has enough deals.
+          // rating: { gte: 4.2 }, reviewCount: { gte: 250 },
+          // currentPrice: { gte: 15 }, discountPercent: { gte: 25, lte: 60 },
         },
-        orderBy: { discountPercent: "desc" },
+        orderBy: [{ rating: "desc" }, { discountPercent: "desc" }],
         take: 12,
-        include: { categories: { include: { category: { select: { name: true } } } } },
-      }),
-      db.deal.findMany({
-        where: {
-          isActive: true, imageUrl: { not: null },
-          dealType: { in: ["LIMITED_TIME", "PRICE_DROP"] },
-          rating: { gte: 4.0 }, reviewCount: { gte: 100 },
-          currentPrice: { gte: 10 }, discountPercent: { gte: 20, lte: 70 },
-          createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
-        },
-        orderBy: { discountPercent: "desc" },
-        take: 12,
-        include: { categories: { include: { category: { select: { name: true } } } } },
+        include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
       }),
     ]);
 
@@ -414,7 +403,7 @@ export default async function DashboardPage() {
     }
     lightningDeals = reorderByPrefs(Array.from(lightningSeenTitles.values()), lightningDealTypePrefs);
 
-    // Cross-section dedup — remove deals already shown in lightning from top picks
+    // Cross-section dedup — remove deals already shown in lightning/weekly from top picks
     const seenIds = new Set([
       ...dealOfWeekIds,
       ...lightningDeals.map((d) => d.id),
@@ -422,7 +411,23 @@ export default async function DashboardPage() {
     topPicksDeals = reorderByPrefs(mapDeals(topPicksRows as RawDeal[]).filter((d) => !seenIds.has(d.id)), allDealTypePrefs);
     for (const d of topPicksDeals) seenIds.add(d.id);
 
-    hotPriceDropsDeals = reorderByPrefs(mapDeals(hotPriceDropsRows as RawDeal[]).filter((d) => !seenIds.has(d.id)), priceDropPrefs);
+    // Hot Price Drops — sequential query so it explicitly excludes Top Picks IDs at DB level,
+    // ensuring it always gets a fresh 12 deals even when category pool is small.
+    const hotPriceDropsRows = await db.deal.findMany({
+      where: {
+        ...nonLightningBase, ...catFilter,
+        id: { notIn: Array.from(seenIds) },
+        // Quality caps — commented out so preference filtering always has enough deals.
+        // dealType: { in: ["LIMITED_TIME", "PRICE_DROP"] },
+        // rating: { gte: 4.0 }, reviewCount: { gte: 100 },
+        // currentPrice: { gte: 10 }, discountPercent: { gte: 20, lte: 70 },
+        // createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+      },
+      orderBy: [{ discountPercent: "desc" }, { rating: "desc" }],
+      take: 12,
+      include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
+    });
+    hotPriceDropsDeals = reorderByPrefs(mapDeals(hotPriceDropsRows as RawDeal[]), priceDropPrefs);
 
     // 4. Trending — fetch 3 types for tabbed section
     const trendingBase = {
@@ -437,19 +442,19 @@ export default async function DashboardPage() {
         where: { ...trendingBase, dealType: "LIGHTNING_DEAL" },
         orderBy: { reviewCount: "desc" },
         take: 12,
-        include: { categories: { include: { category: { select: { name: true } } } } },
+        include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
       }),
       db.deal.findMany({
         where: { ...trendingBase, dealType: { in: ["PRICE_DROP", "LIMITED_TIME"] } },
         orderBy: { discountPercent: "desc" },
         take: 12,
-        include: { categories: { include: { category: { select: { name: true } } } } },
+        include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
       }),
       db.deal.findMany({
         where: { ...trendingBase, discountPercent: { gte: 20 } },
         orderBy: { discountPercent: "desc" },
         take: 12,
-        include: { categories: { include: { category: { select: { name: true } } } } },
+        include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
       }),
     ]);
     trendingLightning = reorderByPrefs(mapDeals(lightningRows as RawDeal[]), lightningDealTypePrefs).slice(0, 4);
@@ -484,7 +489,13 @@ export default async function DashboardPage() {
       discountPercent: item.discountPercent,
     }));
 
-    // 4. Categories — hardcoded list, no DB fetch needed
+    // 4. Categories — from DB
+    const categoryRows = await db.category.findMany({
+      select:  { slug: true, name: true },
+      orderBy: { name: "asc" },
+      take:    50,
+    });
+    categories = categoryRows;
 
     // 5. Top brands from DB
     const brandRows = await db.deal.findMany({
@@ -536,7 +547,7 @@ export default async function DashboardPage() {
       <PersonalizationBar userName={userName} />
 
       {/* Categories */}
-      <CategoriesRow />
+      <CategoriesRow categories={categories} />
 
       {/* Deal of Week */}
       <DealOfWeekSection deals={dealOfWeekDeals} watchlistMap={watchlistMap} />
@@ -552,7 +563,7 @@ export default async function DashboardPage() {
       )}
 
       {/* Hot Price Drops */}
-      {hotPriceDropsDeals.length >= 3 && (
+      {hotPriceDropsDeals.length > 0 && (
         <LimitedTimeSection deals={hotPriceDropsDeals} watchlistMap={watchlistMap} />
       )}
 
