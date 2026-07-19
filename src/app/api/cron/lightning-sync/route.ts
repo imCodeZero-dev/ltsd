@@ -38,13 +38,14 @@ export async function GET(req: Request) {
 
     logCron("ltsd-lightning", "/api/cron/lightning-sync",
       result.errors.length > 0 ? "WARNING" : "SUCCESS",
-      { dealsSynced: result.synced, expired: result.expired, errors: result.errors.length, errorDetails: result.errors.slice(0, 5) },
+      { dealsSynced: result.synced, expired: result.expired, categorized: result.categorized, errors: result.errors.length, errorDetails: result.errors.slice(0, 5) },
       Date.now() - startTime);
 
     return NextResponse.json({
       ok:           true,
       synced:       result.synced,
       expired:      result.expired,
+      categorized:  result.categorized,
       errors:       result.errors.length,
       errorDetails: result.errors.slice(0, 5),
       timestamp:    new Date().toISOString(),

@@ -735,6 +735,29 @@ export class KeepaProvider implements DealApiProvider {
   }
 
   /**
+   * Get category name for a batch of ASINs cheaply — no history, no stats.
+   * Only reads categoryTree. Used to back-fill categories on lightning deals,
+   * which come from /lightningdeal (no category data) and need a follow-up call.
+   * Cost: 1 token per ASIN.
+   */
+  async getProductCategories(asins: string[]): Promise<{ asin: string; category: string }[]> {
+    if (!asins.length) return [];
+    const data = await keepaFetch<KeepaProductResponse>("/product", {
+      asin: asins.join(","),
+      domain: "1",
+      history: "0",
+    });
+    return (data.products ?? [])
+      .map((p) => {
+        const catEntry = p.categoryTree?.find((c: { catId: number }) => CATEGORY_MAP[c.catId] !== undefined);
+        const category = catEntry ? CATEGORY_MAP[catEntry.catId] : null;
+        if (!category) return null;
+        return { asin: p.asin, category };
+      })
+      .filter((r): r is { asin: string; category: string } => r !== null);
+  }
+
+  /**
    * Full product data fetch for detail page — includes price history and stats.
    * Cost: 1-2 tokens (extra 1 if rating updated within 14 days).
    */

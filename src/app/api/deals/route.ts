@@ -64,17 +64,27 @@ export async function GET(req: Request): Promise<Response> {
       ? { categories: { some: { category: { slug: { in: prefs.categorySlugs } } } } }
       : {};
 
-    // URL type filter — user is explicitly browsing by type, don't apply saved
-    // category prefs. Category filtering only comes from URL ?category= param.
+    // URL type filter — apply category prefs for all types including LIGHTNING_DEAL.
+    // For lightning: try with catFilter first (works once sync enrichment has run),
+    // fall back to unfiltered if 0 results (deals not categorized yet).
     if (type) {
-      const where = {
-        ...QUALITY_FLOOR,
-        dealType: type as never,
-      };
+      const isLightning = type === "LIGHTNING_DEAL";
+      const where = { ...QUALITY_FLOOR, dealType: type as never, ...catWhere };
       const deals = await db.deal.findMany({
         where, orderBy, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE,
         include: { categories: { include: { category: { select: { id: true, name: true, slug: true } } } } },
       });
+
+      // Lightning fallback: if catFilter yields 0 results, return all lightning deals
+      if (isLightning && hasCatPrefs && deals.length === 0) {
+        const fbWhere = { ...QUALITY_FLOOR, dealType: type as never };
+        const fbDeals = await db.deal.findMany({
+          where: fbWhere, orderBy, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE,
+          include: { categories: { include: { category: { select: { id: true, name: true, slug: true } } } } },
+        });
+        return ok(fbDeals, { page, hasMore: fbDeals.length === PAGE_SIZE });
+      }
+
       return ok(deals, { page, hasMore: deals.length === PAGE_SIZE });
     }
 

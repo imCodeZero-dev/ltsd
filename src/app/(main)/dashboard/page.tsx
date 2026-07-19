@@ -333,6 +333,22 @@ export default async function DashboardPage() {
     return [...deals].sort((a, b) => prefScore(b, dtPrefs) - prefScore(a, dtPrefs));
   }
 
+  /**
+   * Build a Prisma filter object from a DealTypePrefs (price range, discount, brands).
+   * These are hard DB filters — not just scoring weights.
+   */
+  function buildDtFilter(dtPrefs: DealTypePrefs | null): Record<string, unknown> {
+    if (!dtPrefs) return {};
+    const f: Record<string, unknown> = {};
+    const price: Record<string, number> = { gt: 0 };
+    if (dtPrefs.minPrice && dtPrefs.minPrice > 0) price.gte = dtPrefs.minPrice;
+    if (dtPrefs.maxPrice && dtPrefs.maxPrice < 1000) price.lte = dtPrefs.maxPrice;
+    if (Object.keys(price).length > 1) f.currentPrice = price; // only add if there's a real constraint
+    if (dtPrefs.minDiscount && dtPrefs.minDiscount > 0) f.discountPercent = { gte: dtPrefs.minDiscount };
+    if (dtPrefs.brands.length > 0) f.brand = { in: dtPrefs.brands, mode: "insensitive" };
+    return f;
+  }
+
   let heroSlides: HeroSlide[] = [];
   let dealOfWeekDeals: DealItem[] = [];
   let lightningDeals: DealItem[] = [];
@@ -371,20 +387,30 @@ export default async function DashboardPage() {
       : {};
     const nonLightningBase = { isActive: true, imageUrl: { not: null }, currentPrice: { gt: 0 }, dealType: { not: "LIGHTNING_DEAL" as never } };
 
+    // Pre-built hard filters for each deal-type context
+    const lightningDtFilter = buildDtFilter(lightningDealTypePrefs);
+    const priceDropDtFilter  = buildDtFilter(priceDropPrefs);
+    const allDtFilter        = buildDtFilter(allDealTypePrefs);
+
+    // Top Picks and Hot Price Drops are not deal-type-specific — they showcase the
+    // best deals across ALL non-lightning types. Only category is hard-filtered;
+    // price/discount/brand from deal-type prefs are used for scoring (reorderByPrefs),
+    // not hard filtering. This prevents small category pools from being starved.
+    const nonLightningWhere = { ...nonLightningBase, ...catFilter };
+
     const [liveRows, topPicksRows] = await Promise.all([
       db.deal.findMany({
-        where: { dealType: "LIGHTNING_DEAL", isActive: true, currentPrice: { gt: 0 }, expiresAt: { gt: new Date() } },
+        where: {
+          dealType: "LIGHTNING_DEAL", isActive: true, currentPrice: { gt: 0 }, expiresAt: { gt: new Date() },
+          // Hard-filter by user's lightning price/discount/brand prefs
+          ...lightningDtFilter,
+        },
         orderBy: { expiresAt: "asc" },
         take: 30,
         include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
       }),
       db.deal.findMany({
-        where: {
-          ...nonLightningBase, ...catFilter,
-          // Quality caps — commented out so preference filtering always has enough deals.
-          // rating: { gte: 4.2 }, reviewCount: { gte: 250 },
-          // currentPrice: { gte: 15 }, discountPercent: { gte: 25, lte: 60 },
-        },
+        where: nonLightningWhere,
         orderBy: [{ rating: "desc" }, { discountPercent: "desc" }],
         take: 12,
         include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
@@ -415,13 +441,8 @@ export default async function DashboardPage() {
     // ensuring it always gets a fresh 12 deals even when category pool is small.
     const hotPriceDropsRows = await db.deal.findMany({
       where: {
-        ...nonLightningBase, ...catFilter,
+        ...nonLightningWhere,
         id: { notIn: Array.from(seenIds) },
-        // Quality caps — commented out so preference filtering always has enough deals.
-        // dealType: { in: ["LIMITED_TIME", "PRICE_DROP"] },
-        // rating: { gte: 4.0 }, reviewCount: { gte: 100 },
-        // currentPrice: { gte: 10 }, discountPercent: { gte: 20, lte: 70 },
-        // createdAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
       },
       orderBy: [{ discountPercent: "desc" }, { rating: "desc" }],
       take: 12,
@@ -436,27 +457,43 @@ export default async function DashboardPage() {
       imageUrl: { not: null },
       id: { notIn: dealOfWeekIds },
     };
-    // Fetch extra (12) so preference scoring has a meaningful pool, then slice to 4
-    const [lightningRows, priceDropRows, bestDealRows] = await Promise.all([
+    // Apply catFilter to all three tabs. Lightning deals get their categories
+    // via the enrichment step in syncLightningDeals (first sync after deploy).
+    // If a user has category prefs but filtered lightning returns 0 (deals not
+    // enriched yet), fall back to unfiltered so the tab is never empty.
+    const trendingInclude = { categories: { include: { category: { select: { name: true, slug: true } } } } };
+    // Minimum discount for Best Deals tab: respect user's minDiscount but floor at 20%
+    const bestDealsMinDiscount = Math.max(20, (allDtFilter.discountPercent as { gte?: number } | undefined)?.gte ?? 0);
+    const [priceDropRows, bestDealRows] = await Promise.all([
       db.deal.findMany({
+        where: { ...trendingBase, ...catFilter, ...priceDropDtFilter, dealType: { in: ["PRICE_DROP", "LIMITED_TIME"] } },
+        orderBy: { discountPercent: "desc" },
+        take: 12,
+        include: trendingInclude,
+      }),
+      db.deal.findMany({
+        where: { ...trendingBase, ...catFilter, ...allDtFilter, discountPercent: { gte: bestDealsMinDiscount } },
+        orderBy: { discountPercent: "desc" },
+        take: 12,
+        include: trendingInclude,
+      }),
+    ]);
+    // Lightning: apply catFilter + deal-type prefs; fall back to unfiltered if 0 results
+    // (lightning deals may not have categories yet until next sync enrichment runs)
+    let lightningRows = await db.deal.findMany({
+      where: { ...trendingBase, ...catFilter, ...lightningDtFilter, dealType: "LIGHTNING_DEAL" },
+      orderBy: { reviewCount: "desc" },
+      take: 12,
+      include: trendingInclude,
+    });
+    if (lightningRows.length === 0 && (Object.keys(catFilter).length > 0 || Object.keys(lightningDtFilter).length > 0)) {
+      lightningRows = await db.deal.findMany({
         where: { ...trendingBase, dealType: "LIGHTNING_DEAL" },
         orderBy: { reviewCount: "desc" },
         take: 12,
-        include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
-      }),
-      db.deal.findMany({
-        where: { ...trendingBase, dealType: { in: ["PRICE_DROP", "LIMITED_TIME"] } },
-        orderBy: { discountPercent: "desc" },
-        take: 12,
-        include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
-      }),
-      db.deal.findMany({
-        where: { ...trendingBase, discountPercent: { gte: 20 } },
-        orderBy: { discountPercent: "desc" },
-        take: 12,
-        include: { categories: { include: { category: { select: { name: true, slug: true } } } } },
-      }),
-    ]);
+        include: trendingInclude,
+      });
+    }
     trendingLightning = reorderByPrefs(mapDeals(lightningRows as RawDeal[]), lightningDealTypePrefs).slice(0, 4);
     trendingPriceDrops = reorderByPrefs(mapDeals(priceDropRows as RawDeal[]), priceDropPrefs).slice(0, 4);
     trendingBestDeals = reorderByPrefs(mapDeals(bestDealRows as RawDeal[]), allDealTypePrefs).slice(0, 4);

@@ -99,19 +99,30 @@ async function getDeals(
       return { deals: mapDeals(rows as RawDeal[]), total, usingPrefs: false };
     }
 
-    // URL type filter — user is explicitly browsing by type, don't apply saved
-    // category prefs. Category filtering only comes from URL ?category= param.
+    // URL type filter — apply category prefs for all types including LIGHTNING_DEAL.
+    // For lightning: try with catFilter first (works once sync enrichment has run),
+    // fall back to unfiltered if 0 results (deals not categorized yet).
     if (filters.type && VALID_DEAL_TYPES.has(filters.type)) {
-      const typeWhere = {
-        ...QUALITY_FLOOR,
-        dealType: filters.type as never,
-      };
+      const isLightning = filters.type === "LIGHTNING_DEAL";
+      const typeWhere = { ...QUALITY_FLOOR, dealType: filters.type as never, ...catWhere };
 
       const [rows, total] = await Promise.all([
         db.deal.findMany({ where: typeWhere, orderBy, take: PAGE_SIZE, include }),
         db.deal.count({ where: typeWhere }),
       ]);
-      return { deals: mapDeals(rows as RawDeal[]), total, usingPrefs: false };
+
+      // Lightning fallback: if catFilter yields 0 results, show all lightning deals
+      // (happens before category enrichment sync runs after deploy)
+      if (isLightning && hasCatPrefs && rows.length === 0) {
+        const fallbackWhere = { ...QUALITY_FLOOR, dealType: filters.type as never };
+        const [fbRows, fbTotal] = await Promise.all([
+          db.deal.findMany({ where: fallbackWhere, orderBy, take: PAGE_SIZE, include }),
+          db.deal.count({ where: fallbackWhere }),
+        ]);
+        return { deals: mapDeals(fbRows as RawDeal[]), total: fbTotal, usingPrefs: false };
+      }
+
+      return { deals: mapDeals(rows as RawDeal[]), total, usingPrefs: hasCatPrefs };
     }
 
     // No URL filters — "My Deals" view. Apply full preference filtering.

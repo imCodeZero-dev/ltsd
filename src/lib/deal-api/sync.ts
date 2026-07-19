@@ -151,7 +151,7 @@ async function upsertDeal(
  *   2. The deals themselves are deactivated (isActive=false).
  *   3. The existing daily cleanupStaleDealData() then hard-deletes them after 7 days.
  */
-export async function syncLightningDeals(): Promise<{ synced: number; errors: string[]; expired: number }> {
+export async function syncLightningDeals(): Promise<{ synced: number; errors: string[]; expired: number; categorized: number }> {
   const { KeepaProvider, mapLightningDeal } = await import("./providers/keepa");
   const provider = new KeepaProvider();
 
@@ -159,6 +159,7 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
 
   const errors: string[] = [];
   let synced = 0;
+  let categorized = 0;
   const freshAsins = new Set<string>();
 
   for (const d of deals) {
@@ -173,6 +174,55 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
       errors.push(msg);
       logError("sync:lightning", err, { asin: d.asin });
     }
+  }
+
+  // ── Enrich lightning deals with categories ────────────────────────────────
+  // The /lightningdeal endpoint returns no categoryTree, so deals upserted above
+  // have no category link. Find ALL active lightning deals still missing a category
+  // (not just this run's batch) and call /product (history=0, ~1 token/ASIN) to
+  // get categoryTree and link it. After the first enrichment run, only genuinely
+  // new deals will be uncategorized, so the extra token cost stays small.
+  try {
+    const uncategorized = await db.deal.findMany({
+      where: {
+        dealType:   "LIGHTNING_DEAL",
+        isActive:   true,
+        categories: { none: {} },
+      },
+      select: { id: true, asin: true },
+    });
+
+    if (uncategorized.length > 0) {
+      // Keepa /product accepts up to 100 ASINs per call
+      for (let i = 0; i < uncategorized.length; i += 100) {
+        const batch = uncategorized.slice(i, i + 100);
+        try {
+          const catResults = await provider.getProductCategories(batch.map((d) => d.asin));
+          for (const { asin, category } of catResults) {
+            const deal = batch.find((d) => d.asin === asin);
+            if (!deal) continue;
+            const catSlug = category.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+            const cat = await db.category.upsert({
+              where:  { slug: catSlug },
+              create: { name: category, slug: catSlug },
+              update: {},
+            });
+            await db.dealCategory.upsert({
+              where:  { dealId_categoryId: { dealId: deal.id, categoryId: cat.id } },
+              create: { dealId: deal.id, categoryId: cat.id },
+              update: {},
+            });
+            categorized++;
+          }
+        } catch (err) {
+          errors.push(`cat-enrich batch ${i}: ${err instanceof Error ? err.message : String(err)}`);
+          logError("sync:lightning:categorize", err, { batchStart: i });
+        }
+      }
+    }
+  } catch (err) {
+    errors.push(`cat-enrich: ${err instanceof Error ? err.message : String(err)}`);
+    logError("sync:lightning:categorize", err, {});
   }
 
   // ── Expire stale lightning deals ──────────────────────────────────────────
@@ -205,7 +255,7 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
     });
   }
 
-  return { synced, errors, expired: expiredDeals.length };
+  return { synced, errors, expired: expiredDeals.length, categorized };
 }
 
 /**
