@@ -75,16 +75,6 @@ export async function GET(req: Request): Promise<Response> {
         include: { categories: { include: { category: { select: { id: true, name: true, slug: true } } } } },
       });
 
-      // Lightning fallback: if catFilter yields 0 results, return all lightning deals
-      if (isLightning && hasCatPrefs && deals.length === 0) {
-        const fbWhere = { ...QUALITY_FLOOR, dealType: type as never };
-        const fbDeals = await db.deal.findMany({
-          where: fbWhere, orderBy, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE,
-          include: { categories: { include: { category: { select: { id: true, name: true, slug: true } } } } },
-        });
-        return ok(fbDeals, { page, hasMore: fbDeals.length === PAGE_SIZE });
-      }
-
       return ok(deals, { page, hasMore: deals.length === PAGE_SIZE });
     }
 

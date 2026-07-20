@@ -111,17 +111,6 @@ async function getDeals(
         db.deal.count({ where: typeWhere }),
       ]);
 
-      // Lightning fallback: if catFilter yields 0 results, show all lightning deals
-      // (happens before category enrichment sync runs after deploy)
-      if (isLightning && hasCatPrefs && rows.length === 0) {
-        const fallbackWhere = { ...QUALITY_FLOOR, dealType: filters.type as never };
-        const [fbRows, fbTotal] = await Promise.all([
-          db.deal.findMany({ where: fallbackWhere, orderBy, take: PAGE_SIZE, include }),
-          db.deal.count({ where: fallbackWhere }),
-        ]);
-        return { deals: mapDeals(fbRows as RawDeal[]), total: fbTotal, usingPrefs: false };
-      }
-
       return { deals: mapDeals(rows as RawDeal[]), total, usingPrefs: hasCatPrefs };
     }
 
@@ -280,18 +269,28 @@ export default async function DealsPage({ searchParams }: DealsPageProps) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {dedupedDeals.map((deal) => (
-          <DealCard key={deal.id} deal={deal} watchlistItemId={watchlistMap?.get(deal.id)} />
-        ))}
-        <LoadMoreButton
-          filters={{ type: filters.type, category: filters.category, q: filters.q, sort: filters.sort }}
-          initialPage={1}
-          total={total}
-          pageSize={PAGE_SIZE}
-          initialTitles={dedupedDeals.map((d) => d.title.slice(0, 40).toLowerCase())}
-        />
-      </div>
+      {dedupedDeals.length > 0 ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+          {dedupedDeals.map((deal) => (
+            <DealCard key={deal.id} deal={deal} watchlistItemId={watchlistMap?.get(deal.id)} />
+          ))}
+          <LoadMoreButton
+            filters={{ type: filters.type, category: filters.category, q: filters.q, sort: filters.sort }}
+            initialPage={1}
+            total={total}
+            pageSize={PAGE_SIZE}
+            initialTitles={dedupedDeals.map((d) => d.title.slice(0, 40).toLowerCase())}
+          />
+        </div>
+      ) : (
+        <div className="text-center py-16">
+          <p className="text-body text-sm">
+            {usingPrefs
+              ? "No deals found for your selected categories. Try updating your preferences or browse all deals."
+              : "No deals found. Try a different search or filter."}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

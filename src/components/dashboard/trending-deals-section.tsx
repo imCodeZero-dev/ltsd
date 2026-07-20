@@ -12,6 +12,7 @@ interface Props {
   priceDrops:   DealItem[];
   bestDeals:    DealItem[];
   watchlistMap: Map<string, string>;
+  hasPrefs?:    boolean;
 }
 
 const TABS = [
@@ -22,7 +23,7 @@ const TABS = [
 
 type TabKey = typeof TABS[number]["key"];
 
-export function TrendingDealsSection({ lightning, priceDrops, bestDeals, watchlistMap }: Props) {
+export function TrendingDealsSection({ lightning, priceDrops, bestDeals, watchlistMap, hasPrefs }: Props) {
   const [active, setActive] = useState<TabKey>("lightning");
 
   const dealMap: Record<TabKey, DealItem[]> = { lightning, priceDrops, bestDeals };
@@ -59,7 +60,11 @@ export function TrendingDealsSection({ lightning, priceDrops, bestDeals, watchli
           ))}
         </div>
       ) : (
-        <p className="text-sm text-body text-center py-8">No {TABS.find(t => t.key === active)?.label.toLowerCase()} right now</p>
+        <p className="text-sm text-body text-center py-8">
+          {hasPrefs
+            ? `No ${TABS.find(t => t.key === active)?.label.toLowerCase()} found for your selected categories`
+            : `No ${TABS.find(t => t.key === active)?.label.toLowerCase()} right now`}
+        </p>
       )}
 
       <div className="flex justify-center mt-6">

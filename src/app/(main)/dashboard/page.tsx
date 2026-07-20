@@ -486,14 +486,9 @@ export default async function DashboardPage() {
       take: 12,
       include: trendingInclude,
     });
-    if (lightningRows.length === 0 && (Object.keys(catFilter).length > 0 || Object.keys(lightningDtFilter).length > 0)) {
-      lightningRows = await db.deal.findMany({
-        where: { ...trendingBase, dealType: "LIGHTNING_DEAL" },
-        orderBy: { reviewCount: "desc" },
-        take: 12,
-        include: trendingInclude,
-      });
-    }
+    // No fallback — if 0 results for user's categories, trending lightning tab
+    // will be empty and the component shows a "no deals" message instead of
+    // showing unrelated items from other categories.
     trendingLightning = reorderByPrefs(mapDeals(lightningRows as RawDeal[]), lightningDealTypePrefs).slice(0, 4);
     trendingPriceDrops = reorderByPrefs(mapDeals(priceDropRows as RawDeal[]), priceDropPrefs).slice(0, 4);
     trendingBestDeals = reorderByPrefs(mapDeals(bestDealRows as RawDeal[]), allDealTypePrefs).slice(0, 4);
@@ -622,6 +617,7 @@ export default async function DashboardPage() {
         priceDrops={trendingPriceDrops}
         bestDeals={trendingBestDeals}
         watchlistMap={watchlistMap}
+        hasPrefs={hasPrefs}
       />
 
       {/* Shop by Top Brands — commented out until real brand logos/data available */}
