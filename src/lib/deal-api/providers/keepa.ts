@@ -119,6 +119,12 @@ export function parseKeepaHistory(
  *   3760911    = Beauty & Personal Care (was mislabeled Health & Personal Care)
  *   17861673011 = Health & Personal Care (was missing entirely)
  */
+// Only LTSD's 18 supported categories are mapped here. Category-enrichment
+// lookups (getProductCategories, mapProduct) walk a product's full categoryTree
+// and match against this map — if we mapped extra Amazon browse nodes (Books,
+// Movies & TV, Software, etc.) that aren't in LTSD's category list, uncategorized
+// lightning deals would get silently tagged into categories the UI never shows,
+// creating orphan categories no sync/filter ever targets again.
 const CATEGORY_MAP: Record<number, string> = {
   172282:       "Electronics",
   1055398:      "Home & Kitchen",
@@ -128,21 +134,16 @@ const CATEGORY_MAP: Record<number, string> = {
   7141123011:   "Clothing",
   228013:       "Tools & Home Improvement",    // amazon.com/b?node=228013
   1064954:      "Office Products",
-  229534:       "Software",
   15684181:     "Automotive",
-  10971181011:  "Industrial & Scientific",
   2619525011:   "Appliances",
   165796011:    "Baby Products",
   16310101:     "Grocery & Gourmet Food",
-  2625373011:   "Movies & TV",
   468642:       "Video Games",
   541966:       "Computers & Accessories",
   2972638011:   "Toys & Games",
   2619533011:   "Pet Supplies",
-  283155:       "Books",
   2335752011:   "Cell Phones & Accessories", // amazon.com/b?node=2335752011
   502394:       "Camera & Photo",             // amazon.com/b?node=502394
-  3760931:      "Vitamins & Supplements",
 };
 
 // ── Keepa API type definitions ────────────────────────────────────────────────

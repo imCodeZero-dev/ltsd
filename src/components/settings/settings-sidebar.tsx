@@ -106,9 +106,9 @@ export function SettingsSidebar({ name, email, image, role }: SettingsSidebarPro
                 >
                   Dismiss
                 </button>
-                <button type="button" className="text-[11px] font-bold text-badge-bg hover:opacity-80 transition-opacity">
-                  Go Pro
-                </button>
+                <span className="text-[11px] font-bold text-body">
+                  Coming Soon
+                </span>
               </div>
             </div>
           </div>

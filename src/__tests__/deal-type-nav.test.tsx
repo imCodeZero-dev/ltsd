@@ -24,9 +24,9 @@ describe("CategoryNavDropdown — deal type nav", () => {
     mockSearchParams.mockReturnValue(new URLSearchParams());
   });
 
-  it("renders 'Deals' as button label when no type is selected", () => {
+  it("renders 'Deal Type' as button label when no type is selected", () => {
     render(<CategoryNavDropdown />);
-    expect(screen.getByRole("button", { name: /^Deals/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Deal Type/i })).toBeInTheDocument();
   });
 
   it("shows active type name in button when on /deals with type param", () => {
@@ -35,16 +35,16 @@ describe("CategoryNavDropdown — deal type nav", () => {
     expect(screen.getByRole("button", { name: /^Price Drops/i })).toBeInTheDocument();
   });
 
-  it("shows 'Deals' button when type param set but not on /deals", () => {
+  it("shows 'Deal Type' button when type param set but not on /deals", () => {
     mockPathname.mockReturnValue("/dashboard");
     mockSearchParams.mockReturnValue(new URLSearchParams("type=PRICE_DROP"));
     render(<CategoryNavDropdown />);
-    expect(screen.getByRole("button", { name: /^Deals/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Deal Type/i })).toBeInTheDocument();
   });
 
   it("dropdown is hidden before button click", () => {
     render(<CategoryNavDropdown />);
-    // The dropdown panel links should not exist yet — button just shows "Deals"
+    // The dropdown panel links should not exist yet — button just shows "Deal Type"
     expect(screen.queryByRole("link", { name: "All Deals" })).not.toBeInTheDocument();
   });
 

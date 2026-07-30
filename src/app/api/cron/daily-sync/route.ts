@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { syncPrices, markMissedDeals, cleanupStaleDealData } from "@/lib/deal-api/sync";
 import { pickWeeklyDeals } from "@/lib/deal-api/weekly-picker";
+import { checkWatchlistPriceDrops } from "@/lib/notifications/watchlist-alerts";
+import { sendDailyDigests } from "@/lib/notifications/daily-digest";
 import { db } from "@/lib/db";
 import { logCron, logAuth } from "@/lib/system-log";
 import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
@@ -14,6 +16,12 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  *   2. Soft expiry — mark deals not seen in today's syncs
  *   3. Hard cleanup — delete inactive deals > 7 days (not in watchlists)
  *   4. Weekly picks — auto-pick deals of the week (Mondays only)
+ *   5. System log cleanup — delete logs older than 30 days
+ *   6. Watchlist price-drop alerts — grouped email/push per user
+ *   7. Daily personalized deal-digest emails
+ *
+ * Steps 6-7 are DB/email only (no Keepa tokens) — piggybacked on this
+ * existing schedule intentionally, so no new EventBridge rule is needed.
  *
  * Schedule: cron(0 18 * * ? *)  [6 PM UTC daily]
  * Token pool max = 1,200 (20/min × 60 min expiry).
@@ -102,6 +110,24 @@ export async function GET(req: Request) {
     results.logCleanup = { deleted: deletedLogs.count };
   } catch (e) {
     errors.push(`logCleanup: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // ── 6. Watchlist price-drop alerts — grouped per user, email + push ──────
+  try {
+    const r = await checkWatchlistPriceDrops();
+    results.watchlistAlerts = r;
+    errors.push(...r.errors.slice(0, 3).map((e) => `watchlistAlerts: ${e}`));
+  } catch (e) {
+    errors.push(`watchlistAlerts: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // ── 7. Daily personalized deal-digest emails ──────────────────────────────
+  try {
+    const r = await sendDailyDigests();
+    results.dailyDigest = r;
+    errors.push(...r.errors.slice(0, 3).map((e) => `dailyDigest: ${e}`));
+  } catch (e) {
+    errors.push(`dailyDigest: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   logCron("ltsd-maintenance", "/api/cron/daily-sync",

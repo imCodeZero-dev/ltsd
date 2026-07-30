@@ -44,7 +44,7 @@ export const NotificationPrefsSchema = z.object({
   quietHoursEnabled:     z.boolean(),
   quietHoursStart:       z.string().regex(/^\d{2}:\d{2}$/).optional(),
   quietHoursEnd:         z.string().regex(/^\d{2}:\d{2}$/).optional(),
-  alertThresholdPercent: z.number().int().min(1).max(90),
+  alertThresholdPercent: z.number().int().min(0).max(90),
 });
 
 export const ForgotPasswordSchema = z.object({

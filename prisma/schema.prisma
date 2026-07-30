@@ -243,6 +243,7 @@ model WatchlistItem {
   discountAlert   Boolean  @default(false)
   isActive        Boolean  @default(true)
   note            String?
+  lastAlertedPrice Float?  // price at last sent alert — avoids re-alerting at an unchanged price
   createdAt       DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

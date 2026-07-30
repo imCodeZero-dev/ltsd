@@ -26,6 +26,14 @@ export async function addToWatchlist(
 
   const session = await requireAuth();
 
+  const existing = await db.watchlistItem.findUnique({
+    where: { userId_dealId: { userId: session.user.id, dealId: parsed.data.dealId } },
+  });
+  if (!existing) {
+    const count = await db.watchlistItem.count({ where: { userId: session.user.id } });
+    if (count >= 3) return { error: "Watchlist limit reached. Basic Members can track up to 3 items." };
+  }
+
   // targetPrice comes in as cents from the modal — convert to dollars for DB
   const targetPriceDollars = parsed.data.targetPrice != null
     ? parsed.data.targetPrice / 100
