@@ -98,6 +98,7 @@ export async function sendDailyDigests(): Promise<{ usersEmailed: number; usersS
     },
     select: {
       id: true, email: true,
+      preferences: { select: { alertThresholdPercent: true } },
       categoryPreferences: { select: { category: { select: { id: true, name: true, slug: true } } } },
     },
   });
@@ -110,6 +111,7 @@ export async function sendDailyDigests(): Promise<{ usersEmailed: number; usersS
       const categories = user.categoryPreferences.map(c => c.category);
       const quota = perCategoryQuota(categories.length);
       const totalCap = 8;
+      const minDiscount = user.preferences?.alertThresholdPercent ?? 0;
 
       const alreadyShown = await db.alertHistory.findMany({
         where: { userId: user.id, type: "SYSTEM", channel: "EMAIL", sentAt: { gte: shownCutoff } },
@@ -130,6 +132,7 @@ export async function sendDailyDigests(): Promise<{ usersEmailed: number; usersS
             createdAt: { gte: since },
             id: { notIn: [...excludeIds, ...usedDealIds] },
             categories: { some: { categoryId: cat.id } },
+            ...(minDiscount > 0 && { discountPercent: { gte: minDiscount } }),
           },
           select: { id: true, title: true, slug: true, imageUrl: true, currentPrice: true, originalPrice: true, discountPercent: true, dealType: true, expiresAt: true },
           take: 50,
