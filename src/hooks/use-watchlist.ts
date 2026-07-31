@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { toast } from "sonner";
 import { addToWatchlist, removeFromWatchlist } from "@/actions/watchlist";
 
 interface AddPayload {
@@ -28,14 +29,22 @@ export function useWatchlist(initialWatchlistItemId?: string) {
           discountAlert: payload.discountAlert,
         }
       );
-      if (result.id) setItemId(result.id);
+      if (result.id) {
+        setItemId(result.id);
+      } else if (result.error) {
+        toast.error(result.error);
+      }
     });
   }
 
   function remove() {
     if (!itemId) return;
     startTransition(async () => {
-      await removeFromWatchlist(itemId);
+      const result = await removeFromWatchlist(itemId);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
       setItemId(undefined);
     });
   }
