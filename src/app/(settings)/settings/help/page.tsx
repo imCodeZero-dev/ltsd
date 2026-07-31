@@ -12,7 +12,7 @@ const FAQS = [
   },
   {
     q: "How does the watchlist work?",
-    a: "Add a product to your watchlist to track its price. You'll be notified when it drops. Watchlists are limited to 3 items on the free plan.",
+    a: "Add a product to your watchlist to track its price. You'll be notified when it drops. Watchlists are currently limited to 3 items.",
   },
   {
     q: "Why didn't I get a notification for a deal?",

@@ -146,7 +146,11 @@ export function NotificationSettingsClient({
 }) {
   const [emailAlerts,   setEmailAlerts]   = useState(prefs.emailAlerts);
   const [pushAlerts,    setPushAlerts]    = useState(prefs.pushAlerts);
-  const [frequency,     setFrequency]     = useState<"instant" | "digest">(prefs.weeklyDigest ? "digest" : "instant");
+  // "Instant" frequency has no real-time engine behind it yet — only Daily
+  // Digest is actually wired up (see src/lib/notifications/daily-digest.ts),
+  // so the frequency choice is hidden rather than offering a mode that does
+  // nothing. Remove this comment and restore the toggle once instant alerts
+  // are built.
   // TODO: re-enable once "Max alerts per day" has a DB column to persist to.
   // const [maxPerDay,     setMaxPerDay]     = useState("5");
   const [minDiscount,   setMinDiscount]   = useState(String(prefs.alertThresholdPercent));
@@ -161,7 +165,7 @@ export function NotificationSettingsClient({
       const result = await updateNotificationPreferences({
         emailAlerts,
         pushAlerts,
-        weeklyDigest: frequency === "digest",
+        weeklyDigest: true, // only mode currently wired up — see frequency state comment above
         quietHoursEnabled: quietHours,
         quietHoursStart: quietHours ? quietFrom.padStart(5, "0") : undefined,
         quietHoursEnd:   quietHours ? quietTo.padStart(5, "0")   : undefined,
@@ -223,31 +227,17 @@ export function NotificationSettingsClient({
         </DesktopSection>
 
         {/* Alert Frequency */}
-        <DesktopSection label="Alert Frequency" description="Choose how often you want to receive alerts">
-          <div className="px-6 py-5 flex gap-8 flex-wrap">
-            {(["instant", "digest"] as const).map(opt => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => setFrequency(opt)}
-                className="flex items-start gap-3 cursor-pointer text-left"
-              >
-                <span className={cn(
-                  "mt-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-                  frequency === opt ? "border-badge-bg" : "border-border-mid",
-                )}>
-                  {frequency === opt && <span className="w-2 h-2 rounded-full bg-badge-bg" />}
-                </span>
-                <span>
-                  <p className="text-sm font-semibold text-navy">
-                    {opt === "instant" ? "Instant (recommended)" : "Daily Digest"}
-                  </p>
-                  <p className="text-xs text-body">
-                    {opt === "instant" ? "Get notified as soon as a deal matches" : "Receive a summary once per day"}
-                  </p>
-                </span>
-              </button>
-            ))}
+        <DesktopSection label="Alert Frequency" description="How often you receive alerts">
+          {/* "Instant" is hidden until a real-time alert engine exists — see
+              the frequency-state comment above. Daily Digest is the only mode. */}
+          <div className="px-6 py-5 flex items-start gap-3">
+            <span className="mt-0.5 w-4 h-4 rounded-full border-2 border-badge-bg flex items-center justify-center shrink-0">
+              <span className="w-2 h-2 rounded-full bg-badge-bg" />
+            </span>
+            <span>
+              <p className="text-sm font-semibold text-navy">Daily Digest</p>
+              <p className="text-xs text-body">Receive a summary once per day</p>
+            </span>
           </div>
           {/* TODO: "Max alerts per day" has no DB backing (UserPreferences has no
               maxAlertsPerDay column) and is not persisted — hidden until wired up.
@@ -355,29 +345,12 @@ export function NotificationSettingsClient({
           ))}
         </div>
 
-        {/* ALERT FREQUENCY */}
+        {/* ALERT FREQUENCY — "Instant" hidden until a real-time engine exists */}
         <MobileSectionLabel>Alert Frequency</MobileSectionLabel>
         <div className="mx-4 rounded-xl overflow-hidden border border-[#E7E8E9] bg-white">
-          <div className="flex border-b border-[#E7E8E9]">
-            {(["instant", "digest"] as const).map((opt, i) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => setFrequency(opt)}
-                className={cn(
-                  "flex-1 py-3 text-sm font-semibold transition-colors",
-                  i === 0 ? "border-r border-[#E7E8E9]" : "",
-                  frequency === opt ? "text-navy bg-white" : "text-body bg-bg",
-                )}
-              >
-                {opt === "instant" ? "Instant" : "Daily Digest"}
-              </button>
-            ))}
-          </div>
-          <p className="px-4 py-3 text-xs text-body leading-relaxed">
-            {frequency === "instant"
-              ? "Recommended: Instant alerts ensure you never miss time-sensitive price drops."
-              : "Daily Digest: Get a single summary of all deals each day."}
+          <div className="px-4 py-3 text-sm font-semibold text-navy">Daily Digest</div>
+          <p className="px-4 pb-3 text-xs text-body leading-relaxed">
+            Get a single summary of new deals each day.
           </p>
         </div>
 
