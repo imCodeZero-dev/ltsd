@@ -100,10 +100,7 @@ async function getDeals(
     }
 
     // URL type filter — apply category prefs for all types including LIGHTNING_DEAL.
-    // For lightning: try with catFilter first (works once sync enrichment has run),
-    // fall back to unfiltered if 0 results (deals not categorized yet).
     if (filters.type && VALID_DEAL_TYPES.has(filters.type)) {
-      const isLightning = filters.type === "LIGHTNING_DEAL";
       const typeWhere = { ...QUALITY_FLOOR, dealType: filters.type as never, ...catWhere };
 
       const [rows, total] = await Promise.all([

@@ -65,10 +65,7 @@ export async function GET(req: Request): Promise<Response> {
       : {};
 
     // URL type filter — apply category prefs for all types including LIGHTNING_DEAL.
-    // For lightning: try with catFilter first (works once sync enrichment has run),
-    // fall back to unfiltered if 0 results (deals not categorized yet).
     if (type) {
-      const isLightning = type === "LIGHTNING_DEAL";
       const where = { ...QUALITY_FLOOR, dealType: type as never, ...catWhere };
       const deals = await db.deal.findMany({
         where, orderBy, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE,
@@ -83,9 +80,8 @@ export async function GET(req: Request): Promise<Response> {
       const orClauses = Object.entries(prefs.byDealType).map(
         ([dealType, dtPrefs]) => {
           const dtWhere = buildDealTypeWhere(dealType, dtPrefs);
-          const applyCat = dealType !== "LIGHTNING_DEAL" ? catWhere : {};
           return {
-            ...QUALITY_FLOOR, ...applyCat, ...dtWhere,
+            ...QUALITY_FLOOR, ...catWhere, ...dtWhere,
           };
         },
       );
