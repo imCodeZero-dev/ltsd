@@ -14,12 +14,17 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  * ~30 second gateway timeout. The Lambda calls this 7 times sequentially
  * for category feed, 2 times for bestsellers.
  *
- * Token cost per batch (pool max = 1,200):
- *   Deal feed batch:     ~130 tokens (3 categories × ~45 tokens)
+ * Token cost per batch (pool max = 1,200 — verified against real logged
+ * Keepa responses, not estimated):
+ *   Deal feed batch:     ~183 tokens (3 categories × ~61 tokens, 28 items/category)
  *   Best sellers batch:  ~240 tokens (3 categories × ~80 tokens)
- *   Total category feed: ~855 tokens (19 cats × ~45)
+ *   Total category feed: ~1,098 tokens (18 cats × ~61)
  *
- * Actual /product cost is ~2 tokens/ASIN (history=1 doubles it).
+ * Actual /product cost is ~2 tokens/ASIN. Category limit is intentionally
+ * kept at 28 (not higher) — 18 categories running back-to-back in one burst
+ * with no refill time between them means anything above ~29/category would
+ * exceed the 1,200 token cap mid-run and start 429ing (this happened for
+ * real on 2026-07-15 and 2026-07-20, see SystemLog).
  *
  * Schedule:
  *   Deal feed:    once per day (6 AM UTC)
@@ -64,8 +69,11 @@ export async function GET(req: Request) {
   const batchParam = searchParams.get("batch");
   const startTime = Date.now();
 
-  // Pre-flight token check — lower threshold for batched calls (3 cats × ~45 tokens)
-  const requiredTokens = batchParam !== null ? 150 : (mode === "bestsellers" ? 500 : 700);
+  // Pre-flight token check — lower threshold for batched calls.
+  // Deals batch: 3 categories × ~61 tokens (28 items/category) = ~183, +margin.
+  const requiredTokens = batchParam !== null
+    ? (mode === "bestsellers" ? 150 : 200)
+    : (mode === "bestsellers" ? 500 : 700);
   const estimatedTokens = await getLastKnownTokens();
   if (estimatedTokens === null || estimatedTokens < requiredTokens) {
     const cronName = mode === "bestsellers" ? "ltsd-bestsellers" : "ltsd-category-feed";
@@ -114,7 +122,7 @@ export async function GET(req: Request) {
       ? DEAL_BATCHES[batchIndex]
       : undefined; // undefined = all 19 (seedDeals default)
 
-    const result = await seedDeals(categories, 20);
+    const result = await seedDeals(categories, 28);
 
     logCron("ltsd-category-feed", "/api/cron/deal-sync",
       result.errors.length > 0 ? "WARNING" : "SUCCESS",

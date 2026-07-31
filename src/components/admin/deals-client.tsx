@@ -531,7 +531,7 @@ export function DealsClient({ initialDeals, initialMeta, categoryOptions }: Prop
       const res = await fetch("/api/admin/trigger-sync", { method: "POST" });
       const json = await res.json();
       if (json.data) { toast.success(`Synced ${json.data.synced} deals`); fetchPage(1, query, filterType, filterCategory, filterStatus, filterSpotlight); }
-      else           { toast.error(json.error ?? "Sync failed"); }
+      else           { toast.error(json.error?.message ?? "Sync failed"); }
     } catch { toast.error("Sync request failed"); }
     finally { setSyncing(false); }
   }
