@@ -44,6 +44,13 @@ function centsToDollars(cents: number): number {
 
 // ── Upsert a single DealItem ──────────────────────────────────────────────────
 
+// Keepa occasionally returns Amazon Vine's internal sample/test products
+// (e.g. brand "$TEST$VineProdBrand-3", title "Test Asin Black") mixed into
+// real deal feeds. These aren't real products — never upsert them.
+function isTestSampleProduct(item: DealItem): boolean {
+  return item.brand?.startsWith("$TEST$") ?? false;
+}
+
 async function upsertDeal(
   item: DealItem,
   categoryName?: string,
@@ -51,7 +58,9 @@ async function upsertDeal(
     priceStats?: PriceStats | null;
     historyPoints?: { date: Date; priceCents: number }[];
   }
-): Promise<string> {
+): Promise<string | null> {
+  if (isTestSampleProduct(item)) return null;
+
   const slug = slugify(item.title, item.asin ?? item.id);
 
   // Build metadata JSON: store priceStats, description, images, monthlySold
@@ -89,10 +98,12 @@ async function upsertDeal(
     totalSlots:        item.totalCount > 0 ? item.totalCount : null,
     // Seen in this sync — reset missed counter
     missedSyncCount: 0,
-    // Deactivate if expired, suppressed, or price returned to normal baseline
+    // Deactivate if expired, suppressed, price returned to normal baseline,
+    // or the price is invalid ($0/negative — bad upstream data, not a real deal)
     isActive: item.dealState !== "EXPIRED"
            && item.dealState !== "SUPPRESSED"
-           && !priceReturnedToNormal,
+           && !priceReturnedToNormal
+           && item.currentPrice > 0,
     lastSyncedAt: new Date(),
     ...(metadataValue !== undefined && { metadata: metadataValue }),
   };
@@ -166,9 +177,9 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
     try {
       const item = mapLightningDeal(d);
       if (!item) continue;
-      await upsertDeal(item);
+      const id = await upsertDeal(item);
       freshAsins.add(d.asin);
-      synced++;
+      if (id) synced++;
     } catch (err) {
       const msg = `${d.asin}: ${err instanceof Error ? err.message : String(err)}`;
       errors.push(msg);
@@ -275,8 +286,8 @@ export async function syncCategory(
 
   for (const { item, historyPoints, priceStats } of results) {
     try {
-      await upsertDeal(item, category, { priceStats, historyPoints });
-      synced++;
+      const id = await upsertDeal(item, category, { priceStats, historyPoints });
+      if (id) synced++;
     } catch (err) {
       errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
       logError("sync:category", err, { asin: item.asin, category });
@@ -313,8 +324,8 @@ export async function syncBestSellers(
       const products = await provider.getProductsWithHistory(batch);
       for (const { item, historyPoints, priceStats } of products) {
         try {
-          await upsertDeal(item, categoryName, { priceStats, historyPoints });
-          synced++;
+          const id = await upsertDeal(item, categoryName, { priceStats, historyPoints });
+          if (id) synced++;
         } catch (err) {
           errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
           logError("sync:bestsellers", err, { asin: item.asin, categoryName });
@@ -343,8 +354,8 @@ export async function syncSearch(
 
   for (const { item, historyPoints, priceStats } of results) {
     try {
-      await upsertDeal(item, item.category, { priceStats, historyPoints });
-      synced++;
+      const id = await upsertDeal(item, item.category, { priceStats, historyPoints });
+      if (id) synced++;
     } catch (err) {
       errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
       logError("sync:search", err, { asin: item.asin, query });

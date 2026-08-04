@@ -36,6 +36,7 @@ export async function getCandidates(limit = 20) {
     where: {
       isActive:     true,
       isWeeklyDeal: false,
+      currentPrice: { gt: 0 },
       OR: [
         { expiresAt: null },
         { expiresAt: { gt: new Date() } },
@@ -70,6 +71,7 @@ export async function pickWeeklyDeals(): Promise<{ picked: number }> {
   const deals = await db.deal.findMany({
     where: {
       isActive: true,
+      currentPrice: { gt: 0 },
       OR: [
         { expiresAt: null },
         { expiresAt: { gt: new Date() } },
@@ -92,8 +94,12 @@ export async function pickWeeklyDeals(): Promise<{ picked: number }> {
     .slice(0, SLOTS);
 
   await db.$transaction([
-    // Clear previous weekly selection
+    // Clear previous weekly selection — scoped to isWeeklyDeal:true (a handful
+    // of rows) rather than the whole table. An unfiltered updateMany() here
+    // scans every deal (tens of thousands of rows) and blew the default 5s
+    // interactive-transaction timeout as the catalog grew.
     db.deal.updateMany({
+      where: { isWeeklyDeal: true },
       data: { isWeeklyDeal: false, weeklyDealSlot: null, weeklyDealSetAt: null },
     }),
     // Set new top 7

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { syncPrices, markMissedDeals, cleanupStaleDealData } from "@/lib/deal-api/sync";
+import { syncPrices, markMissedDeals, cleanupStaleDealData, cleanupInvalidDeals } from "@/lib/deal-api/sync";
 import { pickWeeklyDeals } from "@/lib/deal-api/weekly-picker";
 import { checkWatchlistPriceDrops } from "@/lib/notifications/watchlist-alerts";
 import { sendDailyDigests } from "@/lib/notifications/daily-digest";
@@ -80,6 +80,14 @@ export async function GET(req: Request) {
     results.missedSync = r;
   } catch (e) {
     errors.push(`missedSync: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  // ── 2b. Deactivate deals with invalid ($0/negative) prices ───────────────
+  try {
+    const deactivated = await cleanupInvalidDeals();
+    results.invalidPriceCleanup = { deactivated };
+  } catch (e) {
+    errors.push(`invalidPriceCleanup: ${e instanceof Error ? e.message : String(e)}`);
   }
 
   // ── 3. Hard cleanup — delete stale inactive deals > 7 days ───────────────
