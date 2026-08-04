@@ -10,18 +10,18 @@ import { getLastKnownTokens } from "@/lib/cron-auth";
  * Server-side proxy for the "Fetch New Deals" button.
  * Runs the deal-sync logic directly — no cron secret in the client bundle.
  *
- * All 18 categories run in one burst here (same as the cron's un-batched
+ * All 19 categories run in one burst here (same as the cron's un-batched
  * path), so this had no token guard before — a manual click could ask for
  * far more than the 1,200 token pool holds and 429 partway through. Limit
- * matches the cron's per-category cap (28) and now checks the pool first.
+ * matches the cron's per-category cap (27) and now checks the pool first.
  */
 export async function POST(req: Request): Promise<Response> {
   try { await requireAdminOrThrow(); } catch (e) { return e as Response; }
 
   const startTime = Date.now();
 
-  const LIMIT_PER_CATEGORY = 28;
-  const CATEGORY_COUNT = 18;
+  const LIMIT_PER_CATEGORY = 27;
+  const CATEGORY_COUNT = 19;
   const requiredTokens = CATEGORY_COUNT * (5 + 2 * LIMIT_PER_CATEGORY); // ~1,098
   const estimatedTokens = await getLastKnownTokens();
   if (estimatedTokens === null || estimatedTokens < requiredTokens) {

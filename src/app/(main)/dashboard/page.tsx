@@ -402,6 +402,11 @@ export default async function DashboardPage() {
       db.deal.findMany({
         where: {
           dealType: "LIGHTNING_DEAL", isActive: true, currentPrice: { gt: 0 }, expiresAt: { gt: new Date() },
+          // Hard-filter by category (same as Top Picks below) — without this,
+          // the 30-soonest-to-expire pool is drawn from ALL categories, so a
+          // user's selected category rarely appears at all among thousands of
+          // active lightning deals, let alone first.
+          ...catFilter,
           // Hard-filter by user's lightning price/discount/brand prefs
           ...lightningDtFilter,
         },

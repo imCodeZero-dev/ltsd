@@ -118,6 +118,11 @@ export function parseKeepaHistory(
  *   502394     = Camera & Photo       (was missing entirely)
  *   3760911    = Beauty & Personal Care (was mislabeled Health & Personal Care)
  *   17861673011 = Health & Personal Care (was missing entirely)
+ *   2972638011 = Patio, Lawn & Garden (was mislabeled Toys & Games — confirmed
+ *                against Keepa's own category tree, 2026-08). Every deal synced
+ *                under the old "Toys & Games" label was actually pulled from
+ *                this node, i.e. patio/outdoor furniture, not toys.
+ *   165793011  = Toys & Games (the real ID — never queried before this fix)
  */
 // Only LTSD's 18 supported categories are mapped here. Category-enrichment
 // lookups (getProductCategories, mapProduct) walk a product's full categoryTree
@@ -140,7 +145,8 @@ const CATEGORY_MAP: Record<number, string> = {
   16310101:     "Grocery & Gourmet Food",
   468642:       "Video Games",
   541966:       "Computers & Accessories",
-  2972638011:   "Toys & Games",
+  165793011:    "Toys & Games",
+  2972638011:   "Patio, Lawn & Garden",
   2619533011:   "Pet Supplies",
   2335752011:   "Cell Phones & Accessories", // amazon.com/b?node=2335752011
   502394:       "Camera & Photo",             // amazon.com/b?node=502394

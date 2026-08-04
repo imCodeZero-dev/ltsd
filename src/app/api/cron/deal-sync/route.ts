@@ -10,21 +10,22 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  *   ?mode=deals (default) — 19 categories, quality-filtered price drops
  *   ?mode=bestsellers     — top sellers from 6 categories
  *
- * Supports batching via ?batch=0..6 to stay within CloudFront's
- * ~30 second gateway timeout. The Lambda calls this 7 times sequentially
+ * Supports batching via ?batch=0..5 to stay within CloudFront's
+ * ~30 second gateway timeout. The Lambda calls this 6 times sequentially
  * for category feed, 2 times for bestsellers.
  *
  * Token cost per batch (pool max = 1,200 — verified against real logged
  * Keepa responses, not estimated):
- *   Deal feed batch:     ~183 tokens (3 categories × ~61 tokens, 28 items/category)
- *   Best sellers batch:  ~240 tokens (3 categories × ~80 tokens)
- *   Total category feed: ~1,098 tokens (18 cats × ~61)
+ *   Deal feed batch (3 cats): ~177 tokens (3 × ~59 tokens, 27 items/category)
+ *   Deal feed batch (4 cats): ~236 tokens (last batch — has Patio, Lawn & Garden)
+ *   Best sellers batch:       ~240 tokens (3 categories × ~80 tokens)
+ *   Total category feed:      ~1,121 tokens (19 cats × ~59)
  *
  * Actual /product cost is ~2 tokens/ASIN. Category limit is intentionally
- * kept at 28 (not higher) — 18 categories running back-to-back in one burst
- * with no refill time between them means anything above ~29/category would
- * exceed the 1,200 token cap mid-run and start 429ing (this happened for
- * real on 2026-07-15 and 2026-07-20, see SystemLog).
+ * kept at 27 (not higher) — 19 categories running back-to-back in one burst
+ * with no refill time between them means going much higher would exceed the
+ * 1,200 token cap mid-run and start 429ing (this happened for real on
+ * 2026-07-15 and 2026-07-20, see SystemLog).
  *
  * Schedule:
  *   Deal feed:    once per day (6 AM UTC)
@@ -33,15 +34,17 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  * Protected by CRON_SECRET bearer token.
  */
 
-// 18 categories split into 6 batches of 3 for category feed
-// Smaller batches keep each request under CloudFront's ~30s timeout
+// 19 categories split into 6 batches (5 batches of 3, one of 4) for category feed.
+// Smaller batches keep each request under CloudFront's ~30s timeout. Kept at 6
+// batches (not 7) so the Lambda's fixed 0..5 loop doesn't need redeploying —
+// Patio, Lawn & Garden was folded into the last batch instead.
 const DEAL_BATCHES = [
   ["Appliances", "Automotive", "Baby Products"],
   ["Beauty & Personal Care", "Camera & Photo", "Cell Phones & Accessories"],
   ["Clothing", "Computers & Accessories", "Electronics"],
   ["Grocery & Gourmet Food", "Health & Household", "Home & Kitchen"],
   ["Office Products", "Pet Supplies", "Sports & Outdoors"],
-  ["Tools & Home Improvement", "Toys & Games", "Video Games"],
+  ["Tools & Home Improvement", "Toys & Games", "Video Games", "Patio, Lawn & Garden"],
 ];
 
 // 6 categories split into 2 batches for bestsellers
@@ -70,9 +73,9 @@ export async function GET(req: Request) {
   const startTime = Date.now();
 
   // Pre-flight token check — lower threshold for batched calls.
-  // Deals batch: 3 categories × ~61 tokens (28 items/category) = ~183, +margin.
+  // Deals batch: up to 4 categories (last batch) × ~59 tokens = ~236, +margin.
   const requiredTokens = batchParam !== null
-    ? (mode === "bestsellers" ? 150 : 200)
+    ? (mode === "bestsellers" ? 150 : 260)
     : (mode === "bestsellers" ? 500 : 700);
   const estimatedTokens = await getLastKnownTokens();
   if (estimatedTokens === null || estimatedTokens < requiredTokens) {
@@ -122,7 +125,7 @@ export async function GET(req: Request) {
       ? DEAL_BATCHES[batchIndex]
       : undefined; // undefined = all 19 (seedDeals default)
 
-    const result = await seedDeals(categories, 28);
+    const result = await seedDeals(categories, 27);
 
     logCron("ltsd-category-feed", "/api/cron/deal-sync",
       result.errors.length > 0 ? "WARNING" : "SUCCESS",

@@ -29,6 +29,7 @@ export const SYNCED_CATEGORIES: CategoryDef[] = [
   { slug: "health-household",        name: "Health & Household" },
   { slug: "home-kitchen",            name: "Home & Kitchen" },
   { slug: "office-products",         name: "Office Products" },
+  { slug: "patio-lawn-garden",       name: "Patio, Lawn & Garden" },
   { slug: "pet-supplies",            name: "Pet Supplies" },
   { slug: "sports-outdoors",         name: "Sports & Outdoors" },
   { slug: "tools-home-improvement",  name: "Tools & Home Improvement" },
