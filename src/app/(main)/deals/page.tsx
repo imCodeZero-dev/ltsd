@@ -81,8 +81,12 @@ async function getDeals(
       ? { categories: { some: { category: { slug: { in: prefs.categorySlugs } } } } }
       : {};
 
-    // URL search/category — user is explicitly browsing, apply URL filters only
+    // URL search/category — user is explicitly browsing. Still respects an
+    // explicit type filter alongside category/search (was silently dropped
+    // whenever category or q was present — e.g. Camera & Photo + Lightning
+    // Deals returned the same unfiltered-by-type results as Price Drops).
     if (filters.category || filters.q) {
+      const validType = filters.type && VALID_DEAL_TYPES.has(filters.type);
       const urlWhere = {
         ...QUALITY_FLOOR,
         ...(filters.category && {
@@ -91,6 +95,7 @@ async function getDeals(
         ...(filters.q && {
           title: { contains: filters.q, mode: "insensitive" as const },
         }),
+        ...(validType && { dealType: filters.type as never }),
       };
       const [rows, total] = await Promise.all([
         db.deal.findMany({ where: urlWhere, orderBy, take: PAGE_SIZE, include }),

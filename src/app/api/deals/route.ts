@@ -11,6 +11,11 @@ const QUALITY_FLOOR = {
   currentPrice: { gt: 0 },
 };
 
+const VALID_DEAL_TYPES = new Set([
+  "PRICE_DROP", "LIGHTNING_DEAL", "LIMITED_TIME",
+  "COUPON", "DEAL_OF_DAY", "PRIME_EXCLUSIVE",
+]);
+
 function buildDealTypeWhere(dealType: string, dtPrefs: DealTypePrefs) {
   const where: Record<string, unknown> = { dealType: dealType as never };
   if (dtPrefs.minPrice && dtPrefs.minPrice > 0) {
@@ -42,12 +47,17 @@ export async function GET(req: Request): Promise<Response> {
       : sort === "rating" ? { rating: "desc" as const }
       :                     { createdAt: "desc" as const };
 
-    // URL search/category — no preference filtering
+    // URL search/category — no preference filtering. Still respects an
+    // explicit type filter alongside category/search (was silently dropped
+    // whenever category or q was present — e.g. Camera & Photo + Lightning
+    // Deals returned the same unfiltered-by-type results as Price Drops).
     if (category || q) {
+      const validType = type && VALID_DEAL_TYPES.has(type);
       const where = {
         ...QUALITY_FLOOR,
         ...(category && { categories: { some: { category: { slug: category } } } }),
         ...(q && { title: { contains: q, mode: "insensitive" as const } }),
+        ...(validType && { dealType: type as never }),
       };
       const deals = await db.deal.findMany({
         where, orderBy, take: PAGE_SIZE, skip: (page - 1) * PAGE_SIZE,
