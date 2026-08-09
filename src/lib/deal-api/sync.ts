@@ -208,7 +208,20 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
       for (let i = 0; i < uncategorized.length; i += 100) {
         const batch = uncategorized.slice(i, i + 100);
         try {
-          const catResults = await provider.getProductCategories(batch.map((d) => d.asin));
+          // Transient connection drops ("terminated", "Connection terminated
+          // unexpectedly") from the Lambda's outbound connection to Keepa were
+          // silently wiping out an entire batch's categorization for the run —
+          // with only ~1-2 batches total, one flaky call meant 95%+ of active
+          // lightning deals stayed permanently uncategorized. One retry after
+          // a short delay is cheap (no extra tokens beyond the retried call)
+          // and gives transient failures a real second chance within the run.
+          let catResults;
+          try {
+            catResults = await provider.getProductCategories(batch.map((d) => d.asin));
+          } catch {
+            await new Promise((r) => setTimeout(r, 2000));
+            catResults = await provider.getProductCategories(batch.map((d) => d.asin));
+          }
           for (const { asin, category } of catResults) {
             const deal = batch.find((d) => d.asin === asin);
             if (!deal) continue;
