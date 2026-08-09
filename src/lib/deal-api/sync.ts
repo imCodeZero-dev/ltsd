@@ -489,6 +489,24 @@ export async function cleanupInvalidDeals(): Promise<number> {
 }
 
 /**
+ * Deactivate any deal whose expiresAt has passed.
+ *
+ * syncLightningDeals() already expires lightning deals directly against the
+ * live Keepa feed, but non-lightning types (LIMITED_TIME, etc.) only got
+ * cleaned up indirectly via markMissedDeals()'s "missed 3 syncs" heuristic —
+ * a real time-limited deal could sit isActive:true with a dead 00:00:00
+ * countdown for hours/days after actually expiring. This closes that gap
+ * directly, independent of dealType or sync timing.
+ */
+export async function cleanupExpiredDeals(): Promise<number> {
+  const result = await db.deal.updateMany({
+    where: { isActive: true, expiresAt: { lt: new Date() } },
+    data:  { isActive: false },
+  });
+  return result.count;
+}
+
+/**
  * Hard cleanup — permanently delete stale inactive deals.
  *
  * Deletes deals that are:

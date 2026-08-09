@@ -28,6 +28,10 @@ const VALID_DEAL_TYPES = new Set([
 const QUALITY_FLOOR = {
   isActive: true,
   currentPrice: { gt: 0 },
+  // A deal can sit isActive:true for a while after its expiresAt passes
+  // (cleanupExpiredDeals() catches it on the next cron pass) — exclude it
+  // from listings immediately rather than waiting on that cadence.
+  OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
 };
 
 /**

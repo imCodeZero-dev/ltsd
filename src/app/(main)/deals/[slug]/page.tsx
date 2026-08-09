@@ -74,9 +74,14 @@ export default async function DealDetailPage({
     });
   }
 
-  // Helper: hydrate deal/priceHistory/priceStats from a found row
+  // Helper: hydrate deal/priceHistory/priceStats from a found row.
+  // Treats inactive/expired deals as not found (guards all three lookup
+  // paths below — slug, ASIN-suffix, and raw-ID fallback) — a stale link
+  // (old bookmark, notification, or a deal that expired between page-list
+  // and click) should never render a live page with a dead 00:00:00 countdown.
   function hydrateFromRow(row: Awaited<ReturnType<typeof fetchDealRow>>) {
     if (!row) return;
+    if (!row.isActive || (row.expiresAt && row.expiresAt < new Date())) return;
     deal = mapDeal(row as RawDeal);
     const meta = row.metadata as Record<string, unknown> | null;
     if (meta?.priceStats) priceStats = meta.priceStats as PriceStats;
@@ -88,10 +93,13 @@ export default async function DealDetailPage({
     }));
   }
 
-  try {
-    let row = await fetchDealRow({ slug });
+  const notExpired = { OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] };
 
-    if (row) {
+  try {
+    const row = await fetchDealRow({ slug });
+    const isLive = row != null && row.isActive && (!row.expiresAt || row.expiresAt > new Date());
+
+    if (isLive) {
       hydrateFromRow(row);
 
       // Fetch similar deals from the same category
@@ -100,6 +108,7 @@ export default async function DealDetailPage({
         where: {
           isActive: true,
           id: { not: row!.id },
+          ...notExpired,
           ...(categoryName && {
             categories: { some: { category: { name: categoryName } } },
           }),
