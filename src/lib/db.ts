@@ -21,6 +21,20 @@ function createClient(): PrismaClient {
     max: process.env.NODE_ENV === "production" ? 10 : 2,
   });
 
+  // Required: pg emits 'error' on the pool (not a rejected promise) when an
+  // IDLE connection dies in the background — e.g. Neon/managed Postgres
+  // recycling a connection mid-request ("terminating connection due to
+  // administrator command"). With no listener, Node's default behavior is
+  // to crash the entire process, bypassing every try/catch in the app —
+  // this was silently killing long-running crons (lightning-sync) partway
+  // through, after their real work succeeded but before their completion
+  // log could run. Logging and swallowing it here lets the pool recover by
+  // opening a fresh connection on the next query, instead of taking the
+  // whole Lambda down.
+  pool.on("error", (err) => {
+    console.error("[pg.Pool] idle client error:", err.message);
+  });
+
   const adapter = new PrismaPg(pool);
   return new PrismaClient({
     adapter,
