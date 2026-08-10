@@ -49,23 +49,29 @@ export default async function AdminLogsPage() {
       db.systemLog.groupBy({ by: ["type"], _count: { id: true } }),
       // Count by status
       db.systemLog.groupBy({ by: ["status"], _count: { id: true } }),
-      // Last log per cron source (get 50, deduplicate client-side by source)
-      db.systemLog.findMany({
-        where: {
-          type:   "CRON",
-          source: { in: CRON_SOURCES },
-        },
-        orderBy: { createdAt: "desc" },
-        take:    50,
-        select: {
-          source:    true,
-          status:    true,
-          message:   true,
-          metadata:  true,
-          duration:  true,
-          createdAt: true,
-        },
-      }),
+      // Latest log per cron source — queried independently per source, not as
+      // one combined top-50 window. A combined query lets high-frequency
+      // sources (category-feed logs many times/day) crowd out low-frequency
+      // ones entirely: lightning-sync's last real entry (weeks old, a sign
+      // something's badly wrong) and bestsellers' total absence (never once
+      // logged) would both silently vanish from a shared top-50 window,
+      // hiding exactly the kind of gap this panel exists to surface.
+      Promise.all(
+        CRON_SOURCES.map((source) =>
+          db.systemLog.findFirst({
+            where:   { type: "CRON", source },
+            orderBy: { createdAt: "desc" },
+            select: {
+              source:    true,
+              status:    true,
+              message:   true,
+              metadata:  true,
+              duration:  true,
+              createdAt: true,
+            },
+          }),
+        ),
+      ),
       // Latest API_CALL with token info for Keepa status
       db.systemLog.findFirst({
         where:   { type: "API_CALL" },
@@ -106,23 +112,18 @@ export default async function AdminLogsPage() {
     },
   };
 
-  // ── Deduplicate cron logs — keep latest per source ──────────────────────────
-
-  const seen = new Set<string>();
-  const latestCronLogs: CronStatus[] = [];
-  for (const l of cronLogs) {
-    if (!seen.has(l.source)) {
-      seen.add(l.source);
-      latestCronLogs.push({
-        source:    l.source,
-        status:    l.status,
-        message:   l.message,
-        metadata:  (l.metadata as Record<string, unknown> | null) ?? null,
-        duration:  l.duration,
-        createdAt: l.createdAt.toISOString(),
-      });
-    }
-  }
+  // Each entry is already the true latest for its source (or null if that
+  // source has never logged once) — no dedup needed, just drop the nulls.
+  const latestCronLogs: CronStatus[] = cronLogs
+    .filter((l): l is NonNullable<typeof l> => l !== null)
+    .map((l) => ({
+      source:    l.source,
+      status:    l.status,
+      message:   l.message,
+      metadata:  (l.metadata as Record<string, unknown> | null) ?? null,
+      duration:  l.duration,
+      createdAt: l.createdAt.toISOString(),
+    }));
 
   // ── Keepa token status ──────────────────────────────────────────────────────
 

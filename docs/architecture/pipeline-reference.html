@@ -676,6 +676,14 @@
             <p>The underlying work kept succeeding (confirmed via CloudWatch and Keepa API logs), but the process died before its final log line — found <span class="mono">"terminating connection due to administrator command"</span> in the error log. The shared <span class="mono">pg.Pool</span> had no <span class="mono">'error'</span> listener: an idle connection dying in the background is normal for managed Postgres, but with nothing listening, Node's default is to crash the whole process, skipping every try/catch in the app. Added the listener — protects every cron and request sharing this pool, not just lightning.</p>
           </div>
         </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-11<br><span class="sha">—</span></div>
+          <div class="log-body">
+            <h3>Not caused by the category change — and bestsellers had the exact same bug</h3>
+            <p>Checked whether the silent-cron issue correlated with adding Patio, Lawn &amp; Garden (Aug 4) — it doesn't. <span class="mono">ltsd-lightning</span>'s last completion log (even a skip warning) was <b>Jul 20</b>, two weeks before the category change. Separately, <span class="mono">ltsd-bestsellers</span> was found to have <b>zero completion logs in its entire history</b> — not "recently stopped," never once logged since it was built. Same signature as lightning: real work happening, process dying before the final log line. The Aug 11 <span class="mono">pg.Pool</span> fix applies to both, since it's the exact same shared pool.</p>
+            <p style="margin-top:8px">Also found and fixed a related visibility bug while investigating: <span class="mono">admin/logs</span>' cron-status panel built its "last run per cron" data from one combined <span class="mono">take:50</span> query across all 5 sources. High-frequency sources (<span class="mono">category-feed</span> logs many times a day) silently crowded low-frequency ones out of that shared window entirely — which is exactly how <span class="mono">bestsellers</span> and <span class="mono">lightning</span>'s problems went unnoticed for weeks despite an admin panel that was supposedly monitoring this. Changed to 5 independent per-source queries, so every known cron always shows its true last-run state, however old or absent.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -689,7 +697,7 @@
     <ul class="plain">
       <li><b style="color:var(--ink)">ltsd-deal-sync-eve / ltsd-deal-sync-pm</b> — visible and enabled in EventBridge, but not yet traced to a specific code path, mode, or confirmed fire time. <span class="mono">deal-sync/route.ts</span>'s own comment claims category-feed and bestsellers each run once daily, which doesn't obviously account for these two. Needs the Lambda's own source (not visible from the app repo) to resolve for certain.</li>
       <li><b style="color:var(--ink)">Client-provided category IDs</b> — offered but not yet received. Cross-check against the 19-row map above once they arrive, the same way the Toys/Patio mismatch was caught.</li>
-      <li><b style="color:var(--ink)">Whether the pg.Pool fix (Aug 11) fully resolves lightning-sync</b> — verify by checking <span class="mono">/admin/logs</span> after the next scheduled run for a <span class="mono">ltsd-lightning</span> completion entry, success or failure. Either outcome is progress; continued total silence would mean there's still a deeper issue.</li>
+      <li><b style="color:var(--ink)">Whether the pg.Pool fix (Aug 11) fully resolves lightning-sync and bestsellers</b> — verify by checking the (now-fixed) <span class="mono">/admin/logs</span> cron panel after the next scheduled run of each for a completion entry, success or failure. Either outcome is progress; continued total silence for either would mean there's still a deeper issue.</li>
     </ul>
   </section>
 
