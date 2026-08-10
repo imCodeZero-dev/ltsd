@@ -1,5 +1,14 @@
 # LTSD — Deployment Architecture
 
+> **⚠ Stale — this is the original pre-build planning doc, kept for history.**
+> The app actually deploys on **AWS Amplify** (not Vercel), with **no Redis**
+> layer, and email goes through Hostinger SMTP (not Resend). Crons run via
+> AWS EventBridge Scheduler → a shared Lambda (`ltsd-cron`), not Vercel's
+> `crons` config. The `manifest.json` example below even shows the maskable
+> icon config that caused a real production bug (black background on the
+> installed PWA icon, fixed 2026-08-09) — don't copy it. For the real,
+> code-verified pipeline, see **[pipeline-reference.html](./pipeline-reference.html)**.
+
 ## Infrastructure Stack
 
 | Service | Provider | Tier | Cost |

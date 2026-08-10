@@ -1,5 +1,13 @@
 # LTSD — Deal Data API Strategy
 
+> **⚠ Stale — this is the original pre-build planning doc, kept for history.**
+> The provider decision below was never TBD in practice — Keepa has been the
+> live provider for a long time. There is no Redis layer, no PA-API code path,
+> and the actual cron names/schedules/category count don't match what's
+> described here. For the real, code-verified pipeline (cron schedules, sync
+> functions, category ID mappings, token budget, and the incident log of bugs
+> found and fixed), see **[pipeline-reference.html](./pipeline-reference.html)**.
+
 ## Provider Decision: TBD
 
 The deal data layer is abstracted behind a provider interface. The two candidates are:

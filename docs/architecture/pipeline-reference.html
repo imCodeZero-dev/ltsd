@@ -1,0 +1,700 @@
+<title>LTSD — Deal Pipeline &amp; Cron Dispatch Board</title>
+<style>
+  :root {
+    --bg: #EEF0F3;
+    --surface: #FFFFFF;
+    --surface-2: #E4E7EC;
+    --surface-3: #D8DCE3;
+    --border: #C9CED8;
+    --border-strong: #AEB4C2;
+    --ink: #1A1D25;
+    --ink-dim: #565C6B;
+    --ink-faint: #868DA0;
+    --accent: #B8631E;
+    --accent-ink: #7A4114;
+    --accent-soft: #F1DCC4;
+    --success: #21764F;
+    --warning: #8A6410;
+    --error: #A83B2E;
+    --shadow: 0 1px 2px rgba(20,22,28,0.06), 0 4px 14px rgba(20,22,28,0.05);
+    --radius: 10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14161B;
+      --surface: #1B1E25;
+      --surface-2: #242832;
+      --surface-3: #2C303C;
+      --border: #363B48;
+      --border-strong: #4A4F5E;
+      --ink: #ECE9E1;
+      --ink-dim: #9DA2B0;
+      --ink-faint: #6B7080;
+      --accent: #E2883C;
+      --accent-ink: #F3C994;
+      --accent-soft: #3A2C1A;
+      --success: #5FBF8C;
+      --warning: #E2C13C;
+      --error: #E0685A;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14161B;
+    --surface: #1B1E25;
+    --surface-2: #242832;
+    --surface-3: #2C303C;
+    --border: #363B48;
+    --border-strong: #4A4F5E;
+    --ink: #ECE9E1;
+    --ink-dim: #9DA2B0;
+    --ink-faint: #6B7080;
+    --accent: #E2883C;
+    --accent-ink: #F3C994;
+    --accent-soft: #3A2C1A;
+    --success: #5FBF8C;
+    --warning: #E2C13C;
+    --error: #E0685A;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .display {
+    font-family: "Arial Narrow", "Helvetica Neue Condensed", "Segoe UI Semibold", Arial, sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+  }
+  .eyebrow {
+    font-family: "Arial Narrow", "Helvetica Neue Condensed", Arial, sans-serif;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: var(--accent-ink);
+  }
+
+  .page {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+  }
+
+  /* Header */
+  header.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid var(--border);
+  }
+  header.hero h1 {
+    margin: 0;
+    font-size: clamp(28px, 4vw, 40px);
+    line-height: 1.08;
+  }
+  header.hero p.sub {
+    margin: 0;
+    max-width: 62ch;
+    color: var(--ink-dim);
+    font-size: 16px;
+  }
+  .meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 28px;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--ink-faint);
+  }
+  .meta-row span b { color: var(--ink-dim); font-weight: 600; }
+
+  /* Sticky nav */
+  nav.board-nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    gap: 4px;
+    padding: 10px 12px;
+    margin: 0 -24px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  nav.board-nav a {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink-dim);
+    text-decoration: none;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  nav.board-nav a:hover { color: var(--ink); background: var(--surface-2); }
+  nav.board-nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  section { display: flex; flex-direction: column; gap: 18px; scroll-margin-top: 64px; }
+  section > .section-head { display: flex; flex-direction: column; gap: 6px; }
+  section > .section-head h2 {
+    margin: 0;
+    font-size: 22px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  section > .section-head h2 .idx { color: var(--ink-faint); font-size: 15px; font-weight: 500; }
+  section > .section-head p { margin: 0; color: var(--ink-dim); max-width: 68ch; font-size: 14px; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  /* Diagram */
+  .diagram-panel { padding: 20px; overflow-x: auto; }
+  .diagram-panel svg { display: block; min-width: 980px; width: 100%; height: auto; color: var(--ink); }
+  figcaption {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--ink-dim);
+    border-top: 1px dashed var(--border);
+    padding-top: 12px;
+  }
+  .legend-line { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 8px; font-size: 12.5px; color: var(--ink-faint); }
+  .legend-line span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend-line svg { width: 22px; height: 10px; flex-shrink: 0; }
+
+  /* Tables */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; min-width: 720px; background: var(--surface); }
+  th, td { text-align: left; padding: 10px 14px; font-size: 13.5px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  thead th {
+    background: var(--surface-2);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-faint);
+    font-weight: 700;
+    position: sticky;
+    top: 0;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--surface-2); }
+  td.num, th.num { text-align: right; font-family: ui-monospace, "SF Mono", Consolas, monospace; font-variant-numeric: tabular-nums; }
+  td .route { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 12.5px; color: var(--ink-dim); }
+  td .note { font-size: 12px; color: var(--ink-faint); display: block; margin-top: 2px; }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .chip.confirmed { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success); }
+  .chip.inferred { background: color-mix(in srgb, var(--warning) 18%, transparent); color: var(--warning); }
+  .chip::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+  /* Token budget */
+  .budget-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 14px; }
+  .budget-card { padding: 16px 18px; }
+  .budget-card .label { font-size: 12px; color: var(--ink-faint); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+  .budget-card .value { font-size: 26px; font-weight: 800; margin: 4px 0 8px; font-family: ui-monospace, "SF Mono", Consolas, monospace; }
+  .gauge-track { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+  .gauge-fill { height: 100%; border-radius: 999px; background: var(--accent); }
+  .budget-card .foot { font-size: 12px; color: var(--ink-dim); margin-top: 8px; }
+
+  .callout {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    font-size: 13.5px;
+    color: var(--ink-dim);
+  }
+  .callout b { color: var(--ink); }
+  .callout.warn { border-color: color-mix(in srgb, var(--warning) 40%, var(--border)); background: color-mix(in srgb, var(--warning) 9%, var(--surface)); }
+
+  /* Incident log */
+  .log { display: flex; flex-direction: column; }
+  .log-entry {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 18px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .log-entry:first-child { padding-top: 0; }
+  .log-entry:last-child { border-bottom: none; padding-bottom: 0; }
+  .log-date { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 12.5px; color: var(--ink-faint); padding-top: 2px; }
+  .log-body h3 { margin: 0 0 4px; font-size: 15px; }
+  .log-body p { margin: 0; font-size: 13.5px; color: var(--ink-dim); }
+  .log-body .sha { font-family: ui-monospace, "SF Mono", Consolas, monospace; font-size: 11.5px; color: var(--ink-faint); }
+
+  ul.plain { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  ul.plain li { display: flex; gap: 10px; font-size: 13.5px; color: var(--ink-dim); }
+  ul.plain li::before { content: "—"; color: var(--ink-faint); flex-shrink: 0; }
+
+  footer.page-foot {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    font-size: 12.5px;
+    color: var(--ink-faint);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .panel { transition: box-shadow 0.15s ease; }
+  }
+</style>
+
+<div class="page">
+
+  <header class="hero">
+    <span class="eyebrow">LTSD — Internal Systems Reference</span>
+    <h1 class="display">Deal Pipeline &amp; Cron Dispatch Board</h1>
+    <p class="sub">How deals get from Keepa into the database and onto the site — every scheduled job, what it calls, what it costs, and where it's broken before. Written down once so the next round of debugging doesn't start from zero.</p>
+    <div class="meta-row">
+      <span><b>App</b> limitedtimesuperdeals.app</span>
+      <span><b>Hosting</b> AWS Amplify + EventBridge Scheduler → shared Lambda <span class="mono">ltsd-cron</span></span>
+      <span><b>DB</b> Postgres (Neon), Prisma 7</span>
+      <span><b>Deal source</b> Keepa API, 1,200 tokens/day shared pool</span>
+    </div>
+  </header>
+
+  <nav class="board-nav" aria-label="Section navigation">
+    <a href="#pipeline">Pipeline</a>
+    <a href="#schedule">Schedule Board</a>
+    <a href="#budget">Token Budget</a>
+    <a href="#categories">Category Map</a>
+    <a href="#cleanup">Cleanup &amp; Expiry</a>
+    <a href="#log">Incident Log</a>
+    <a href="#open">Open Questions</a>
+  </nav>
+
+  <!-- ============================================================ -->
+  <section id="pipeline">
+    <div class="section-head">
+      <h2><span class="idx">01</span> The full pipeline</h2>
+      <p>Every one of the 8 schedules funnels through <em>one</em> shared Lambda, into 4 route targets, sharing <em>one</em> Keepa token budget and <em>one</em> Postgres connection pool. That sharing is exactly what has caused the last three production bugs — read the diagram as "what do these jobs actually compete for," not just "what calls what."</p>
+    </div>
+    <figure class="panel diagram-panel">
+      <svg viewBox="0 0 1440 470" role="img" aria-label="Eight EventBridge schedules invoke a single shared Lambda, ltsd-cron, which dispatches to four Next.js route handlers. All four routes draw from one shared Keepa token pool and write through one shared Postgres connection pool, which is cleaned up daily and read by the frontend only through an isActive-and-not-expired filter.">
+        <defs>
+          <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="currentColor"></path>
+          </marker>
+        </defs>
+
+        <!-- column headers -->
+        <text x="115" y="18" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="0.08em" fill="currentColor" opacity="0.55">SCHEDULES (EVENTBRIDGE)</text>
+        <text x="365" y="18" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="0.08em" fill="currentColor" opacity="0.55">DISPATCH</text>
+        <text x="595" y="18" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="0.08em" fill="currentColor" opacity="0.55">ROUTES (NEXT.JS)</text>
+        <text x="880" y="18" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="0.08em" fill="currentColor" opacity="0.55">SHARED STATE</text>
+        <text x="1240" y="18" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="0.08em" fill="currentColor" opacity="0.55">FRONTEND READS</text>
+
+        <!-- Schedule pills -->
+        <g font-size="12.5" fill="currentColor">
+          <!-- lightning group -->
+          <rect x="20" y="30" width="190" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"></rect>
+          <text x="34" y="51">ltsd-lightning-am</text>
+          <rect x="20" y="72" width="190" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"></rect>
+          <text x="34" y="93">ltsd-lightning-pm</text>
+
+          <!-- deal-sync group -->
+          <rect x="20" y="114" width="190" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"></rect>
+          <text x="34" y="135">ltsd-category-feed</text>
+          <rect x="20" y="156" width="190" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"></rect>
+          <text x="34" y="177">ltsd-bestsellers</text>
+          <rect x="20" y="198" width="190" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 3"></rect>
+          <text x="34" y="219" opacity="0.75">ltsd-deal-sync-eve</text>
+          <rect x="20" y="240" width="190" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.35" stroke-dasharray="3 3"></rect>
+          <text x="34" y="261" opacity="0.75">ltsd-deal-sync-pm</text>
+
+          <!-- pref-brands -->
+          <rect x="20" y="282" width="190" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"></rect>
+          <text x="34" y="303">ltsd-pref-brands</text>
+
+          <!-- maintenance -->
+          <rect x="20" y="324" width="190" height="34" rx="7" fill="none" stroke="currentColor" stroke-opacity="0.5"></rect>
+          <text x="34" y="345">ltsd-maintenance</text>
+        </g>
+
+        <!-- Lambda chokepoint -->
+        <rect x="300" y="26" width="130" height="332" rx="10" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+        <text x="365" y="182" text-anchor="middle" font-size="14" font-weight="700" fill="currentColor">ltsd-cron</text>
+        <text x="365" y="200" text-anchor="middle" font-size="11" fill="currentColor" opacity="0.6">shared Lambda</text>
+        <text x="365" y="216" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.5">(single dispatch point —</text>
+        <text x="365" y="230" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.5">every job passes through here)</text>
+
+        <!-- funnel lines: schedules -> lambda left edge -->
+        <g stroke="currentColor" stroke-opacity="0.45" fill="none">
+          <path d="M210,47 H300"></path>
+          <path d="M210,89 H300"></path>
+          <path d="M210,131 H300"></path>
+          <path d="M210,173 H300"></path>
+          <path d="M210,215 H300" stroke-dasharray="3 3" stroke-opacity="0.3"></path>
+          <path d="M210,257 H300" stroke-dasharray="3 3" stroke-opacity="0.3"></path>
+          <path d="M210,299 H300"></path>
+          <path d="M210,341 H300"></path>
+        </g>
+
+        <!-- Route boxes -->
+        <g>
+          <rect x="530" y="26" width="180" height="72" rx="9" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+          <text x="620" y="55" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">lightning-sync</text>
+          <text x="620" y="72" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.6">syncLightningDeals()</text>
+          <text x="620" y="87" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.45">fetch → upsert → categorize → expire</text>
+
+          <rect x="530" y="118" width="180" height="150" rx="9" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+          <text x="620" y="147" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">deal-sync</text>
+          <text x="620" y="164" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.6">?mode=deals — seedDeals()</text>
+          <text x="620" y="179" text-anchor="middle" font-size="10.5" fill="currentColor" opacity="0.6">?mode=bestsellers — syncBestSellers()</text>
+          <text x="620" y="200" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.45">19 categories × 27 items,</text>
+          <text x="620" y="213" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.45">batched 0..5 to stay under the</text>
+          <text x="620" y="226" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.45">~30s CloudFront gateway timeout</text>
+          <text x="620" y="252" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.45">6 categories × 20 items, 2 batches</text>
+
+          <rect x="530" y="282" width="180" height="34" rx="9" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+          <text x="620" y="303" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">pref-brand-sync</text>
+
+          <rect x="530" y="324" width="180" height="34" rx="9" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+          <text x="620" y="345" text-anchor="middle" font-size="13" font-weight="700" fill="currentColor">daily-sync</text>
+        </g>
+
+        <!-- lambda -> routes -->
+        <g stroke="currentColor" fill="none" marker-end="url(#arrow)">
+          <path d="M430,62 H530"></path>
+          <path d="M430,193 H530"></path>
+          <path d="M430,299 H530"></path>
+          <path d="M430,341 H530"></path>
+        </g>
+
+        <!-- Shared state panel -->
+        <rect x="800" y="26" width="180" height="332" rx="10" fill="none" stroke="currentColor" stroke-width="1.6"></rect>
+        <text x="890" y="50" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor">Keepa token pool</text>
+        <text x="890" y="66" text-anchor="middle" font-size="20" font-weight="800" fill="var(--accent)" class="mono">1,200 / day</text>
+        <text x="890" y="82" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.5">refills 20/min · shared by all 4 routes</text>
+
+        <line x1="825" y1="102" x2="955" y2="102" stroke="currentColor" stroke-opacity="0.3"></line>
+
+        <text x="890" y="128" text-anchor="middle" font-size="12" font-weight="700" fill="currentColor">Postgres pool</text>
+        <text x="890" y="144" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.5">pg.Pool, max 10 connections</text>
+        <text x="890" y="158" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.5">shared by every request in the app</text>
+
+        <line x1="825" y1="176" x2="955" y2="176" stroke="currentColor" stroke-opacity="0.3"></line>
+
+        <text x="890" y="200" text-anchor="middle" font-size="11" font-weight="700" fill="var(--error)">Aug 11 fix</text>
+        <text x="890" y="215" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55">an idle connection dying here</text>
+        <text x="890" y="228" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55">used to crash the whole Lambda —</text>
+        <text x="890" y="241" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55">now caught, pool self-heals</text>
+
+        <line x1="825" y1="256" x2="955" y2="256" stroke="currentColor" stroke-opacity="0.3"></line>
+
+        <text x="890" y="280" text-anchor="middle" font-size="11" font-weight="700" fill="currentColor">daily cleanup</text>
+        <text x="890" y="295" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55">markMissedDeals · cleanupInvalidDeals</text>
+        <text x="890" y="308" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55">cleanupExpiredDeals · cleanupStaleDealData</text>
+        <text x="890" y="321" text-anchor="middle" font-size="9.5" fill="currentColor" opacity="0.55">runs once/day at 13:01 UTC, via daily-sync</text>
+        <text x="890" y="341" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.4">(so up to ~24h of lag between a deal</text>
+        <text x="890" y="352" text-anchor="middle" font-size="9" fill="currentColor" opacity="0.4">expiring and this pass catching it)</text>
+
+        <!-- routes -> shared state -->
+        <g stroke="currentColor" fill="none" marker-end="url(#arrow)">
+          <path d="M710,62 C 755,62 755,62 800,62" opacity="0.7"></path>
+          <path d="M710,193 C 755,193 755,102 800,102" opacity="0.7"></path>
+          <path d="M710,299 C 755,299 755,102 800,102" opacity="0.5"></path>
+          <path d="M710,341 C 755,341 755,140 800,140" opacity="0.5"></path>
+        </g>
+
+        <!-- Frontend -->
+        <rect x="1080" y="60" width="180" height="42" rx="8" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+        <text x="1170" y="86" text-anchor="middle" font-size="12.5" font-weight="700" fill="currentColor">My Deals grid</text>
+
+        <rect x="1080" y="112" width="180" height="42" rx="8" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+        <text x="1170" y="138" text-anchor="middle" font-size="12.5" font-weight="700" fill="currentColor">Dashboard</text>
+
+        <rect x="1080" y="164" width="180" height="42" rx="8" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+        <text x="1170" y="190" text-anchor="middle" font-size="12.5" font-weight="700" fill="currentColor">Deal detail page</text>
+
+        <rect x="1080" y="216" width="180" height="42" rx="8" fill="none" stroke="currentColor" stroke-width="1.4"></rect>
+        <text x="1170" y="242" text-anchor="middle" font-size="12.5" font-weight="700" fill="currentColor">Lightning Deals</text>
+
+        <path d="M980,120 C 1030,120 1030,157 1080,157" stroke="var(--accent)" fill="none" stroke-width="1.8" marker-end="url(#arrow)"></path>
+        <text x="1000" y="112" font-size="10" fill="var(--accent)" font-weight="700">isActive:true + not expired</text>
+
+      </svg>
+      <figcaption>
+        Solid lines are confirmed directly from route code. Dashed lines (<span class="mono">ltsd-deal-sync-eve</span> / <span class="mono">-pm</span>) are schedules visible in EventBridge that plausibly hit <span class="mono">deal-sync</span> too, but the exact mapping isn't confirmed in code yet — see <a href="#open">Open Questions</a>. Every route writes into the same token pool and the same DB pool; nothing talks to Keepa or the database in isolation.
+      </figcaption>
+    </figure>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="schedule">
+    <div class="section-head">
+      <h2><span class="idx">02</span> Schedule board</h2>
+      <p>All 8 EventBridge schedules, confirmed <span class="mono">Enabled</span> as of Aug 10, all targeting the single <span class="mono">ltsd-cron</span> Lambda.</p>
+    </div>
+    <div class="panel table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Schedule</th>
+            <th>Calls</th>
+            <th>Runs</th>
+            <th class="num">Token cost</th>
+            <th>Mapping</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>ltsd-lightning-am</b><br><span class="mono note">ltsd-lightning-pm</span></td>
+            <td><span class="route">GET /api/cron/lightning-sync</span><span class="note">syncLightningDeals() — fetch AVAILABLE deals, upsert, categorize (with retry as of Aug 9), expire stale ones directly against the live feed</span></td>
+            <td>~13:00 &amp; ~21:00 UTC</td>
+            <td class="num">~500 each</td>
+            <td><span class="chip confirmed">confirmed</span></td>
+          </tr>
+          <tr>
+            <td><b>ltsd-category-feed</b></td>
+            <td><span class="route">GET /api/cron/deal-sync?batch=0..5</span><span class="note">seedDeals() — 19 categories, 27 items each, Lambda loops the batch param 6×</span></td>
+            <td>~06:00 UTC</td>
+            <td class="num">~1,121</td>
+            <td><span class="chip confirmed">confirmed</span></td>
+          </tr>
+          <tr>
+            <td><b>ltsd-bestsellers</b></td>
+            <td><span class="route">GET /api/cron/deal-sync?mode=bestsellers&amp;batch=0..1</span><span class="note">syncBestSellers() — 6 categories, 20 items each, Lambda loops 2×</span></td>
+            <td>~10:00 UTC</td>
+            <td class="num">~480</td>
+            <td><span class="chip confirmed">confirmed</span></td>
+          </tr>
+          <tr>
+            <td><b>ltsd-deal-sync-eve</b><br><span class="mono note">ltsd-deal-sync-pm</span></td>
+            <td><span class="route">/api/cron/deal-sync (assumed)</span><span class="note">visible in EventBridge, not yet traced to a distinct code path or confirmed schedule time</span></td>
+            <td>unconfirmed</td>
+            <td class="num">?</td>
+            <td><span class="chip inferred">inferred</span></td>
+          </tr>
+          <tr>
+            <td><b>ltsd-pref-brands</b></td>
+            <td><span class="route">GET /api/cron/pref-brand-sync</span><span class="note">syncPreferredBrands() — one Keepa search per unique brand saved across all users' preferences</span></td>
+            <td>~11:00 UTC</td>
+            <td class="num">~15/brand</td>
+            <td><span class="chip confirmed">confirmed</span></td>
+          </tr>
+          <tr>
+            <td><b>ltsd-maintenance</b></td>
+            <td><span class="route">GET /api/cron/daily-sync</span><span class="note">price refresh (50 oldest) · markMissedDeals · cleanupInvalidDeals · cleanupExpiredDeals · cleanupStaleDealData (7d hard-delete) · pickWeeklyDeals (Mon only) · watchlist alerts · daily digest emails · log cleanup (30d)</span></td>
+            <td>~13:01 UTC, daily</td>
+            <td class="num">~50–100</td>
+            <td><span class="chip confirmed">confirmed</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout">
+      <span>⓵</span>
+      <span><b>Three routes exist but aren't scheduled:</b> <span class="mono">/api/cron/alert-engine</span> (unimplemented stub), <span class="mono">/api/cron/price-check</span>, and <span class="mono">/api/cron/weekly-deals</span> (a leftover from before the app moved off Vercel — its own comment still says <span class="mono">vercel.json</span>). All three were superseded by <span class="mono">daily-sync</span>, which does price refresh and weekly-deal picking itself. Safe to ignore; worth deleting eventually.</span>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="budget">
+    <div class="section-head">
+      <h2><span class="idx">03</span> Token budget</h2>
+      <p>Every route checks <span class="mono">getLastKnownTokens()</span> before running and skips (logs a <span class="mono">WARNING</span>, not a failure) if the pool can't cover it. That's expected, routine behavior — total daily <em>demand</em> across all jobs is higher than the pool, by design, so some skipping is normal.</p>
+    </div>
+    <div class="budget-grid">
+      <div class="panel budget-card">
+        <div class="label">Pool size</div>
+        <div class="value">1,200 <span style="font-size:14px;font-weight:600;color:var(--ink-faint)">/ day</span></div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:100%"></div></div>
+        <div class="foot">Refills at 20 tokens/minute · full pool ≈ 60 min of accumulated refill</div>
+      </div>
+      <div class="panel budget-card">
+        <div class="label">Total daily demand</div>
+        <div class="value" style="color:var(--warning)">~3,300</div>
+        <div class="gauge-track"><div class="gauge-fill" style="width:100%;background:var(--warning)"></div></div>
+        <div class="foot">category-feed 1,121 + bestsellers 480 + lightning ×2 ≈1,000 + pref-brands ~600 + maintenance ~100</div>
+      </div>
+      <div class="panel budget-card">
+        <div class="label">Per-category sync limit</div>
+        <div class="value">27 <span style="font-size:14px;font-weight:600;color:var(--ink-faint)">items</span></div>
+        <div class="foot">Deliberately capped here — going higher blew the budget mid-run and caused real 429s on 2026-07-15 and 2026-07-20.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="categories">
+    <div class="section-head">
+      <h2><span class="idx">04</span> Category map</h2>
+      <p>19 Amazon browse-node IDs LTSD tracks, defined once in <span class="mono">CATEGORY_MAP</span> (keepa.ts) and mirrored in <span class="mono">SYNCED_CATEGORIES</span>. Both the category-feed sync and the lightning-deal enrichment step match against this exact list — a product outside these 19 nodes never gets categorized, by design (see the <span class="mono">Toys &amp; Games / Patio</span> incident below for what happens when one of these IDs is wrong).</p>
+    </div>
+    <div class="panel table-wrap">
+      <table>
+        <thead>
+          <tr><th class="num">Browse node ID</th><th>Category</th><th>Slug</th></tr>
+        </thead>
+        <tbody class="mono">
+          <tr><td class="num">172282</td><td class="display" style="font-family:inherit;font-weight:400">Electronics</td><td>electronics</td></tr>
+          <tr><td class="num">1055398</td><td>Home &amp; Kitchen</td><td>home-kitchen</td></tr>
+          <tr><td class="num">3375251</td><td>Sports &amp; Outdoors</td><td>sports-outdoors</td></tr>
+          <tr><td class="num">3760911</td><td>Beauty &amp; Personal Care</td><td>beauty-personal-care</td></tr>
+          <tr><td class="num">3760901</td><td>Health &amp; Household</td><td>health-household</td></tr>
+          <tr><td class="num">7141123011</td><td>Clothing</td><td>clothing</td></tr>
+          <tr><td class="num">228013</td><td>Tools &amp; Home Improvement</td><td>tools-home-improvement</td></tr>
+          <tr><td class="num">1064954</td><td>Office Products</td><td>office-products</td></tr>
+          <tr><td class="num">15684181</td><td>Automotive</td><td>automotive</td></tr>
+          <tr><td class="num">2619525011</td><td>Appliances</td><td>appliances</td></tr>
+          <tr><td class="num">165796011</td><td>Baby Products</td><td>baby-products</td></tr>
+          <tr><td class="num">16310101</td><td>Grocery &amp; Gourmet Food</td><td>grocery-gourmet-food</td></tr>
+          <tr><td class="num">468642</td><td>Video Games</td><td>video-games</td></tr>
+          <tr><td class="num">541966</td><td>Computers &amp; Accessories</td><td>computers-accessories</td></tr>
+          <tr><td class="num">165793011</td><td>Toys &amp; Games</td><td>toys-games</td></tr>
+          <tr><td class="num">2972638011</td><td>Patio, Lawn &amp; Garden</td><td>patio-lawn-garden</td></tr>
+          <tr><td class="num">2619533011</td><td>Pet Supplies</td><td>pet-supplies</td></tr>
+          <tr><td class="num">2335752011</td><td>Cell Phones &amp; Accessories</td><td>cell-phones-accessories</td></tr>
+          <tr><td class="num">502394</td><td>Camera &amp; Photo</td><td>camera-photo</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout warn">
+      <span>⚠</span>
+      <span><b>Why this list is exactly 19, no more:</b> mapping extra Amazon browse nodes (Books, Movies &amp; TV, Software, etc.) that aren't in LTSD's category list would let uncategorized lightning deals get silently tagged into categories the UI never shows — orphan categories no sync or filter targets again. If the client sends more category IDs, cross-check against this table before adding anything.</span>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="cleanup">
+    <div class="section-head">
+      <h2><span class="idx">05</span> Cleanup &amp; expiry — the four functions that decide what "active" means</h2>
+      <p>All four live in <span class="mono">src/lib/deal-api/sync.ts</span> and only <span class="mono">markMissedDeals</span> predates this build cycle.</p>
+    </div>
+    <ul class="plain">
+      <li><b class="mono" style="color:var(--ink)">markMissedDeals(seenAsins)</b> — increments a miss counter on active, non-lightning deals not seen in the latest sync; deactivates at 3 consecutive misses. Lightning deals are explicitly excluded — they're handled directly by their own expiry check inside <span class="mono">syncLightningDeals()</span>.</li>
+      <li><b class="mono" style="color:var(--ink)">cleanupInvalidDeals()</b> — deactivates anything with <span class="mono">currentPrice ≤ 0</span>. Added Aug 4 after a Keepa test/sample ASIN (<span class="mono">$TEST$VineProdBrand-3</span>) reached production and got featured as a real Deal of the Week.</li>
+      <li><b class="mono" style="color:var(--ink)">cleanupExpiredDeals()</b> — deactivates anything with <span class="mono">expiresAt</span> in the past, regardless of type. Added Aug 9 after 36,042 deals were found sitting active well past expiry. Runs once daily inside <span class="mono">daily-sync</span> — the frontend's own query-time filter (<span class="mono">isActive:true</span> AND not-expired) is the real safety net in the ~24h between runs.</li>
+      <li><b class="mono" style="color:var(--ink)">cleanupStaleDealData()</b> — hard-deletes anything inactive for 7+ days and not on anyone's watchlist. Pre-existing; not new this cycle.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="log">
+    <div class="section-head">
+      <h2><span class="idx">06</span> Incident log</h2>
+      <p>What broke, why, and what fixed it — in order, so nobody has to re-derive this from scratch next time.</p>
+    </div>
+    <div class="panel" style="padding: 4px 22px;">
+      <div class="log">
+        <div class="log-entry">
+          <div class="log-date">2026-08-01<br><span class="sha">849c756</span></div>
+          <div class="log-body">
+            <h3>Category sync volume + unguarded manual trigger</h3>
+            <p>Per-category limit raised safely to 27 (computed from real logged token usage, not a guess) after confirming 19 categories running back-to-back would exceed the 1,200 cap above that. Admin's "Fetch New Deals" button had zero token guard before this — added one matching the cron's own.</p>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-04<br><span class="sha">d7bdaeb</span></div>
+          <div class="log-body">
+            <h3>Toys &amp; Games showed Patio furniture</h3>
+            <p>Browse node <span class="mono">2972638011</span> was mapped to "Toys &amp; Games" but is actually Patio, Lawn &amp; Garden — the real Toys &amp; Games node (<span class="mono">165793011</span>) had never been queried. Fixed the map, added Patio as the 19th category, and fixed Lightning Deals ignoring the user's selected category filter.</p>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-04<br><span class="sha">daaf7aa</span></div>
+          <div class="log-body">
+            <h3>$0 "100% off" deals reaching Deal of the Week</h3>
+            <p><span class="mono">cleanupInvalidDeals()</span> existed but was never wired into a scheduled cron. Also found literal Keepa test/sample data live in production. Fixing the picker's own transaction also surfaced a second bug: it cleared old picks with an unfiltered <span class="mono">updateMany()</span> across the whole ~20k-row table inside a 5s transaction — timed out for real while testing.</p>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-05<br><span class="sha">c686fe0</span></div>
+          <div class="log-body">
+            <h3>Category + deal-type filter silently dropped the type</h3>
+            <p>Picking a category then any deal type returned identical results regardless of which type was selected — the category/search query branch ran first and never looked at the type param once a category was present. Also found (separately) that Next.js's built-in env loader expands unescaped <span class="mono">$</span> in <span class="mono">.env.production</span> as variable interpolation, corrupting <span class="mono">EMAIL_PASS</span>.</p>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-08<br><span class="sha">3898c31</span></div>
+          <div class="log-body">
+            <h3>The $ escaping fix above didn't do anything</h3>
+            <p>Amplify Console has its own inline build spec that fully overrides <span class="mono">amplify.yml</span> — confirmed in the console UI, it doesn't even include the <span class="mono">.env.production</span> write step. Reverted the dead edit; real fix was changing the mailbox password to avoid <span class="mono">$</span> entirely, set directly in Console's native env var panel.</p>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-09<br><span class="sha">65baade</span></div>
+          <div class="log-body">
+            <h3>Expired deals still showing live, everywhere</h3>
+            <p>36,042 deals were sitting <span class="mono">isActive:true</span> well past their real expiry — nothing deactivated non-lightning deals directly on expiry, and the deal detail page had zero active/expiry check across any of its three lookup paths. Added <span class="mono">cleanupExpiredDeals()</span> plus query-time guards on the grid and detail page.</p>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-09<br><span class="sha">8235c94</span></div>
+          <div class="log-body">
+            <h3>PWA install icon showed a black background</h3>
+            <p><span class="mono">manifest.json</span> marked the icon <span class="mono">purpose: "any maskable"</span> — the logo has transparency, and maskable icons get their transparent areas filled with the OS's own default background (black, on most Android launchers) during masking. Changed to <span class="mono">"any"</span>.</p>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-09<br><span class="sha">de2503c</span></div>
+          <div class="log-body">
+            <h3>95.7% of lightning deals had no category</h3>
+            <p>67 of 70 active lightning deals had zero category link. Root cause wasn't the category map — manually pulled Keepa data for a sample and every one matched correctly. <span class="mono">getProductCategories()</span> had zero retry logic, and with only ~1 batch total now, one flaky connection wiped out categorization for the entire run. Added one retry; manually backfilled the existing backlog.</p>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-11<br><span class="sha">eb2bd8f</span></div>
+          <div class="log-body">
+            <h3>lightning-sync's completion log had gone silent for 3 weeks</h3>
+            <p>The underlying work kept succeeding (confirmed via CloudWatch and Keepa API logs), but the process died before its final log line — found <span class="mono">"terminating connection due to administrator command"</span> in the error log. The shared <span class="mono">pg.Pool</span> had no <span class="mono">'error'</span> listener: an idle connection dying in the background is normal for managed Postgres, but with nothing listening, Node's default is to crash the whole process, skipping every try/catch in the app. Added the listener — protects every cron and request sharing this pool, not just lightning.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="open">
+    <div class="section-head">
+      <h2><span class="idx">07</span> Open questions</h2>
+      <p>Things flagged but not yet confirmed — don't treat these as settled.</p>
+    </div>
+    <ul class="plain">
+      <li><b style="color:var(--ink)">ltsd-deal-sync-eve / ltsd-deal-sync-pm</b> — visible and enabled in EventBridge, but not yet traced to a specific code path, mode, or confirmed fire time. <span class="mono">deal-sync/route.ts</span>'s own comment claims category-feed and bestsellers each run once daily, which doesn't obviously account for these two. Needs the Lambda's own source (not visible from the app repo) to resolve for certain.</li>
+      <li><b style="color:var(--ink)">Client-provided category IDs</b> — offered but not yet received. Cross-check against the 19-row map above once they arrive, the same way the Toys/Patio mismatch was caught.</li>
+      <li><b style="color:var(--ink)">Whether the pg.Pool fix (Aug 11) fully resolves lightning-sync</b> — verify by checking <span class="mono">/admin/logs</span> after the next scheduled run for a <span class="mono">ltsd-lightning</span> completion entry, success or failure. Either outcome is progress; continued total silence would mean there's still a deeper issue.</li>
+    </ul>
+  </section>
+
+  <footer class="page-foot">
+    Built from the app's own route source, SystemLog table, and AWS EventBridge/CloudWatch console — not from memory. Re-derive from those three sources if anything here is stale.
+  </footer>
+
+</div>
