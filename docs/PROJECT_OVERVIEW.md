@@ -1,5 +1,12 @@
 # LTSD — Project Overview
 
+> **⚠ Stale — written during early scaffolding (April 2026), never kept in sync.**
+> Most pages listed below as "🔲 Stub" are fully built; the stack described
+> (Redis/ioredis, Cloudinary via this exact config, the listed cron endpoints)
+> doesn't match what's actually deployed — see `AGENTS.md` for the real
+> stack. For current cron/deal/category behavior and a running incident log,
+> see **[architecture/pipeline-reference.html](architecture/pipeline-reference.html)**.
+
 > **Last updated:** 2026-04-22  
 > Keep this file in sync after every feature addition or API change.
 
