@@ -51,12 +51,66 @@ function isTestSampleProduct(item: DealItem): boolean {
   return item.brand?.startsWith("$TEST$") ?? false;
 }
 
+// Diagnosed 2026-08-11: a 27-item category batch calling upsertDeal() in a
+// sequential for-loop re-resolves the SAME category row up to 27 times (one
+// extra DB round trip per item, for a value that never changes within the
+// loop) and does every other write one item at a time. Measured against
+// production: ~400 sequential round trips for an 81-item / 3-category batch
+// took 5m43s end to end — 11x over the ~30s CloudFront gateway timeout that
+// batching (batch=0..5) exists specifically to stay under. Keepa itself was
+// not the bottleneck (11s for the same batch).
+//
+// categoryCache lets every syncX() loop resolve a given category name's ID
+// exactly once per run, no matter how many items share it.
+type CategoryCache = Map<string, string>;
+
+async function resolveCategoryId(categoryName: string, cache: CategoryCache): Promise<string> {
+  const cached = cache.get(categoryName);
+  if (cached) return cached;
+  const catSlug = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  const category = await db.category.upsert({
+    where:  { slug: catSlug },
+    create: { name: categoryName, slug: catSlug },
+    update: {},
+  });
+  cache.set(categoryName, category.id);
+  return category.id;
+}
+
+/**
+ * Runs async work over `items` with up to `concurrency` in flight at once,
+ * instead of one at a time. Production's pg.Pool allows 10 connections —
+ * processing sequentially was leaving 9 of them idle while each item waited
+ * its turn. A single item's failure doesn't stop the rest (matches the
+ * previous per-item try/catch behavior); the caller's fn is expected to
+ * handle its own errors and return null/void on failure, not throw.
+ */
+async function processConcurrently<T>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T) => Promise<void>,
+): Promise<void> {
+  for (let i = 0; i < items.length; i += concurrency) {
+    await Promise.all(items.slice(i, i + concurrency).map(fn));
+  }
+}
+
 async function upsertDeal(
   item: DealItem,
   categoryName?: string,
   extra?: {
     priceStats?: PriceStats | null;
     historyPoints?: { date: Date; priceCents: number }[];
+    categoryCache?: CategoryCache;
+    // Shared across a whole seedDeals() run (multiple categories now process
+    // concurrently — see processConcurrently in seedDeals). PriceHistory has
+    // no unique constraint, so skipDuplicates can't protect against this: if
+    // the same ASIN appears in two categories being synced at the same
+    // moment, both could see "no history yet" and both write it, creating
+    // real duplicate rows. Claiming the ASIN synchronously (before the first
+    // await) closes that window — JS's single-threaded event loop guarantees
+    // no other call can observe the Set between the check and the claim.
+    historySeenAsins?: Set<string>;
   }
 ): Promise<string | null> {
   if (isTestSampleProduct(item)) return null;
@@ -114,23 +168,26 @@ async function upsertDeal(
     update: data,
   });
 
-  // Link to category — upsert so deals can belong to multiple categories
+  // Link to category — upsert so deals can belong to multiple categories.
+  // categoryId is resolved once per category name per sync run via the
+  // shared cache (see resolveCategoryId), not re-upserted per item.
   if (categoryName) {
-    const catSlug = categoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const category = await db.category.upsert({
-      where:  { slug: catSlug },
-      create: { name: categoryName, slug: catSlug },
-      update: {},
-    });
+    const categoryId = extra?.categoryCache
+      ? await resolveCategoryId(categoryName, extra.categoryCache)
+      : await resolveCategoryId(categoryName, new Map());
     await db.dealCategory.upsert({
-      where:  { dealId_categoryId: { dealId: deal.id, categoryId: category.id } },
-      create: { dealId: deal.id, categoryId: category.id },
+      where:  { dealId_categoryId: { dealId: deal.id, categoryId } },
+      create: { dealId: deal.id, categoryId },
       update: {},
     });
   }
 
-  // Write price history only when deal has none yet (avoids duplicates)
-  if (extra?.historyPoints?.length) {
+  // Write price history only when deal has none yet (avoids duplicates).
+  // Claim the ASIN synchronously first — see historySeenAsins comment above.
+  const dealKey = item.asin ?? item.id;
+  const alreadyClaimedThisRun = extra?.historySeenAsins?.has(dealKey) ?? false;
+  extra?.historySeenAsins?.add(dealKey);
+  if (extra?.historyPoints?.length && !alreadyClaimedThisRun) {
     const existingCount = await db.priceHistory.count({ where: { dealId: deal.id } });
     if (existingCount === 0) {
       await db.priceHistory.createMany({
@@ -172,11 +229,12 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
   let synced = 0;
   let categorized = 0;
   const freshAsins = new Set<string>();
+  const categorizeCache: CategoryCache = new Map();
 
-  for (const d of deals) {
+  await processConcurrently(deals, 8, async (d) => {
     try {
       const item = mapLightningDeal(d);
-      if (!item) continue;
+      if (!item) return;
       const id = await upsertDeal(item);
       freshAsins.add(d.asin);
       if (id) synced++;
@@ -185,7 +243,7 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
       errors.push(msg);
       logError("sync:lightning", err, { asin: d.asin });
     }
-  }
+  });
 
   // ── Enrich lightning deals with categories ────────────────────────────────
   // The /lightningdeal endpoint returns no categoryTree, so deals upserted above
@@ -222,22 +280,17 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
             await new Promise((r) => setTimeout(r, 2000));
             catResults = await provider.getProductCategories(batch.map((d) => d.asin));
           }
-          for (const { asin, category } of catResults) {
+          await processConcurrently(catResults, 8, async ({ asin, category }) => {
             const deal = batch.find((d) => d.asin === asin);
-            if (!deal) continue;
-            const catSlug = category.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-            const cat = await db.category.upsert({
-              where:  { slug: catSlug },
-              create: { name: category, slug: catSlug },
-              update: {},
-            });
+            if (!deal) return;
+            const categoryId = await resolveCategoryId(category, categorizeCache);
             await db.dealCategory.upsert({
-              where:  { dealId_categoryId: { dealId: deal.id, categoryId: cat.id } },
-              create: { dealId: deal.id, categoryId: cat.id },
+              where:  { dealId_categoryId: { dealId: deal.id, categoryId } },
+              create: { dealId: deal.id, categoryId },
               update: {},
             });
             categorized++;
-          }
+          });
         } catch (err) {
           errors.push(`cat-enrich batch ${i}: ${err instanceof Error ? err.message : String(err)}`);
           logError("sync:lightning:categorize", err, { batchStart: i });
@@ -289,23 +342,34 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
  */
 export async function syncCategory(
   category: string,
-  limit = 20
+  limit = 20,
+  historySeenAsins?: Set<string>,
 ): Promise<{ synced: number; errors: string[] }> {
   const { KeepaProvider } = await import("./providers/keepa");
   const provider = new KeepaProvider();
   const results = await provider.getDealsByCategory(category, limit);
   const errors: string[] = [];
   let synced = 0;
+  const categoryCache: CategoryCache = new Map();
+  // Falls back to a call-local Set when not given one — only matters when
+  // multiple categories run concurrently (seedDeals passes a shared Set);
+  // a standalone call has no concurrent sibling to race with anyway.
+  const seenAsins = historySeenAsins ?? new Set<string>();
 
-  for (const { item, historyPoints, priceStats } of results) {
+  // Concurrency kept at 3 here (not 8, like the other sync functions) because
+  // seedDeals() now also runs multiple categories concurrently (concurrency 3)
+  // — 3 categories × 3 items = ~9 connections in flight at once, just under
+  // production's pool max of 10. Going higher on both axes at once would
+  // oversubscribe the pool and start queueing, eating back the speedup.
+  await processConcurrently(results, 3, async ({ item, historyPoints, priceStats }) => {
     try {
-      const id = await upsertDeal(item, category, { priceStats, historyPoints });
+      const id = await upsertDeal(item, category, { priceStats, historyPoints, categoryCache, historySeenAsins: seenAsins });
       if (id) synced++;
     } catch (err) {
       errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
       logError("sync:category", err, { asin: item.asin, category });
     }
-  }
+  });
 
   return { synced, errors };
 }
@@ -329,21 +393,22 @@ export async function syncBestSellers(
 
   const errors: string[] = [];
   let synced = 0;
+  const categoryCache: CategoryCache = new Map();
 
   // Fetch full product data with history (up to 100 per call)
   for (let i = 0; i < asins.length; i += 100) {
     const batch = asins.slice(i, i + 100);
     try {
       const products = await provider.getProductsWithHistory(batch);
-      for (const { item, historyPoints, priceStats } of products) {
+      await processConcurrently(products, 8, async ({ item, historyPoints, priceStats }) => {
         try {
-          const id = await upsertDeal(item, categoryName, { priceStats, historyPoints });
+          const id = await upsertDeal(item, categoryName, { priceStats, historyPoints, categoryCache });
           if (id) synced++;
         } catch (err) {
           errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
           logError("sync:bestsellers", err, { asin: item.asin, categoryName });
         }
-      }
+      });
     } catch (err) {
       errors.push(`batch ${i}: ${err instanceof Error ? err.message : String(err)}`);
       logError("sync:bestsellers", err, { batch: i, categoryName });
@@ -364,16 +429,17 @@ export async function syncSearch(
   const results = await api.searchItems(query, limit);
   const errors: string[] = [];
   let synced = 0;
+  const categoryCache: CategoryCache = new Map();
 
-  for (const { item, historyPoints, priceStats } of results) {
+  await processConcurrently(results, 8, async ({ item, historyPoints, priceStats }) => {
     try {
-      const id = await upsertDeal(item, item.category, { priceStats, historyPoints });
+      const id = await upsertDeal(item, item.category, { priceStats, historyPoints, categoryCache });
       if (id) synced++;
     } catch (err) {
       errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
       logError("sync:search", err, { asin: item.asin, query });
     }
-  }
+  });
 
   return { synced, errors };
 }
@@ -472,20 +538,32 @@ export async function seedDeals(
 ): Promise<{ total: number; errors: string[] }> {
   let total = 0;
   const allErrors: string[] = [];
+  let stop429 = false;
+  // Shared across every concurrent category call — protects against the same
+  // ASIN appearing in two categories that happen to run at the same time
+  // (see historySeenAsins comment on upsertDeal).
+  const historySeenAsins = new Set<string>();
 
-  for (const cat of categories) {
+  // Categories run 3 at a time, not sequentially — a 3-category batch used
+  // to take ~66s end to end (3x its own 30s gateway budget) purely because
+  // each category waited for the previous one to fully finish. Concurrency
+  // capped at 3 (matching syncCategory's own item-level concurrency of 3)
+  // to keep total simultaneous DB connections around 9, under the pool's
+  // max of 10 — see the comment in syncCategory for why both are tied together.
+  await processConcurrently(categories, 3, async (cat) => {
+    if (stop429) return;
     try {
-      const result = await syncCategory(cat, limitPerCategory);
+      const result = await syncCategory(cat, limitPerCategory, historySeenAsins);
       total += result.synced;
       allErrors.push(...result.errors);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       allErrors.push(`${cat}: ${msg}`);
       logError("sync:seed", err, { category: cat });
-      // Stop early on 429 — no point trying remaining categories
-      if (msg.includes("429")) break;
+      // Stop remaining categories on 429 — no point continuing to burn tokens
+      if (msg.includes("429")) stop429 = true;
     }
-  }
+  });
 
   return { total, errors: allErrors };
 }
