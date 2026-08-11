@@ -173,7 +173,7 @@ export function NotificationsBell({ initialUnreadCount }: { initialUnreadCount: 
       {open && (
         <div
           ref={panelRef}
-          className="absolute right-0 top-full mt-3 w-[min(400px,calc(100vw-2rem))] bg-surface rounded-2xl border border-border shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50 overflow-hidden"
+          className="fixed inset-x-4 top-15 md:absolute md:inset-x-auto md:right-0 md:top-full md:mt-3 md:w-100 bg-surface rounded-2xl border border-border shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50 overflow-hidden"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
