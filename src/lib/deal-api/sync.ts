@@ -252,8 +252,8 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
   // get categoryTree and link it. After the first enrichment run, only genuinely
   // new deals will be uncategorized, so the extra token cost stays small.
   try {
-    // Cap at 200 per run to stay within CloudFront's ~30s gateway timeout.
-    // With the lightning sync running every 4 hours, the backlog clears in a few cycles.
+    // Cap at 500 per run (5 Keepa /product calls × 100 ASINs each, ~3-5s total).
+    // With lightning sync running every 2 hours, backlog clears within a few cycles.
     const uncategorized = await db.deal.findMany({
       where: {
         dealType:   "LIGHTNING_DEAL",
@@ -261,7 +261,7 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
         categories: { none: {} },
       },
       select: { id: true, asin: true },
-      take: 200,
+      take: 500,
     });
 
     if (uncategorized.length > 0) {
