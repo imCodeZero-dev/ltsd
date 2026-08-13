@@ -27,9 +27,9 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  * 1,200 token cap mid-run and start 429ing (this happened for real on
  * 2026-07-15 and 2026-07-20, see SystemLog).
  *
- * Schedule:
- *   Deal feed:    once per day (6 AM UTC)
- *   Best sellers: once per day (10 AM UTC)
+ * Schedule (EventBridge, Asia/Karachi timezone):
+ *   Deal feed:    once per day, 6 AM PKT (1 AM UTC) — ltsd-category-feed
+ *   Best sellers: once per day, 9 AM PKT (4 AM UTC) — ltsd-bestsellers
  *
  * Protected by CRON_SECRET bearer token.
  */

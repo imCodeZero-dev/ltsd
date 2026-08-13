@@ -10,7 +10,7 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
 /**
  * GET /api/cron/daily-sync
  *
- * End-of-day maintenance — runs at 6 PM UTC after all heavy syncs are done.
+ * End-of-day maintenance — runs at 11 PM PKT (6 PM UTC) after all heavy syncs are done.
  *
  *   1. Price refresh — 50 oldest deals (~50 tokens, only Keepa call)
  *   2. Soft expiry — mark deals not seen in today's syncs
@@ -23,7 +23,7 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  * Steps 6-7 are DB/email only (no Keepa tokens) — piggybacked on this
  * existing schedule intentionally, so no new EventBridge rule is needed.
  *
- * Schedule: cron(0 18 * * ? *)  [6 PM UTC daily]
+ * Schedule: cron(0 23 * * ? *)  [11 PM PKT / 6 PM UTC daily] — ltsd-maintenance
  * Token pool max = 1,200 (20/min × 60 min expiry).
  * Protected by CRON_SECRET bearer token.
  */

@@ -9,10 +9,11 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  * Syncs deals for ALL brands saved in user preferences.
  * Aggregates unique brands across all users, then searches Keepa once per brand.
  *
- * Token cost: ~15 tokens per unique brand.
- * 40 brands = ~600 tokens. Pool max = 1,200 (20/min × 60 min expiry).
+ * Token cost: ~30 tokens per unique brand (search + product).
+ * Actual usage: ~90 tokens for 3 brands (verified 2026-08-13).
+ * Pool max = 1,200 (20/min × 60 min expiry).
  *
- * Schedule: once per day (11 AM UTC).
+ * Schedule: weekly Monday, 3 PM PKT (10 AM UTC) — ltsd-pref-brands
  * Protected by CRON_SECRET bearer token.
  */
 export async function GET(req: Request) {

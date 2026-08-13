@@ -9,8 +9,9 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  * Syncs all currently AVAILABLE Lightning Deals from Keepa → DB.
  * Populates real: percentClaimed, rating, totalReviews, endTime (countdown timer).
  *
- * Token cost: 500 per run (pool max = 1,200).
- * Recommended schedule: every 4 hours (lightning deals cycle frequently).
+ * Token cost: ~700 per run (500 sync + up to 200 category enrichment).
+ * Schedule: rate(2 hours) via EventBridge (ltsd-lightning-pm).
+ * Pre-flight check skips if < 500 tokens available — self-protecting.
  * Protected by CRON_SECRET bearer token.
  */
 export async function GET(req: Request) {

@@ -459,7 +459,7 @@
   <section id="schedule">
     <div class="section-head">
       <h2><span class="idx">02</span> Schedule board</h2>
-      <p>All 8 EventBridge schedules, confirmed <span class="mono">Enabled</span> as of Aug 10, all targeting the single <span class="mono">ltsd-cron</span> Lambda.</p>
+      <p>5 EventBridge Scheduler rules, verified <span class="mono">Enabled</span> as of Aug 13, all targeting the single <span class="mono">ltsd-cron</span> Lambda. All schedules use <b>Asia/Karachi (PKT = UTC+5)</b> timezone. Duplicate rules (ltsd-deal-sync-eve, ltsd-deal-sync-pm) deleted Aug 13 — they were calling the same endpoint as ltsd-category-feed.</p>
     </div>
     <div class="panel table-wrap">
       <table>
@@ -467,52 +467,45 @@
           <tr>
             <th>Schedule</th>
             <th>Calls</th>
-            <th>Runs</th>
+            <th>Runs (PKT)</th>
             <th class="num">Token cost</th>
             <th>Mapping</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td><b>ltsd-lightning-am</b><br><span class="mono note">ltsd-lightning-pm</span></td>
-            <td><span class="route">GET /api/cron/lightning-sync</span><span class="note">syncLightningDeals() — fetch AVAILABLE deals, upsert, categorize (with retry as of Aug 9), expire stale ones directly against the live feed</span></td>
-            <td>~13:00 &amp; ~21:00 UTC</td>
-            <td class="num">~500 each</td>
+            <td><b>ltsd-lightning-pm</b></td>
+            <td><span class="route">GET /api/cron/lightning-sync</span><span class="note">syncLightningDeals() — fetch AVAILABLE deals only, upsert, categorize uncategorized (capped 200/run), expire stale. Pre-flight check: skips if &lt; 500 tokens.</span></td>
+            <td>rate(2 hours)</td>
+            <td class="num">~700 (500 + 200 enrichment)</td>
             <td><span class="chip confirmed">confirmed</span></td>
           </tr>
           <tr>
             <td><b>ltsd-category-feed</b></td>
             <td><span class="route">GET /api/cron/deal-sync?batch=0..5</span><span class="note">seedDeals() — 19 categories, 27 items each, Lambda loops the batch param 6×</span></td>
-            <td>~06:00 UTC</td>
-            <td class="num">~1,121</td>
+            <td>6 AM daily</td>
+            <td class="num">~1,060</td>
             <td><span class="chip confirmed">confirmed</span></td>
           </tr>
           <tr>
             <td><b>ltsd-bestsellers</b></td>
             <td><span class="route">GET /api/cron/deal-sync?mode=bestsellers&amp;batch=0..1</span><span class="note">syncBestSellers() — 6 categories, 20 items each, Lambda loops 2×</span></td>
-            <td>~10:00 UTC</td>
+            <td>9 AM daily</td>
             <td class="num">~480</td>
             <td><span class="chip confirmed">confirmed</span></td>
           </tr>
           <tr>
-            <td><b>ltsd-deal-sync-eve</b><br><span class="mono note">ltsd-deal-sync-pm</span></td>
-            <td><span class="route">/api/cron/deal-sync (assumed)</span><span class="note">visible in EventBridge, not yet traced to a distinct code path or confirmed schedule time</span></td>
-            <td>unconfirmed</td>
-            <td class="num">?</td>
-            <td><span class="chip inferred">inferred</span></td>
-          </tr>
-          <tr>
             <td><b>ltsd-pref-brands</b></td>
             <td><span class="route">GET /api/cron/pref-brand-sync</span><span class="note">syncPreferredBrands() — one Keepa search per unique brand saved across all users' preferences</span></td>
-            <td>~11:00 UTC</td>
-            <td class="num">~15/brand</td>
+            <td>Mon 3 PM (weekly)</td>
+            <td class="num">~90 (verified)</td>
             <td><span class="chip confirmed">confirmed</span></td>
           </tr>
           <tr>
             <td><b>ltsd-maintenance</b></td>
             <td><span class="route">GET /api/cron/daily-sync</span><span class="note">price refresh (50 oldest) · markMissedDeals · cleanupInvalidDeals · cleanupExpiredDeals · cleanupStaleDealData (7d hard-delete) · pickWeeklyDeals (Mon only) · watchlist alerts · daily digest emails · log cleanup (30d)</span></td>
-            <td>~13:01 UTC, daily</td>
-            <td class="num">~50–100</td>
+            <td>11 PM daily</td>
+            <td class="num">~50</td>
             <td><span class="chip confirmed">confirmed</span></td>
           </tr>
         </tbody>
@@ -520,7 +513,7 @@
     </div>
     <div class="callout">
       <span>⓵</span>
-      <span><b>Three routes exist but aren't scheduled:</b> <span class="mono">/api/cron/alert-engine</span> (unimplemented stub), <span class="mono">/api/cron/price-check</span>, and <span class="mono">/api/cron/weekly-deals</span> (a leftover from before the app moved off Vercel — its own comment still says <span class="mono">vercel.json</span>). All three were superseded by <span class="mono">daily-sync</span>, which does price refresh and weekly-deal picking itself. Safe to ignore; worth deleting eventually.</span>
+      <span><b>Unscheduled routes:</b> <span class="mono">/api/cron/alert-engine</span> and <span class="mono">/api/cron/price-check</span> exist but are called from within <span class="mono">daily-sync</span> (maintenance). No separate EventBridge rules needed.</span>
     </div>
   </section>
 
@@ -539,9 +532,9 @@
       </div>
       <div class="panel budget-card">
         <div class="label">Total daily demand</div>
-        <div class="value" style="color:var(--warning)">~3,300</div>
+        <div class="value" style="color:var(--warning)">~10,000</div>
         <div class="gauge-track"><div class="gauge-fill" style="width:100%;background:var(--warning)"></div></div>
-        <div class="foot">category-feed 1,121 + bestsellers 480 + lightning ×2 ≈1,000 + pref-brands ~600 + maintenance ~100</div>
+        <div class="foot">lightning ×12 ≈8,400 + category-feed 1,060 + bestsellers 480 + pref-brands ~13/day + maintenance ~50. Pool refills fully every 60 min; lightning self-skips when tokens &lt; 500.</div>
       </div>
       <div class="panel budget-card">
         <div class="label">Per-category sync limit</div>
