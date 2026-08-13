@@ -2,25 +2,28 @@
  * AWS Lambda function for LTSD cron jobs.
  * Triggered by EventBridge rules at different schedules.
  *
- * One Lambda, 6 EventBridge rules — each passes a different endpoint.
+ * One Lambda, 5 EventBridge Scheduler rules — each passes a different endpoint.
  *
  * Setup:
  *   1. Create Lambda function (Node.js 20, 256MB, 5 min timeout)
  *   2. Set environment variables: APP_URL, CRON_SECRET
- *   3. Create 6 EventBridge rules (see below)
+ *   3. Create 5 EventBridge Scheduler rules (see below)
  *
- * Schedule (all times UTC, spaced 1h+ so pool fully refills):
+ * Schedule (all times PKT = UTC+5, timezone set in EventBridge as Asia/Karachi):
  *
- *   ltsd-lightning-am       cron(0 2 * * ? *)     /api/cron/lightning-sync         500 tokens
- *   ltsd-category-feed      cron(0 6 * * ? *)     /api/cron/deal-sync              ~665 tokens (19 cats × ~35)
- *   ltsd-bestsellers        cron(0 10 * * ? *)    /api/cron/deal-sync?mode=bestsellers  ~480 tokens
- *   ltsd-pref-brands        cron(0 11 * * ? *)    /api/cron/pref-brand-sync        ~300 tokens (varies by brand count)
- *   ltsd-lightning-pm       cron(0 14 * * ? *)    /api/cron/lightning-sync          500 tokens
- *   ltsd-maintenance        cron(0 18 * * ? *)    /api/cron/daily-sync             ~50 tokens
+ *   ltsd-lightning-pm       rate(2 hours)         /api/cron/lightning-sync         ~700 tokens (500 sync + 200 category enrichment)
+ *   ltsd-category-feed      cron(0 6 * * ? *)     /api/cron/deal-sync              ~1,060 tokens (19 cats, 7 batches)
+ *   ltsd-bestsellers        cron(0 9 * * ? *)     /api/cron/deal-sync?mode=bestsellers  ~480 tokens (6 cats, 2 batches)
+ *   ltsd-pref-brands        cron(0 15 ? * 2 *)    /api/cron/pref-brand-sync        ~90 tokens (weekly Monday only)
+ *   ltsd-maintenance        cron(0 23 * * ? *)    /api/cron/daily-sync             ~50 tokens
  *                                                  (price check + soft expiry + cleanup + weekly picks + log cleanup)
  *
+ * Lightning sync has a pre-flight token check: skips if < 500 tokens available.
+ * This makes the rate(2 hours) schedule self-protecting — if category feed or
+ * bestsellers just ran and drained the pool, lightning simply skips that cycle.
+ *
  * Token pool: 1,200 max (20/min × 60 min expiry — NOT 28,800/day)
- * Pool fully refills in 60 minutes. Jobs spaced 1h+ apart.
+ * Pool fully refills in 60 minutes. Heavy jobs spaced 3h+ apart.
  *
  * Batching:
  *   CloudFront has a ~30s gateway timeout. Category feed (19 cats) and
