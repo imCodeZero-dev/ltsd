@@ -48,3 +48,6 @@ next-env.d.ts
 
 # Figma design previews (local reference only)
 /public/figma-previews/
+
+# scratch test scripts (may contain live API keys pasted for one-off testing)
+/scratch-tmp/

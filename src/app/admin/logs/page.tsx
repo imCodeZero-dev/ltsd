@@ -6,11 +6,13 @@ import type {
   LogsMeta,
   CronStatus,
   KeepaStatus,
+  RainforestStatus,
 } from "@/components/admin/logs-client";
 
 export const dynamic = "force-dynamic";
 
 import { TOKEN_POOL_MAX, REFILL_RATE } from "@/lib/cron-auth";
+import { RAINFOREST_MONTHLY_QUOTA } from "@/lib/rainforest-quota";
 
 const PAGE_SIZE = 50;
 
@@ -26,7 +28,7 @@ const CRON_SOURCES = [
 export default async function AdminLogsPage() {
   await requireAdmin();
 
-  const [logs, total, countByType, countByStatus, cronLogs, keepaLog] =
+  const [logs, total, countByType, countByStatus, cronLogs, keepaLog, rainforestLog] =
     await Promise.all([
       // First page of logs
       db.systemLog.findMany({
@@ -72,9 +74,18 @@ export default async function AdminLogsPage() {
           }),
         ),
       ),
-      // Latest API_CALL with token info for Keepa status
+      // Latest API_CALL with token info for Keepa status — must filter by
+      // source prefix, not just type: once other providers (Rainforest) also
+      // log API_CALL rows, an unfiltered query picks up whichever logged most
+      // recently and silently shows the wrong provider's numbers here.
       db.systemLog.findFirst({
-        where:   { type: "API_CALL" },
+        where:   { type: "API_CALL", source: { startsWith: "keepa:" } },
+        orderBy: { createdAt: "desc" },
+        select:  { metadata: true, createdAt: true },
+      }),
+      // Latest API_CALL with credit info for Rainforest status
+      db.systemLog.findFirst({
+        where:   { type: "API_CALL", source: { startsWith: "rainforest:" } },
         orderBy: { createdAt: "desc" },
         select:  { metadata: true, createdAt: true },
       }),
@@ -168,6 +179,31 @@ export default async function AdminLogsPage() {
     };
   }
 
+  // ── Rainforest credit status ──────────────────────────────────────────────
+  // No refill estimation needed — Rainforest reports the exact credits
+  // remaining with every response (see rainforest-quota.ts), unlike Keepa's
+  // per-minute-refilling pool.
+
+  let rainforestStatus: RainforestStatus;
+  if (rainforestLog?.metadata && typeof rainforestLog.metadata === "object") {
+    const meta = rainforestLog.metadata as Record<string, unknown>;
+    const creditsRemaining = typeof meta.creditsRemaining === "number" ? meta.creditsRemaining : null;
+
+    rainforestStatus = {
+      creditsRemaining,
+      monthlyQuota: RAINFOREST_MONTHLY_QUOTA,
+      lastUpdated:  rainforestLog.createdAt.toISOString(),
+    };
+  } else {
+    rainforestStatus = {
+      creditsRemaining: null,
+      monthlyQuota:     RAINFOREST_MONTHLY_QUOTA,
+      lastUpdated:      null,
+    };
+  }
+
+  const activeProvider = process.env.DEAL_API_PROVIDER ?? "amazon";
+
   return (
     <div className="px-3 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
       <div>
@@ -182,6 +218,8 @@ export default async function AdminLogsPage() {
         initialMeta={initialMeta}
         initialCronStatus={latestCronLogs}
         initialKeepaStatus={keepaStatus}
+        initialRainforestStatus={rainforestStatus}
+        activeProvider={activeProvider}
       />
     </div>
   );

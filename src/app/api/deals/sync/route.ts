@@ -1,6 +1,7 @@
 import { ok, err } from "@/lib/api";
 import { requireAdminOrThrow } from "@/lib/auth-guard";
 import { getLastKnownTokens } from "@/lib/cron-auth";
+import { getLastKnownCredits } from "@/lib/rainforest-quota";
 import {
   syncCategory,
   syncSearch,
@@ -10,13 +11,27 @@ import {
   cleanupInvalidDeals,
 } from "@/lib/deal-api/sync";
 
-/** Minimum token thresholds per action (pool max = 1,200) */
+/** Minimum token thresholds per action (Keepa pool max = 1,200) */
 const ACTION_TOKEN_COST: Record<string, number> = {
   category: 30,    // 5 (deal) + up to 20 (product)
   search:   20,
   product:  5,
   prices:   100,
   seed:     500,   // 19 cats × ~25 tokens with default limit=20
+};
+
+/**
+ * Minimum credit thresholds per action (Rainforest — fixed MONTHLY quota,
+ * no per-minute refill). Category/search/product are all 1 credit/call
+ * (1 page or 1 product lookup, no batching). "prices" isn't listed here —
+ * it costs 1 credit PER requested ASIN (no batching), so its threshold is
+ * computed dynamically from the request body below instead of a flat number.
+ */
+const ACTION_CREDIT_COST: Record<string, number> = {
+  category: 1,
+  search:   1,
+  product:  1,
+  seed:     19,   // 19 categories × 1 credit/page
 };
 
 /**
@@ -42,16 +57,34 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const body = (await req.json()) as Record<string, unknown>;
     const action = body.action as string;
+    const isRainforest = (process.env.DEAL_API_PROVIDER ?? "amazon") === "rainforest";
 
-    // Token budget guard — prevent admin syncs from draining cron budget
-    const requiredTokens = ACTION_TOKEN_COST[action];
-    if (requiredTokens) {
-      const estimated = await getLastKnownTokens();
-      if (estimated !== null && estimated < requiredTokens) {
-        return err(
-          `Insufficient tokens (~${estimated} available, ~${requiredTokens} needed). Wait for refill.`,
-          429,
-        );
+    // Budget guard — prevent admin syncs from draining cron budget
+    if (isRainforest) {
+      // "prices" costs 1 credit PER asin (no batching) — compute dynamically
+      // instead of using a flat map entry.
+      const requiredCredits = action === "prices"
+        ? ((body.asins as string[])?.length ?? 0)
+        : ACTION_CREDIT_COST[action];
+      if (requiredCredits) {
+        const estimated = await getLastKnownCredits();
+        if (estimated !== null && estimated < requiredCredits) {
+          return err(
+            `Insufficient Rainforest credits (~${estimated} available, ~${requiredCredits} needed). Credits reset monthly, not by waiting.`,
+            429,
+          );
+        }
+      }
+    } else {
+      const requiredTokens = ACTION_TOKEN_COST[action];
+      if (requiredTokens) {
+        const estimated = await getLastKnownTokens();
+        if (estimated !== null && estimated < requiredTokens) {
+          return err(
+            `Insufficient tokens (~${estimated} available, ~${requiredTokens} needed). Wait for refill.`,
+            429,
+          );
+        }
       }
     }
 

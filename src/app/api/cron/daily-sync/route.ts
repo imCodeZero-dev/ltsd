@@ -6,6 +6,7 @@ import { sendDailyDigests } from "@/lib/notifications/daily-digest";
 import { db } from "@/lib/db";
 import { logCron, logAuth } from "@/lib/system-log";
 import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
+import { getLastKnownCredits } from "@/lib/rainforest-quota";
 
 /**
  * GET /api/cron/daily-sync
@@ -34,15 +35,22 @@ export async function GET(req: Request) {
   }
 
   const startTime = Date.now();
+  const isRainforest = (process.env.DEAL_API_PROVIDER ?? "amazon") === "rainforest";
 
-  // Pre-flight token check — skip if not enough tokens
-  const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens === null || estimatedTokens < 60) {
+  // Pre-flight budget check — skip if not enough tokens/credits.
+  // Step 1 (price refresh) is the only API-calling step, 50 oldest deals.
+  // Keepa: ~1 token/ASIN in one batched call (~50 tokens total).
+  // Rainforest: 1 credit/ASIN, NO batching — the same 50-item refresh now
+  // costs 50 separate calls against the MONTHLY quota, not a per-minute pool.
+  const requiredBudget = isRainforest ? 55 : 60;
+  const estimatedBudget = isRainforest ? await getLastKnownCredits() : await getLastKnownTokens();
+  const unit = isRainforest ? "credits" : "tokens";
+  if (estimatedBudget === null || estimatedBudget < requiredBudget) {
     logCron("ltsd-maintenance", "/api/cron/daily-sync", "WARNING",
-      { errors: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~60`] }, 0);
+      { errors: 0, errorDetails: [`Skipped: ~${estimatedBudget} ${unit} available, need ~${requiredBudget}`] }, 0);
     return NextResponse.json({
       ok: false, skipped: true,
-      reason: `Insufficient tokens (~${estimatedTokens} available, ~60 needed). Will retry next cycle.`,
+      reason: `Insufficient ${unit} (~${estimatedBudget} available, ~${requiredBudget} needed). Will retry next cycle.`,
       timestamp: new Date().toISOString(),
     });
   }

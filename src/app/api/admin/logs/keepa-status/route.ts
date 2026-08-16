@@ -7,9 +7,11 @@ export async function GET(): Promise<Response> {
   try { await requireAdminOrThrow(); } catch (e) { return e as Response; }
 
   try {
-    // Get the most recent API_CALL log that has token info
+    // Get the most recent Keepa API_CALL log — must filter by source prefix,
+    // not just type, so another provider's (Rainforest) more-recent API_CALL
+    // rows don't get misread as Keepa token data.
     const latest = await db.systemLog.findFirst({
-      where: { type: "API_CALL" },
+      where: { type: "API_CALL", source: { startsWith: "keepa:" } },
       orderBy: { createdAt: "desc" },
       select: { metadata: true, createdAt: true },
     });

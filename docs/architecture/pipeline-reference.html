@@ -284,7 +284,7 @@
       <span><b>App</b> limitedtimesuperdeals.app</span>
       <span><b>Hosting</b> AWS Amplify + EventBridge Scheduler → shared Lambda <span class="mono">ltsd-cron</span></span>
       <span><b>DB</b> Postgres (Neon), Prisma 7</span>
-      <span><b>Deal source</b> Keepa API, 1,200 tokens/day shared pool</span>
+      <span><b>Deal source</b> Keepa API (live), 1,200 tokens/day shared pool — Rainforest API provider built and tested on a branch, not yet active (see §06)</span>
     </div>
   </header>
 
@@ -294,6 +294,7 @@
     <a href="#budget">Token Budget</a>
     <a href="#categories">Category Map</a>
     <a href="#cleanup">Cleanup &amp; Expiry</a>
+    <a href="#rainforest">Rainforest Migration</a>
     <a href="#log">Incident Log</a>
     <a href="#open">Open Questions</a>
   </nav>
@@ -606,9 +607,45 @@
   </section>
 
   <!-- ============================================================ -->
+  <section id="rainforest">
+    <div class="section-head">
+      <h2><span class="idx">06</span> Rainforest migration — built, tested, not yet live</h2>
+      <p>Client asked to move off Keepa (too few deals, not real-time) onto Rainforest API. Built on <span class="mono">feature/rainforest-migration</span> as a second, fully parallel <span class="mono">DealApiProvider</span> implementation — Keepa's code path is untouched and still the active one (<span class="mono">DEAL_API_PROVIDER=keepa</span>). Everything below was verified against real API responses, not docs alone, per the migration's own safety rule.</p>
+    </div>
+
+    <div class="callout warn">
+      <span>⚠</span>
+      <span><b>The <span class="mono">discount</span> parameter is a MAXIMUM, not a minimum.</b> <span class="mono">discount=10_percent_off</span> means "0%–10% off," the opposite of what the name suggests and the opposite of Keepa's <span class="mono">deltaPercentRange</span> filter. Confirmed via docs (Rainforest's own wording: "Deals upto X% off") after a real side-by-side comparison against Keepa showed every single Rainforest result capped at exactly ~10% off, category after category — that uniformity is what triggered the check. First implementation had this backwards and would have shipped a category sync that silently excluded every deal deeper than 10% off. Fixed in <span class="mono">rainforest.ts</span>: uses <span class="mono">discount=70_percent_off</span> (the widest tier) plus <span class="mono">minimum_rating=3_and_up</span> as a quality floor, then sorts client-side by discount percent — the endpoint has no <span class="mono">sort_by</span> parameter at all (confirmed via docs), so a raw page comes back in Amazon's own order, not discount-descending.</span>
+    </div>
+
+    <div class="table-wrap panel" style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Topic</th><th>Keepa</th><th>Rainforest</th></tr></thead>
+        <tbody>
+          <tr><td><b>Billing model</b></td><td>Token bucket, refills 20/min, caps at 1,200</td><td>Fixed <b>monthly</b> credit quota — no refill, resets on billing date. Exact remaining count reported with every response, so no estimation needed (unlike Keepa's <span class="mono">getLastKnownTokens()</span> refill math).</td></tr>
+          <tr><td><b>Per-call cost</b></td><td>~1–2 tokens/ASIN, batched up to 100 ASINs/call</td><td><b>1 credit per call, no batching at all</b> — a category page (≤30 items) is 1 credit either way, but a 50-item product-price refresh is 50 separate calls, not one batched one.</td></tr>
+          <tr><td><b>Category IDs</b></td><td><span class="mono">CATEGORY_MAP</span>, 19 browse-node IDs</td><td>Same ID space — all 19 individually confirmed against real <span class="mono">type=category</span> responses (2026-08-16). Amazon's own labels sometimes word differently ("Computers" vs "Computers &amp; Accessories", "Baby" vs "Baby Products") but every browse node returns products unambiguously in the right category.</td></tr>
+          <tr><td><b>Deal-type classification</b></td><td>Heuristic — <span class="mono">mapProduct()</span>: "if it doesn't clearly look like a real price drop, call it Limited Time." Likely root cause of the client's Limited Time Deals complaint.</td><td>Real signals — <span class="mono">is_lightning_deal</span> and Amazon's own <span class="mono">ends_at</span> field decide the type, not a guess. No deal seen yet on the Deals endpoint lacks an end date, so PRICE_DROP (no end date) is rare/absent from that endpoint by nature — a real, structural difference, not a bug.</td></tr>
+          <tr><td><b>Price history</b></td><td>90-day <span class="mono">csv</span> series per ASIN</td><td><b>Does not exist.</b> Confirmed loss — history starts fresh from migration day, no backfill possible. <span class="mono">isAllTimeLow</span> goes with it (it's derived from history).</td></tr>
+          <tr><td><b>Bestsellers</b></td><td><span class="mono">category</span> param = same browse-node ID space as everything else</td><td><b>Different ID space entirely</b> — <span class="mono">category_id</span> silently returns 0 results; needs a real Amazon Best-Sellers page <span class="mono">url</span> (zgbs slug, e.g. <span class="mono">amazon.com/Best-Sellers-Electronics/zgbs/electronics</span>). Only Electronics verified so far; the other 18 are deferred, not guessed.</td></tr>
+          <tr><td><b>Lightning-deal categorization</b></td><td>Batched <span class="mono">/product</span> call, up to 100 ASINs/call</td><td>1 credit per ASIN, no batching — same per-ASIN unit cost as Keepa but many more individual calls for the same enrichment step.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="font-size:13.5px;color:var(--ink-dim);margin-top:4px">Side-by-side spot check (2026-08-16), 3 categories, real data: Keepa's Toys &amp; Games results included Yu-Gi-Oh trading cards at $0.09–$0.23 tagged "91% off" and a $0.94 soup bowl at "85% off" in Home &amp; Kitchen — low-value noise dressed up as deals. Rainforest returned real branded products (Beats, Blink, Shark, LEGO, HP) at 30–51% off across the same categories. This is the concrete evidence behind the client's "too few deals, not real enough" complaint, not just their impression of it.</p>
+
+    <ul class="plain">
+      <li><b style="color:var(--ink)">New files</b> — <span class="mono">src/lib/deal-api/providers/rainforest.ts</span> (provider + mappers), <span class="mono">src/lib/rainforest-quota.ts</span> (monthly-quota check, parallels <span class="mono">cron-auth.ts</span>'s token check without modifying it).</li>
+      <li><b style="color:var(--ink)">Wired in</b> — <span class="mono">deal-api/index.ts</span>'s provider factory, all 4 direct-Keepa bypass points in <span class="mono">sync.ts</span>, all 6 cron/admin routes' pre-flight budget checks (provider-aware, real measured credit costs per route), admin <span class="mono">/admin/logs</span> now shows both providers' status side by side with an Active/Inactive badge.</li>
+      <li><b style="color:var(--ink)">Still deferred, on purpose</b> — 18 of 19 bestseller zgbs URL slugs (Electronics only, confirmed); pagination beyond one page (30 items) for categories needing more; final go/no-go on flipping <span class="mono">DEAL_API_PROVIDER</span> to <span class="mono">rainforest</span> in production, which is a deliberate separate decision, not a side effect of this build.</li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ -->
   <section id="log">
     <div class="section-head">
-      <h2><span class="idx">06</span> Incident log</h2>
+      <h2><span class="idx">07</span> Incident log</h2>
       <p>What broke, why, and what fixed it — in order, so nobody has to re-derive this from scratch next time.</p>
     </div>
     <div class="panel" style="padding: 4px 22px;">
@@ -693,6 +730,20 @@
             <p style="margin-top:8px">Swept the database for other issues while in there: found and deactivated 4 pre-existing deals with stale multi-year-old <span class="mono">expiresAt</span> values (unrelated legacy data, now cleaned up); confirmed "suspicious" 300-900-row price-history counts were genuine multi-month Keepa history, not duplicates.</p>
           </div>
         </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-16<br><span class="sha">—</span></div>
+          <div class="log-body">
+            <h3>Rainforest's <span class="mono">discount</span> filter was backwards from what its name implies</h3>
+            <p>First implementation of <span class="mono">getDealsByCategory()</span> used <span class="mono">discount=10_percent_off</span> expecting a Keepa-style minimum floor ("at least 10% off"). A real side-by-side comparison against Keepa (see §06) showed every single Rainforest result landing at almost exactly 10% off, category after category — suspiciously uniform. Docs confirmed the parameter is actually a maximum cap ("Deals upto X% off, 0%–X%"); the narrow tier was silently hiding every deal deeper than 10% off, the exact opposite of the intended quality filter. Fixed to use the widest tier (<span class="mono">70_percent_off</span>) plus <span class="mono">minimum_rating=3_and_up</span>, with results sorted by discount client-side since the endpoint has no <span class="mono">sort_by</span> at all. Re-ran the same comparison after the fix — results went from a flat 10% across the board to real 30–51% off branded products.</p>
+          </div>
+        </div>
+        <div class="log-entry">
+          <div class="log-date">2026-08-16<br><span class="sha">—</span></div>
+          <div class="log-body">
+            <h3>Admin logs' "Keepa API Tokens" card had no source filter — silently broken the moment a second provider started logging</h3>
+            <p>Both <span class="mono">admin/logs/page.tsx</span> and the orphaned <span class="mono">admin/logs/keepa-status/route.ts</span> queried the latest <span class="mono">API_CALL</span> log with no <span class="mono">source</span> filter, unlike <span class="mono">cron-auth.ts</span>'s own <span class="mono">getLastKnownTokens()</span> which correctly filters to <span class="mono">keepa:*</span>. Invisible for months because Keepa was the only source that ever logged an <span class="mono">API_CALL</span> row — but real Rainforest test calls made during this migration's own verification work wrote <span class="mono">rainforest:*</span> rows into the same shared database, and the very next admin-logs page load would have shown "No data yet" for Keepa's token balance even though real, recent Keepa data existed. Fixed both queries to filter by source prefix; added a matching <span class="mono">rainforest-status</span> route and a second status card so the admin panel shows both providers' budgets side by side, with an Active/Inactive badge keyed off <span class="mono">DEAL_API_PROVIDER</span>.</p>
+          </div>
+        </div>
       </div>
     </div>
   </section>
@@ -700,7 +751,7 @@
   <!-- ============================================================ -->
   <section id="open">
     <div class="section-head">
-      <h2><span class="idx">07</span> Open questions</h2>
+      <h2><span class="idx">08</span> Open questions</h2>
       <p>Things flagged but not yet confirmed — don't treat these as settled.</p>
     </div>
     <ul class="plain">
@@ -708,6 +759,8 @@
       <li><b style="color:var(--ink)">Client-provided category IDs</b> — offered but not yet received. Cross-check against the 19-row map above once they arrive, the same way the Toys/Patio mismatch was caught.</li>
       <li><b style="color:var(--ink)">New logo PNG</b> — client offered to send one to fix the PWA icon complaint properly (current fix removes the black background but loses the adaptive-icon shape). Once received, save as <span class="mono">public/images/ltsd-logo.webp</span> — every reference in the app points to that one file, so no code changes needed.</li>
       <li><b style="color:var(--ink)">Whether the concurrency fix (Aug 11, 825caa4) fully resolves lightning-sync, bestsellers, and category-feed in production</b> — the pg.Pool fix was necessary but not sufficient on its own; the 504 gateway timeout was the real cause of the multi-day silence, and that's what the concurrency/batching fix targets. Measured 342.9s → 24.1s directly against production for the exact batch that was failing, but that was a manual one-off run, not the actual scheduled Lambda invocation. Verify by checking <span class="mono">/admin/logs</span> after the next scheduled run of each — should now show a clean completion, not a 504-triggered silence.</li>
+      <li><b style="color:var(--ink)">18 of 19 Rainforest bestseller zgbs URL slugs</b> — only Electronics confirmed (see §06). <span class="mono">syncBestSellers()</span>'s Rainforest branch fails gracefully per-category (returns an error, doesn't throw) for the rest until each is verified the same way the category IDs were.</li>
+      <li><b style="color:var(--ink)">Flipping <span class="mono">DEAL_API_PROVIDER</span> to <span class="mono">rainforest</span> in production</b> — deliberately not done as part of this build. Needs its own explicit go/no-go: real month-long credit usage hasn't been observed yet (current numbers are estimates from spot tests against a ~90-credit trial balance), and the Starter plan ($83/mo, 10,000 credits) hasn't been purchased or load-tested against actual cron cadence.</li>
     </ul>
   </section>
 

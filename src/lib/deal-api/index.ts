@@ -8,6 +8,10 @@ async function loadProvider(): Promise<DealApiProvider> {
     const { KeepaProvider } = await import("./providers/keepa");
     return new KeepaProvider();
   }
+  if (provider === "rainforest") {
+    const { RainforestProvider } = await import("./providers/rainforest");
+    return new RainforestProvider();
+  }
   const { AmazonProvider } = await import("./providers/amazon");
   return new AmazonProvider();
 }

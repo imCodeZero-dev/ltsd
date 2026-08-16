@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { seedDeals, syncBestSellers } from "@/lib/deal-api/sync";
 import { logCron, logAuth } from "@/lib/system-log";
 import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
+import { getLastKnownCredits } from "@/lib/rainforest-quota";
 
 /**
  * GET /api/cron/deal-sync
@@ -72,20 +73,25 @@ export async function GET(req: Request) {
   const batchParam = searchParams.get("batch");
   const startTime = Date.now();
 
-  // Pre-flight token check — lower threshold for batched calls.
-  // Deals batch: up to 4 categories (last batch) × ~59 tokens = ~236, +margin.
-  const requiredTokens = batchParam !== null
-    ? (mode === "bestsellers" ? 150 : 260)
-    : (mode === "bestsellers" ? 500 : 700);
-  const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens === null || estimatedTokens < requiredTokens) {
+  const isRainforest = (process.env.DEAL_API_PROVIDER ?? "amazon") === "rainforest";
+
+  // Pre-flight budget check — lower threshold for batched calls.
+  // Keepa: deals batch up to 4 categories (last batch) × ~59 tokens = ~236, +margin.
+  // Rainforest: 1 credit/category page (deals) or 1 credit/category page
+  // (bestsellers, no per-item enrichment needed — see rainforest.ts).
+  const requiredBudget = isRainforest
+    ? (batchParam !== null ? (mode === "bestsellers" ? 4 : 5) : (mode === "bestsellers" ? 7 : 20))
+    : (batchParam !== null ? (mode === "bestsellers" ? 150 : 260) : (mode === "bestsellers" ? 500 : 700));
+  const estimatedBudget = isRainforest ? await getLastKnownCredits() : await getLastKnownTokens();
+  const unit = isRainforest ? "credits" : "tokens";
+  if (estimatedBudget === null || estimatedBudget < requiredBudget) {
     const cronName = mode === "bestsellers" ? "ltsd-bestsellers" : "ltsd-category-feed";
     logCron(cronName, "/api/cron/deal-sync", "WARNING",
-      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~${requiredTokens}`] },
+      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedBudget} ${unit} available, need ~${requiredBudget}`] },
       0);
     return NextResponse.json({
       ok: false, skipped: true, mode,
-      reason: `Insufficient tokens (~${estimatedTokens} available, ~${requiredTokens} needed). Will retry next cycle.`,
+      reason: `Insufficient ${unit} (~${estimatedBudget} available, ~${requiredBudget} needed). Will retry next cycle.`,
       timestamp: new Date().toISOString(),
     });
   }

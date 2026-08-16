@@ -220,6 +220,10 @@ async function upsertDeal(
  *   3. The existing daily cleanupStaleDealData() then hard-deletes them after 7 days.
  */
 export async function syncLightningDeals(): Promise<{ synced: number; errors: string[]; expired: number; categorized: number }> {
+  if ((process.env.DEAL_API_PROVIDER ?? "amazon") === "rainforest") {
+    return syncLightningDealsRainforest();
+  }
+
   const { KeepaProvider, mapLightningDeal } = await import("./providers/keepa");
   const provider = new KeepaProvider();
 
@@ -336,6 +340,97 @@ export async function syncLightningDeals(): Promise<{ synced: number; errors: st
 }
 
 /**
+ * Rainforest lightning-deal sync. Domain-wide deals endpoint (deal_types=
+ * lightning_deal) returns no category — same "needs enrichment" situation
+ * as Keepa, but Rainforest's /product lookup has NO batching (1 credit/ASIN,
+ * one call each, run concurrently rather than in one batched call).
+ */
+async function syncLightningDealsRainforest(): Promise<{ synced: number; errors: string[]; expired: number; categorized: number }> {
+  const { RainforestProvider, mapDealRecord } = await import("./providers/rainforest");
+  const provider = new RainforestProvider();
+
+  const deals = await provider.getLightningDeals();
+
+  const errors: string[] = [];
+  let synced = 0;
+  let categorized = 0;
+  const freshAsins = new Set<string>();
+  const categorizeCache: CategoryCache = new Map();
+
+  await processConcurrently(deals, 8, async (d) => {
+    try {
+      const item = mapDealRecord(d, "General");
+      if (!item) return;
+      const id = await upsertDeal(item);
+      freshAsins.add(d.asin);
+      if (id) synced++;
+    } catch (err) {
+      const msg = `${d.asin}: ${err instanceof Error ? err.message : String(err)}`;
+      errors.push(msg);
+      logError("sync:lightning", err, { asin: d.asin });
+    }
+  });
+
+  // ── Enrich lightning deals with categories ────────────────────────────────
+  // Only deals still missing a category (not just this run's batch) — after
+  // the first enrichment pass, only genuinely new deals need a lookup, same
+  // as Keepa's approach, but here each lookup is its own credit-consuming call.
+  try {
+    const uncategorized = await db.deal.findMany({
+      where: {
+        dealType:   "LIGHTNING_DEAL",
+        isActive:   true,
+        categories: { none: {} },
+      },
+      select: { id: true, asin: true },
+    });
+
+    await processConcurrently(uncategorized, 8, async (deal) => {
+      try {
+        const category = await provider.getProductCategory(deal.asin);
+        if (!category) return;
+        const categoryId = await resolveCategoryId(category, categorizeCache);
+        await db.dealCategory.upsert({
+          where:  { dealId_categoryId: { dealId: deal.id, categoryId } },
+          create: { dealId: deal.id, categoryId },
+          update: {},
+        });
+        categorized++;
+      } catch (err) {
+        errors.push(`cat-enrich ${deal.asin}: ${err instanceof Error ? err.message : String(err)}`);
+        logError("sync:lightning:categorize", err, { asin: deal.asin });
+      }
+    });
+  } catch (err) {
+    errors.push(`cat-enrich: ${err instanceof Error ? err.message : String(err)}`);
+    logError("sync:lightning:categorize", err, {});
+  }
+
+  // ── Expire stale lightning deals ──────────────────────────────────────────
+  const now = new Date();
+  const expiredDeals = await db.deal.findMany({
+    where: {
+      isActive:  true,
+      dealType:  "LIGHTNING_DEAL",
+      expiresAt: { lt: now },
+      asin:      { notIn: [...freshAsins] },
+    },
+    select: { id: true },
+  });
+
+  if (expiredDeals.length > 0) {
+    const expiredIds = expiredDeals.map((d) => d.id);
+    await db.watchlistItem.deleteMany({ where: { dealId: { in: expiredIds } } });
+    await db.deal.updateMany({
+      where: { id: { in: expiredIds } },
+      data:  { isActive: false },
+    });
+  }
+
+  return { synced, errors, expired: expiredDeals.length, categorized };
+}
+
+/**
  * Sync deals for a category using /deal + /product endpoints.
  * Cost: 5 (deal) + ~limit tokens (product batch).
  * Recommended schedule: every 6 hours.
@@ -345,9 +440,10 @@ export async function syncCategory(
   limit = 20,
   historySeenAsins?: Set<string>,
 ): Promise<{ synced: number; errors: string[] }> {
-  const { KeepaProvider } = await import("./providers/keepa");
-  const provider = new KeepaProvider();
-  const results = await provider.getDealsByCategory(category, limit);
+  // Both KeepaProvider and RainforestProvider implement getDealsByCategory on
+  // the shared DealApiProvider interface — no provider-specific branch needed.
+  const api = await getDealApi();
+  const results = await api.getDealsByCategory(category, limit);
   const errors: string[] = [];
   let synced = 0;
   const categoryCache: CategoryCache = new Map();
@@ -384,6 +480,10 @@ export async function syncBestSellers(
   categoryName: string,
   limit = 60
 ): Promise<{ synced: number; errors: string[] }> {
+  if ((process.env.DEAL_API_PROVIDER ?? "amazon") === "rainforest") {
+    return syncBestSellersRainforest(categoryName, limit);
+  }
+
   const { KeepaProvider } = await import("./providers/keepa");
   const provider = new KeepaProvider();
 
@@ -416,6 +516,44 @@ export async function syncBestSellers(
   }
 
   return { synced, errors };
+}
+
+/**
+ * Rainforest bestsellers: needs a verified zgbs URL slug per category (a
+ * different ID space from CATEGORY_MAP — see rainforest.ts). Most categories
+ * don't have one yet, so this returns a per-category error instead of
+ * throwing — a caller looping over categories (deal-sync route) shouldn't
+ * have its whole batch aborted by one unmapped category.
+ */
+async function syncBestSellersRainforest(
+  categoryName: string,
+  limit: number
+): Promise<{ synced: number; errors: string[] }> {
+  const { RainforestProvider } = await import("./providers/rainforest");
+  const provider = new RainforestProvider();
+
+  try {
+    const results = (await provider.getBestSellers(categoryName)).slice(0, limit);
+    const errors: string[] = [];
+    let synced = 0;
+    const categoryCache: CategoryCache = new Map();
+
+    await processConcurrently(results, 8, async ({ item, historyPoints, priceStats }) => {
+      try {
+        const id = await upsertDeal(item, categoryName, { priceStats, historyPoints, categoryCache });
+        if (id) synced++;
+      } catch (err) {
+        errors.push(`${item.asin}: ${err instanceof Error ? err.message : String(err)}`);
+        logError("sync:bestsellers", err, { asin: item.asin, categoryName });
+      }
+    });
+
+    return { synced, errors };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    logError("sync:bestsellers", err, { categoryName });
+    return { synced: 0, errors: [`${categoryName}: ${msg}`] };
+  }
 }
 
 /**
@@ -499,8 +637,11 @@ export async function syncPrices(
  * Cost: 1-2 tokens.
  */
 export async function syncProductWithHistory(asin: string): Promise<string | null> {
-  const { KeepaProvider } = await import("./providers/keepa");
-  const provider = new KeepaProvider();
+  const providerName = process.env.DEAL_API_PROVIDER ?? "amazon";
+
+  const provider = providerName === "rainforest"
+    ? new (await import("./providers/rainforest")).RainforestProvider()
+    : new (await import("./providers/keepa")).KeepaProvider();
 
   const { item, historyPoints, priceStats } = await provider.getFullProductData(asin);
   if (!item) return null;
