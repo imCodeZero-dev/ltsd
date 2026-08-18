@@ -94,18 +94,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Pages: network-first, fallback to offline page
+  // Pages: network-only, offline-page fallback on failure — never cache the
+  // response itself. Every page here (/login, /dashboard, /admin/*, ...) is
+  // dynamic and renders content specific to whoever's logged in. Caching it
+  // (even "network-first with cache fallback") meant a network blip could
+  // serve a PREVIOUS session's rendered HTML to a DIFFERENT session — the
+  // real cause of the crash reported switching from a user account to an
+  // admin account in the same browser: a stale cache entry from the user
+  // session got served during the admin session, mismatched against its
+  // actual data. OFFLINE_URL itself is static/generic, so it's still safe
+  // to serve from the precached copy when the network is genuinely down.
   if (request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(request).then((cached) => cached || caches.match(OFFLINE_URL)))
+      fetch(request).catch(() => caches.match(OFFLINE_URL))
     );
     return;
   }
