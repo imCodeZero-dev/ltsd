@@ -82,6 +82,28 @@ export function logApiCall(info: ApiCallInfo, duration: number): void {
   }, duration);
 }
 
+// ── Rainforest API Call Logging ─────────────────────────────────────────────
+
+interface RainforestApiCallInfo {
+  endpoint: string;
+  params?: Record<string, string>;
+  creditsUsedThisRequest?: number;
+  creditsUsed?: number;
+  creditsRemaining?: number;
+  responseStatus: number;
+}
+
+export function logRainforestApiCall(info: RainforestApiCallInfo, duration: number): void {
+  const status: LogStatus = info.responseStatus >= 400 ? "FAILURE" : "SUCCESS";
+  const message = status === "FAILURE"
+    ? `Rainforest ${info.endpoint} returned ${info.responseStatus} (${info.creditsRemaining ?? "?"} credits left)`
+    : `Rainforest ${info.endpoint}: ${info.creditsUsedThisRequest ?? "?"} credits used, ${info.creditsRemaining ?? "?"} left`;
+
+  void log("API_CALL", status, `rainforest:${info.endpoint}`, message, {
+    ...info,
+  }, duration);
+}
+
 // ── Auth Logging ────────────────────────────────────────────────────────────
 
 interface AuthDetails {

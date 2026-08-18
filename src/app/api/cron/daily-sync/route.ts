@@ -12,7 +12,7 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  *
  * End-of-day maintenance — runs at 11 PM PKT (6 PM UTC) after all heavy syncs are done.
  *
- *   1. Price refresh — 50 oldest deals (~50 tokens, only Keepa call)
+ *   1. Price refresh — 50 oldest deals (~50 tokens, always Keepa — see below)
  *   2. Soft expiry — mark deals not seen in today's syncs
  *   3. Hard cleanup — delete inactive deals > 7 days (not in watchlists)
  *   4. Weekly picks — auto-pick deals of the week (Mondays only)
@@ -22,6 +22,11 @@ import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
  *
  * Steps 6-7 are DB/email only (no Keepa tokens) — piggybacked on this
  * existing schedule intentionally, so no new EventBridge rule is needed.
+ *
+ * Step 1 is deliberately pinned to Keepa (see syncPrices' forceProvider),
+ * regardless of DEAL_API_PROVIDER — free, batched, and it naturally writes
+ * real price-history rows even for Rainforest-sourced deals. So this route's
+ * budget check is always against Keepa's token pool, never Rainforest credits.
  *
  * Schedule: cron(0 23 * * ? *)  [11 PM PKT / 6 PM UTC daily] — ltsd-maintenance
  * Token pool max = 1,200 (20/min × 60 min expiry).
@@ -35,14 +40,16 @@ export async function GET(req: Request) {
 
   const startTime = Date.now();
 
-  // Pre-flight token check — skip if not enough tokens
-  const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens === null || estimatedTokens < 60) {
+  // Pre-flight token check — skip if not enough tokens. Always Keepa (see above).
+  const requiredBudget = 60;
+  const estimatedBudget = await getLastKnownTokens();
+  const unit = "tokens";
+  if (estimatedBudget === null || estimatedBudget < requiredBudget) {
     logCron("ltsd-maintenance", "/api/cron/daily-sync", "WARNING",
-      { errors: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~60`] }, 0);
+      { errors: 0, errorDetails: [`Skipped: ~${estimatedBudget} ${unit} available, need ~${requiredBudget}`] }, 0);
     return NextResponse.json({
       ok: false, skipped: true,
-      reason: `Insufficient tokens (~${estimatedTokens} available, ~60 needed). Will retry next cycle.`,
+      reason: `Insufficient ${unit} (~${estimatedBudget} available, ~${requiredBudget} needed). Will retry next cycle.`,
       timestamp: new Date().toISOString(),
     });
   }
@@ -59,7 +66,9 @@ export async function GET(req: Request) {
       take:    50,
     });
     if (deals.length > 0) {
-      const r = await syncPrices(deals.map((d) => d.asin));
+      // Always Keepa here — free, batched, and it's what writes real price
+      // history even for Rainforest-sourced deals (see syncPrices comment).
+      const r = await syncPrices(deals.map((d) => d.asin), "keepa");
       results.priceCheck = { checked: deals.length, updated: r.updated, errors: r.errors.length };
       errors.push(...r.errors.slice(0, 3).map((e) => `priceCheck: ${e}`));
     } else {

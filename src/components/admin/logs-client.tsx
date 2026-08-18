@@ -65,11 +65,26 @@ export interface KeepaStatus {
   estimatedFullRefill: string | null;
 }
 
+/**
+ * Rainforest bills a fixed MONTHLY quota, not a per-minute-refilling pool —
+ * no refillRate/estimatedFullRefill fields here, they don't apply. Rainforest
+ * reports the exact credits remaining with every call, so there's nothing to
+ * estimate either.
+ */
+export interface RainforestStatus {
+  creditsRemaining: number | null;
+  monthlyQuota:     number;
+  lastUpdated:      string | null;
+}
+
 interface Props {
-  initialLogs:        LogEntry[];
-  initialMeta:        LogsMeta;
-  initialCronStatus:  CronStatus[];
-  initialKeepaStatus: KeepaStatus;
+  initialLogs:             LogEntry[];
+  initialMeta:             LogsMeta;
+  initialCronStatus:       CronStatus[];
+  initialKeepaStatus:      KeepaStatus;
+  initialRainforestStatus: RainforestStatus;
+  /** Which provider is actually live right now (DEAL_API_PROVIDER) — the other card renders dimmed. */
+  activeProvider:          string;
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
@@ -176,7 +191,18 @@ function TypeIcon({ type }: { type: string }) {
 
 // ─── Keepa token card ────────────────────────────────────────────────────────────
 
-function KeepaCard({ status }: { status: KeepaStatus }) {
+function ProviderBadge({ active }: { active: boolean }) {
+  return (
+    <span className={cn(
+      "inline-flex items-center px-2 py-0.5 rounded-full text-2xs font-bold ml-2",
+      active ? "bg-[#E8F5E9] text-[#1B5E20]" : "bg-[#F5F6F7] text-[#8A8D93]",
+    )}>
+      {active ? "Active" : "Inactive"}
+    </span>
+  );
+}
+
+function KeepaCard({ status, active }: { status: KeepaStatus; active: boolean }) {
   const { tokensLeft, dailyBudget, refillRate, lastUpdated } = status;
 
   const pct = tokensLeft !== null ? Math.min(100, (tokensLeft / dailyBudget) * 100) : 0;
@@ -200,10 +226,12 @@ function KeepaCard({ status }: { status: KeepaStatus }) {
       : "text-[#B71C1C]";
 
   return (
-    <div className="bg-white rounded-xl border border-[#E7E8E9] px-5 py-4">
+    <div className={cn("bg-white rounded-xl border border-[#E7E8E9] px-5 py-4", !active && "opacity-60")}>
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <p className="text-[11px] font-bold text-body uppercase tracking-widest">Keepa API Tokens</p>
+          <p className="text-[11px] font-bold text-body uppercase tracking-widest flex items-center">
+            Keepa API Tokens <ProviderBadge active={active} />
+          </p>
           {tokensLeft !== null ? (
             <p className={cn("text-2xl font-extrabold mt-0.5", labelColor)}>
               {tokensLeft.toLocaleString()}
@@ -234,6 +262,73 @@ function KeepaCard({ status }: { status: KeepaStatus }) {
         <p className="text-2xs text-body">0</p>
         <p className="text-2xs font-semibold text-body">{pct.toFixed(1)}% remaining</p>
         <p className="text-2xs text-body">{dailyBudget.toLocaleString()}</p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Rainforest credit card ─────────────────────────────────────────────────────
+
+function RainforestCard({ status, active }: { status: RainforestStatus; active: boolean }) {
+  const { creditsRemaining, monthlyQuota, lastUpdated } = status;
+
+  const pct = creditsRemaining !== null ? Math.min(100, (creditsRemaining / monthlyQuota) * 100) : 0;
+
+  const barColor =
+    creditsRemaining === null
+      ? "bg-[#E7E8E9]"
+      : pct > 40
+      ? "bg-[#22A45D]"
+      : pct > 10
+      ? "bg-[#FE9800]"
+      : "bg-[#B71C1C]";
+
+  const labelColor =
+    creditsRemaining === null
+      ? "text-body"
+      : pct > 40
+      ? "text-[#22A45D]"
+      : pct > 10
+      ? "text-[#E65100]"
+      : "text-[#B71C1C]";
+
+  return (
+    <div className={cn("bg-white rounded-xl border border-[#E7E8E9] px-5 py-4", !active && "opacity-60")}>
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <div>
+          <p className="text-[11px] font-bold text-body uppercase tracking-widest flex items-center">
+            Rainforest Credits <ProviderBadge active={active} />
+          </p>
+          {creditsRemaining !== null ? (
+            <p className={cn("text-2xl font-extrabold mt-0.5", labelColor)}>
+              {creditsRemaining.toLocaleString()}
+              <span className="text-sm font-semibold text-body ml-1">/ {monthlyQuota.toLocaleString()}</span>
+            </p>
+          ) : (
+            <p className="text-lg font-bold text-body mt-0.5">No data yet</p>
+          )}
+        </div>
+
+        <div className="text-right shrink-0">
+          <p className="text-[11px] font-bold text-body uppercase tracking-widest">Resets</p>
+          <p className="text-sm font-bold text-navy mt-0.5">Monthly (billing cycle)</p>
+          {lastUpdated && (
+            <p className="text-2xs text-body mt-1">Updated {relativeTime(lastUpdated)}</p>
+          )}
+        </div>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2.5 w-full rounded-full bg-[#F0F1F2] overflow-hidden">
+        <div
+          className={cn("h-full rounded-full transition-all duration-500", barColor)}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+      <div className="flex justify-between mt-1.5">
+        <p className="text-2xs text-body">0</p>
+        <p className="text-2xs font-semibold text-body">{pct.toFixed(1)}% remaining</p>
+        <p className="text-2xs text-body">{monthlyQuota.toLocaleString()}</p>
       </div>
     </div>
   );
@@ -478,6 +573,8 @@ export function LogsClient({
   initialMeta,
   initialCronStatus,
   initialKeepaStatus,
+  initialRainforestStatus,
+  activeProvider,
 }: Props) {
   const [logs,    setLogs]    = useState<LogEntry[]>(initialLogs);
   const [meta,    setMeta]    = useState<LogsMeta>(initialMeta);
@@ -553,8 +650,11 @@ export function LogsClient({
   return (
     <div className="space-y-5">
 
-      {/* ── Section 1: Keepa token status ──────────────────────────────────── */}
-      <KeepaCard status={initialKeepaStatus} />
+      {/* ── Section 1: Provider budget status ──────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <KeepaCard status={initialKeepaStatus} active={activeProvider === "keepa"} />
+        <RainforestCard status={initialRainforestStatus} active={activeProvider === "rainforest"} />
+      </div>
 
       {/* ── Section 2: Cron status grid ────────────────────────────────────── */}
       <div>

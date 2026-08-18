@@ -2,34 +2,36 @@ import { NextResponse } from "next/server";
 import { seedDeals, syncBestSellers } from "@/lib/deal-api/sync";
 import { logCron, logAuth } from "@/lib/system-log";
 import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
+import { getLastKnownCredits } from "@/lib/rainforest-quota";
 
 /**
  * GET /api/cron/deal-sync
  *
- * Syncs deals from Keepa → DB using two strategies:
- *   ?mode=deals (default) — 19 categories, quality-filtered price drops
- *   ?mode=bestsellers     — top sellers from 6 categories
+ * ?mode=deals (default) — 19 categories, quality-filtered deals. Runs via
+ *   Rainforest when DEAL_API_PROVIDER=rainforest (the live setup as of
+ *   2026-08-18): 4 pages/category (120 items) = 4 credits/category = up to
+ *   76 credits for all 19, confirmed via real test. Runs via Keepa otherwise.
+ * ?mode=bestsellers — top sellers from 6 categories. Hard-pinned to Keepa
+ *   regardless of DEAL_API_PROVIDER (see syncBestSellers) — Rainforest's
+ *   bestseller URLs are a different ID space and only 1 of 19 is mapped.
  *
  * Supports batching via ?batch=0..5 to stay within CloudFront's
  * ~30 second gateway timeout. The Lambda calls this 6 times sequentially
  * for category feed, 2 times for bestsellers.
  *
- * Token cost per batch (pool max = 1,200 — verified against real logged
- * Keepa responses, not estimated):
+ * Keepa token cost per batch (pool max = 1,200 — verified against real
+ * logged Keepa responses, not estimated):
  *   Deal feed batch (3 cats): ~177 tokens (3 × ~59 tokens, 27 items/category)
  *   Deal feed batch (4 cats): ~236 tokens (last batch — has Patio, Lawn & Garden)
  *   Best sellers batch:       ~240 tokens (3 categories × ~80 tokens)
  *   Total category feed:      ~1,121 tokens (19 cats × ~59)
+ * Keepa's /product cost is ~2 tokens/ASIN; its own 27-item cap only matters
+ * when DEAL_API_PROVIDER=keepa — going higher there risks exceeding the
+ * 1,200 token cap mid-run (happened for real on 2026-07-15 and 2026-07-20).
  *
- * Actual /product cost is ~2 tokens/ASIN. Category limit is intentionally
- * kept at 27 (not higher) — 19 categories running back-to-back in one burst
- * with no refill time between them means going much higher would exceed the
- * 1,200 token cap mid-run and start 429ing (this happened for real on
- * 2026-07-15 and 2026-07-20, see SystemLog).
- *
- * Schedule (EventBridge, Asia/Karachi timezone):
- *   Deal feed:    once per day, 6 AM PKT (1 AM UTC) — ltsd-category-feed
- *   Best sellers: once per day, 9 AM PKT (4 AM UTC) — ltsd-bestsellers
+ * Schedule (EventBridge, Asia/Karachi timezone, updated 2026-08-19):
+ *   Deal feed:    2x/day via Rainforest, cron(0 3,15 * * ? *) — ltsd-category-feed
+ *   Best sellers: 1x/day via Keepa (unchanged) — ltsd-bestsellers
  *
  * Protected by CRON_SECRET bearer token.
  */
@@ -72,20 +74,28 @@ export async function GET(req: Request) {
   const batchParam = searchParams.get("batch");
   const startTime = Date.now();
 
-  // Pre-flight token check — lower threshold for batched calls.
-  // Deals batch: up to 4 categories (last batch) × ~59 tokens = ~236, +margin.
-  const requiredTokens = batchParam !== null
-    ? (mode === "bestsellers" ? 150 : 260)
-    : (mode === "bestsellers" ? 500 : 700);
-  const estimatedTokens = await getLastKnownTokens();
-  if (estimatedTokens === null || estimatedTokens < requiredTokens) {
+  // Bestsellers is hard-pinned to Keepa regardless of DEAL_API_PROVIDER (see
+  // syncBestSellers) — its budget check always follows Keepa's pool. Category
+  // deals follows the normal global switch.
+  const isRainforest = mode !== "bestsellers" && (process.env.DEAL_API_PROVIDER ?? "amazon") === "rainforest";
+
+  // Pre-flight budget check — lower threshold for batched calls.
+  // Keepa: deals batch up to 4 categories (last batch) × ~59 tokens = ~236, +margin.
+  // Rainforest: 4 credits/category page (120-item, 4-page pull — see
+  // rainforest.ts getDealsByCategory pagination).
+  const requiredBudget = isRainforest
+    ? (batchParam !== null ? 18 : 80)
+    : (batchParam !== null ? (mode === "bestsellers" ? 150 : 260) : (mode === "bestsellers" ? 500 : 700));
+  const estimatedBudget = isRainforest ? await getLastKnownCredits() : await getLastKnownTokens();
+  const unit = isRainforest ? "credits" : "tokens";
+  if (estimatedBudget === null || estimatedBudget < requiredBudget) {
     const cronName = mode === "bestsellers" ? "ltsd-bestsellers" : "ltsd-category-feed";
     logCron(cronName, "/api/cron/deal-sync", "WARNING",
-      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedTokens} tokens available, need ~${requiredTokens}`] },
+      { errors: 0, dealsSynced: 0, errorDetails: [`Skipped: ~${estimatedBudget} ${unit} available, need ~${requiredBudget}`] },
       0);
     return NextResponse.json({
       ok: false, skipped: true, mode,
-      reason: `Insufficient tokens (~${estimatedTokens} available, ~${requiredTokens} needed). Will retry next cycle.`,
+      reason: `Insufficient ${unit} (~${estimatedBudget} available, ~${requiredBudget} needed). Will retry next cycle.`,
       timestamp: new Date().toISOString(),
     });
   }
@@ -125,7 +135,11 @@ export async function GET(req: Request) {
       ? DEAL_BATCHES[batchIndex]
       : undefined; // undefined = all 19 (seedDeals default)
 
-    const result = await seedDeals(categories, 27);
+    // 120 = 4 Rainforest pages/category (see rainforest.ts pagination).
+    // Keepa's own 27-item cap (see file header) doesn't apply here since
+    // this route only runs Rainforest for category deals now — Keepa's
+    // path stays reachable by flipping DEAL_API_PROVIDER back if needed.
+    const result = await seedDeals(categories, 120);
 
     logCron("ltsd-category-feed", "/api/cron/deal-sync",
       result.errors.length > 0 ? "WARNING" : "SUCCESS",

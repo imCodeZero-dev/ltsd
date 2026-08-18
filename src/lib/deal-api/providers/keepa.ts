@@ -130,7 +130,7 @@ export function parseKeepaHistory(
 // Movies & TV, Software, etc.) that aren't in LTSD's category list, uncategorized
 // lightning deals would get silently tagged into categories the UI never shows,
 // creating orphan categories no sync/filter ever targets again.
-const CATEGORY_MAP: Record<number, string> = {
+export const CATEGORY_MAP: Record<number, string> = {
   172282:       "Electronics",
   1055398:      "Home & Kitchen",
   3375251:      "Sports & Outdoors",
