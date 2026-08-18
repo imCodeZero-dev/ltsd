@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -8,6 +9,25 @@ import { signIn as nextAuthSignIn, signOut as nextAuthSignOut } from "@/lib/auth
 import { db } from "@/lib/db";
 import { SignUpSchema, ForgotPasswordSchema } from "@/lib/schemas";
 import { sendWelcomeEmail, sendPasswordResetEmail } from "@/lib/email";
+
+// Every cookie name Auth.js v5 might have used, with and without the
+// Secure/Host prefixes it picks based on how it perceives the request's
+// protocol. Reported bug: sign-out redirects to /login, but a hard refresh
+// lands back on the dashboard — meaning the session cookie survives the
+// signOut() call. Behind Amplify/CloudFront, protocol detection (and so
+// which prefixed name got used at login vs. at logout) can be inconsistent
+// enough that Auth.js's own clear-cookie header doesn't match the one that
+// was actually set, so the browser silently keeps the old one. Clearing
+// every variant explicitly here is a backstop that doesn't depend on
+// pinning down that exact mismatch.
+const AUTH_COOKIE_NAMES = [
+  "authjs.session-token", "__Secure-authjs.session-token",
+  "authjs.csrf-token", "__Host-authjs.csrf-token",
+  "authjs.callback-url", "__Secure-authjs.callback-url",
+  "next-auth.session-token", "__Secure-next-auth.session-token",
+  "next-auth.csrf-token", "__Host-next-auth.csrf-token",
+  "next-auth.callback-url", "__Secure-next-auth.callback-url",
+];
 
 export interface ActionResult {
   error?: string;
@@ -78,6 +98,13 @@ export async function signup(_prevState: ActionResult, formData: FormData): Prom
 }
 
 export async function logout(): Promise<void> {
+  // Clear every plausible cookie name explicitly, before Auth.js's own
+  // signOut() runs — see AUTH_COOKIE_NAMES comment above for why relying
+  // solely on signOut() left a stale, still-valid session cookie behind.
+  const cookieStore = await cookies();
+  for (const name of AUTH_COOKIE_NAMES) {
+    cookieStore.delete(name);
+  }
   await nextAuthSignOut({ redirectTo: "/login" });
 }
 
