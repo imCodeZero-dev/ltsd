@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 
@@ -10,7 +11,23 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  void error;
+  useEffect(() => {
+    // Previously silently discarded (`void error`) — meant client-side
+    // crashes like the 2026-08-19 stale-service-worker bug left zero trace
+    // anywhere. Fire-and-forget POST since this boundary can't import
+    // server-only code (Prisma) directly into a client bundle.
+    fetch("/api/client-error", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: error.message,
+        digest: error.digest,
+        stack: error.stack?.slice(0, 1000),
+        url: typeof window !== "undefined" ? window.location.href : undefined,
+      }),
+      keepalive: true,
+    }).catch(() => {});
+  }, [error]);
 
   return (
     <div className="min-h-screen bg-bg flex items-center justify-center px-4">

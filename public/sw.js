@@ -1,6 +1,13 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = "ltsd-v1";
+// Bump this on every deploy that changes cached assets (JS/CSS/pages). The
+// activate handler below already deletes any cache that doesn't match this
+// name — but with a name that never changed, that cleanup never ran, so
+// returning visitors kept getting served JS chunks from builds the server
+// had already deleted. That's what caused the "Something went wrong" /
+// React error #418 crash on /login after the 2026-08-19 deploy: stale
+// cached chunks, hash-mismatched against the fresh HTML being served.
+const CACHE_NAME = "ltsd-v2";
 const OFFLINE_URL = "/offline";
 
 // Assets to pre-cache on install
