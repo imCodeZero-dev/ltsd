@@ -386,13 +386,19 @@ export class RainforestProvider implements DealApiProvider {
    * of results comes back in Amazon's own order, not discount-descending, so
    * results are sorted client-side after mapping.
    *
-   * 1 page = up to 30 results = 1 credit, so `limit` beyond 30 is capped at
-   * one page for now — pagination costs linearly and isn't wired up here yet.
+   * 1 page = up to 30 results = 1 credit. `limit` beyond 30 pulls extra pages
+   * via `max_page` — confirmed via a real test (2026-08-18): max_page=4 in a
+   * SINGLE request returns all 4 pages combined (120 unique results) for
+   * exactly 4 credits, not 4 separate requests. Every extra page after the
+   * first costs 1 more credit — a 120-item category pull is 4x the cost of
+   * the old 30-item one, so callers should size `limit` deliberately.
    */
   async getDealsByCategory(category: string, limit = 20): Promise<ProductWithHistory[]> {
     const catId = Object.entries(CATEGORY_MAP).find(
       ([, name]) => name.toLowerCase() === category.toLowerCase()
     )?.[0] ?? "172282";
+
+    const pagesNeeded = Math.max(1, Math.ceil(limit / 30));
 
     const data = await rainforestFetch<RainforestDealsResponse>({
       type: "deals",
@@ -400,6 +406,7 @@ export class RainforestProvider implements DealApiProvider {
       category_id: catId,
       discount: "70_percent_off",
       minimum_rating: "3_and_up",
+      ...(pagesNeeded > 1 ? { max_page: String(pagesNeeded) } : {}),
     });
 
     const records = data.deals_results ?? [];

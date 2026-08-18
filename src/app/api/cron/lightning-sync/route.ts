@@ -12,9 +12,20 @@ import { getLastKnownCredits } from "@/lib/rainforest-quota";
  * Rainforest: 1 credit for the list + up to 1 credit/ASIN for category
  * enrichment of newly-seen deals (no batching — see rainforest.ts).
  *
+ * Real duration check (2026-08-18, 30 live deals sampled): every single one
+ * ran 11.5-12.0 hours, not the "4-12 hour" range commonly assumed —
+ * Rainforest's lightning deals here run on a consistent ~12h cycle, staggered
+ * across the day. That's why every-6-hours (4x/day) is the chosen cadence —
+ * it catches each deal roughly twice in its lifetime (new, then near expiry).
+ *
  * Token cost (Keepa): 500 per run (pool max = 1,200).
- * Credit cost (Rainforest): ~1-31 per run, worst case all 30 deals are new.
- * Recommended schedule: every 4 hours (lightning deals cycle frequently).
+ * Credit cost (Rainforest): 1 (list) + up to 30 (enrichment) = up to 31 worst
+ * case (confirmed via a real cold-start run). Steady-state should be lower —
+ * roughly half the 12h-cycle pool turns over per 6h check, so realistically
+ * ~16/run — but that's still an estimate, not yet confirmed by a real
+ * multi-day observation. The 35-credit gate below stays at the worst case
+ * on purpose: it's a safety floor, not the expected cost.
+ * Recommended schedule: every 6 hours (4x/day).
  * Protected by CRON_SECRET bearer token.
  */
 export async function GET(req: Request) {

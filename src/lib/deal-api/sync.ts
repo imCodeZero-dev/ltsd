@@ -480,10 +480,12 @@ export async function syncBestSellers(
   categoryName: string,
   limit = 60
 ): Promise<{ synced: number; errors: string[] }> {
-  if ((process.env.DEAL_API_PROVIDER ?? "amazon") === "rainforest") {
-    return syncBestSellersRainforest(categoryName, limit);
-  }
-
+  // Deliberately always Keepa, regardless of DEAL_API_PROVIDER — bestsellers
+  // needs a verified zgbs URL per category (a different ID space entirely,
+  // see rainforest.ts) and only 1 of 19 is mapped so far. Not worth switching
+  // this job until that's done; syncBestSellersRainforest stays ready for
+  // when it is. Category deals + lightning follow DEAL_API_PROVIDER normally
+  // (see syncCategory / syncLightningDeals) — only this job is hard-pinned.
   const { KeepaProvider } = await import("./providers/keepa");
   const provider = new KeepaProvider();
 
@@ -585,13 +587,25 @@ export async function syncSearch(
 /**
  * Refresh prices for a batch of ASINs (max 100 per call).
  * Adds a PriceHistory row and updates currentPrice in Deal table.
+ *
+ * @param forceProvider Pin to a specific provider regardless of
+ * DEAL_API_PROVIDER — used by the daily maintenance job to always run this
+ * through Keepa (free, batched, and it's what naturally writes real price
+ * history even for Rainforest-sourced deals, fixing the "no history" gap
+ * as a side effect). Other callers (admin actions) keep following the
+ * normal global switch by omitting this.
  */
 export async function syncPrices(
-  asins: string[]
+  asins: string[],
+  forceProvider?: "keepa" | "rainforest",
 ): Promise<{ updated: number; errors: string[] }> {
   if (!asins.length) return { updated: 0, errors: [] };
 
-  const api = await getDealApi();
+  const api = forceProvider === "keepa"
+    ? new (await import("./providers/keepa")).KeepaProvider()
+    : forceProvider === "rainforest"
+    ? new (await import("./providers/rainforest")).RainforestProvider()
+    : await getDealApi();
   const prices = await api.getItemPrices(asins);
   const errors: string[] = [];
   let updated = 0;

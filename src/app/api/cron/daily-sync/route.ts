@@ -6,14 +6,13 @@ import { sendDailyDigests } from "@/lib/notifications/daily-digest";
 import { db } from "@/lib/db";
 import { logCron, logAuth } from "@/lib/system-log";
 import { verifyCronSecret, getLastKnownTokens } from "@/lib/cron-auth";
-import { getLastKnownCredits } from "@/lib/rainforest-quota";
 
 /**
  * GET /api/cron/daily-sync
  *
  * End-of-day maintenance — runs at 6 PM UTC after all heavy syncs are done.
  *
- *   1. Price refresh — 50 oldest deals (~50 tokens, only Keepa call)
+ *   1. Price refresh — 50 oldest deals (~50 tokens, always Keepa — see below)
  *   2. Soft expiry — mark deals not seen in today's syncs
  *   3. Hard cleanup — delete inactive deals > 7 days (not in watchlists)
  *   4. Weekly picks — auto-pick deals of the week (Mondays only)
@@ -23,6 +22,11 @@ import { getLastKnownCredits } from "@/lib/rainforest-quota";
  *
  * Steps 6-7 are DB/email only (no Keepa tokens) — piggybacked on this
  * existing schedule intentionally, so no new EventBridge rule is needed.
+ *
+ * Step 1 is deliberately pinned to Keepa (see syncPrices' forceProvider),
+ * regardless of DEAL_API_PROVIDER — free, batched, and it naturally writes
+ * real price-history rows even for Rainforest-sourced deals. So this route's
+ * budget check is always against Keepa's token pool, never Rainforest credits.
  *
  * Schedule: cron(0 18 * * ? *)  [6 PM UTC daily]
  * Token pool max = 1,200 (20/min × 60 min expiry).
@@ -35,16 +39,11 @@ export async function GET(req: Request) {
   }
 
   const startTime = Date.now();
-  const isRainforest = (process.env.DEAL_API_PROVIDER ?? "amazon") === "rainforest";
 
-  // Pre-flight budget check — skip if not enough tokens/credits.
-  // Step 1 (price refresh) is the only API-calling step, 50 oldest deals.
-  // Keepa: ~1 token/ASIN in one batched call (~50 tokens total).
-  // Rainforest: 1 credit/ASIN, NO batching — the same 50-item refresh now
-  // costs 50 separate calls against the MONTHLY quota, not a per-minute pool.
-  const requiredBudget = isRainforest ? 55 : 60;
-  const estimatedBudget = isRainforest ? await getLastKnownCredits() : await getLastKnownTokens();
-  const unit = isRainforest ? "credits" : "tokens";
+  // Pre-flight token check — skip if not enough tokens. Always Keepa (see above).
+  const requiredBudget = 60;
+  const estimatedBudget = await getLastKnownTokens();
+  const unit = "tokens";
   if (estimatedBudget === null || estimatedBudget < requiredBudget) {
     logCron("ltsd-maintenance", "/api/cron/daily-sync", "WARNING",
       { errors: 0, errorDetails: [`Skipped: ~${estimatedBudget} ${unit} available, need ~${requiredBudget}`] }, 0);
@@ -67,7 +66,9 @@ export async function GET(req: Request) {
       take:    50,
     });
     if (deals.length > 0) {
-      const r = await syncPrices(deals.map((d) => d.asin));
+      // Always Keepa here — free, batched, and it's what writes real price
+      // history even for Rainforest-sourced deals (see syncPrices comment).
+      const r = await syncPrices(deals.map((d) => d.asin), "keepa");
       results.priceCheck = { checked: deals.length, updated: r.updated, errors: r.errors.length };
       errors.push(...r.errors.slice(0, 3).map((e) => `priceCheck: ${e}`));
     } else {
