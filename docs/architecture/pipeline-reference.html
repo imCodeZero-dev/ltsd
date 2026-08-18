@@ -284,7 +284,7 @@
       <span><b>App</b> limitedtimesuperdeals.app</span>
       <span><b>Hosting</b> AWS Amplify + EventBridge Scheduler → shared Lambda <span class="mono">ltsd-cron</span></span>
       <span><b>DB</b> Postgres (Neon), Prisma 7</span>
-      <span><b>Deal source</b> Keepa API (live), 1,200 tokens/day shared pool — Rainforest API provider built and tested on a branch, not yet active (see §06)</span>
+      <span><b>Deal source</b> Split: Rainforest API (category + lightning deals, Starter plan 10,000 credits/mo) + Keepa API (bestsellers, brand sync, price maintenance, 1,200 tokens/day) — live since 2026-08-19 ~00:36 PKT (see §06)</span>
     </div>
   </header>
 
@@ -609,8 +609,18 @@
   <!-- ============================================================ -->
   <section id="rainforest">
     <div class="section-head">
-      <h2><span class="idx">06</span> Rainforest migration — built, tested, not yet live</h2>
-      <p>Client asked to move off Keepa (too few deals, not real-time) onto Rainforest API. Built on <span class="mono">feature/rainforest-migration</span> as a second, fully parallel <span class="mono">DealApiProvider</span> implementation — Keepa's code path is untouched and still the active one (<span class="mono">DEAL_API_PROVIDER=keepa</span>). Everything below was verified against real API responses, not docs alone, per the migration's own safety rule.</p>
+      <h2><span class="idx">06</span> Rainforest migration — live since 2026-08-19 ~00:36 PKT</h2>
+      <p>Client asked to move off Keepa (too few deals, not real-time) onto Rainforest API. Built on <span class="mono">feature/rainforest-migration</span> as a second, fully parallel <span class="mono">DealApiProvider</span> implementation. Not a full replacement — <b>split by job</b>, based on real measured evidence of where each provider is actually better: category deals and lightning deals run through Rainforest (<span class="mono">DEAL_API_PROVIDER=rainforest</span>), while bestsellers, brand/pref sync, and daily price maintenance stay hard-pinned to Keepa in code regardless of that switch. Everything below was verified against real API responses, not docs alone, per the migration's own safety rule.</p>
+    </div>
+
+    <div class="callout">
+      <span>ⓘ</span>
+      <span><b>Live config, EventBridge (Asia/Karachi execution tz):</b> <span class="mono">ltsd-category-feed</span> → <span class="mono">cron(0 3,15 * * ? *)</span>, 2x/day, 4 pages/category (120 items, 4 credits/category, confirmed via real test). <span class="mono">ltsd-lightning-pm</span> → <span class="mono">cron(0 0,6,12,18 * * ? *)</span>, every 6h. Deliberately offset from category-feed's times so the two never fire simultaneously — running heavy syncs concurrently caused a real 504 timeout earlier in this project (see 2026-08-11 entries below). <span class="mono">ltsd-bestsellers</span>, <span class="mono">ltsd-pref-brands</span>, <span class="mono">ltsd-maintenance</span> unchanged, still Keepa. Plan: Rainforest Starter, $83/mo, 10,000 credits — Hobbyist (500/mo) was tested against the real numbers and ruled out as too small even for a narrow slice of this.</span>
+    </div>
+
+    <div class="callout warn">
+      <span>⚠</span>
+      <span><b>Real lightning-deal duration, not assumed:</b> checked all 30 live lightning deals on 2026-08-18 — every one ran 11.5–12.0 hours, not the commonly-assumed "4–12 hour" range (that range was repeated once in this project without being checked against this app's actual data, then corrected). The consistent ~12h cycle is why every-6-hours was chosen for <span class="mono">ltsd-lightning-pm</span> — it catches each deal roughly twice in its lifetime. Cold-start categorization cost is confirmed at up to 31 credits/run (1 list + up to 30 per-ASIN lookups, no batching); steady-state cost is estimated at ~16/run from the 12h/6h math but has <b>not yet been confirmed by real multi-day observation</b> — this is the single biggest open number in the whole budget and the first thing to check once real usage data exists.</span>
     </div>
 
     <div class="callout warn">
