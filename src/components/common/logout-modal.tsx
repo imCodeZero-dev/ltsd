@@ -19,6 +19,23 @@ export function LogoutModal({ open, onClose }: LogoutModalProps) {
   if (!open || !mounted) return null;
 
   function handleLogout() {
+    // Clear auth cookies client-side first — server-side cookieStore.delete()
+    // fails behind CloudFront because cookie attributes (Secure, path, domain)
+    // don't match what was originally set. Client-side deletion is reliable.
+    const cookieNames = [
+      "authjs.session-token", "__Secure-authjs.session-token",
+      "authjs.csrf-token", "__Host-authjs.csrf-token",
+      "authjs.callback-url", "__Secure-authjs.callback-url",
+      "next-auth.session-token", "__Secure-next-auth.session-token",
+      "next-auth.csrf-token", "__Host-next-auth.csrf-token",
+      "next-auth.callback-url", "__Secure-next-auth.callback-url",
+    ];
+    for (const name of cookieNames) {
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;secure`;
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname}`;
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${window.location.hostname};secure`;
+    }
     startTransition(async () => {
       await logout();
     });
