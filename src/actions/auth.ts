@@ -101,9 +101,24 @@ export async function logout(): Promise<void> {
   // Clear every plausible cookie name explicitly, before Auth.js's own
   // signOut() runs — see AUTH_COOKIE_NAMES comment above for why relying
   // solely on signOut() left a stale, still-valid session cookie behind.
+  //
+  // CRITICAL: cookies are HttpOnly + __Secure-/__Host- prefixed. A bare
+  // cookieStore.delete(name) sends Set-Cookie without Secure/Path/SameSite,
+  // so the browser silently ignores it (attributes must match). We must pass
+  // the exact options each cookie was created with.
   const cookieStore = await cookies();
   for (const name of AUTH_COOKIE_NAMES) {
-    cookieStore.delete(name);
+    // __Host- cookies: Secure + Path=/ + no Domain + SameSite=Lax
+    // __Secure- cookies: Secure + Path=/ + SameSite=Lax
+    // Plain cookies: Path=/ + SameSite=Lax
+    const isSecure = name.startsWith("__Secure-") || name.startsWith("__Host-");
+    cookieStore.set(name, "", {
+      expires: new Date(0),
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      ...(isSecure && { secure: true }),
+    });
   }
   await nextAuthSignOut({ redirectTo: "/login" });
 }
