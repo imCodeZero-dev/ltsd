@@ -590,6 +590,7 @@ export function DealDetailContent({
   watchlistItemId?: string;
   watchlistMap?: Map<string, string>;
 }) {
+  const hasPriceData = priceHistory.length > 0 || priceStats !== null;
   const chartData = buildChartData(priceHistory, priceStats);
   const images = deal.images?.length ? deal.images : [deal.imageUrl];
 
@@ -763,7 +764,10 @@ export function DealDetailContent({
 
           {/* Tabs */}
           <div className="flex gap-2 overflow-x-auto scrollbar-none -mx-4 px-4">
-            {["Description", "Reviews", "Price Intelligence"].map((tab, i) => (
+            {(hasPriceData
+              ? ["Description", "Reviews", "Price Intelligence"]
+              : ["Description", "Reviews"]
+            ).map((tab, i) => (
               <button key={tab} type="button" onClick={() => setActiveTab(i)}
                 className={cn(
                   "shrink-0 px-4 py-1.5 rounded-full text-xs font-semibold border transition-all whitespace-nowrap",
@@ -801,7 +805,7 @@ export function DealDetailContent({
               );
             })()}
             {activeTab === 1 && <CustomerRatings deal={deal} />}
-            {activeTab === 2 && <PriceIntelligence range={chartRange} onRangeChange={setChartRange} chartData={chartData} />}
+            {activeTab === 2 && hasPriceData && <PriceIntelligence range={chartRange} onRangeChange={setChartRange} chartData={chartData} />}
           </div>
 
           {similarDeals.length > 0 && <SimilarDeals deals={similarDeals} watchlistMap={watchlistMap} />}
@@ -867,10 +871,12 @@ export function DealDetailContent({
           <CustomerRatings deal={deal} />
         </div>
 
-        {/* Price Intelligence */}
-        <div className="mt-8">
-          <PriceIntelligence range={chartRange} onRangeChange={setChartRange} chartData={chartData} />
-        </div>
+        {/* Price Intelligence — hidden when no real price history or stats exist */}
+        {hasPriceData && (
+          <div className="mt-8">
+            <PriceIntelligence range={chartRange} onRangeChange={setChartRange} chartData={chartData} />
+          </div>
+        )}
 
         {/* Similar Deals */}
         {similarDeals.length > 0 && (
