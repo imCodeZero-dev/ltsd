@@ -483,12 +483,17 @@ export class RainforestProvider implements DealApiProvider {
    * Domain-wide lightning deals (no category_id — confirmed working via real
    * test). Deals endpoint returns no category for these; caller must enrich
    * separately via getProductCategory, same pattern as Keepa's lightning sync.
+   *
+   * Fetches up to `maxPages` pages (30 deals/page, 1 credit/page).
+   * Default 5 pages = 150 deals, 5 credits per run.
+   * With 2 runs/day = 10 credits/day = 300/month on lightning lists.
    */
-  async getLightningDeals(): Promise<RainforestDealRecord[]> {
+  async getLightningDeals(maxPages = 5): Promise<RainforestDealRecord[]> {
     const data = await rainforestFetch<RainforestDealsResponse>({
       type: "deals",
       amazon_domain: AMAZON_DOMAIN,
       deal_types: "lightning_deal",
+      ...(maxPages > 1 ? { max_page: String(maxPages) } : {}),
     });
     return data.deals_results ?? [];
   }
