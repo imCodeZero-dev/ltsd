@@ -375,15 +375,14 @@ async function syncLightningDealsRainforest(): Promise<{ synced: number; errors:
     }
   });
 
-  // ── Enrich lightning deals with categories ────────────────────────────────
-  // Only deals still missing a category (not just this run's batch) — after
-  // the first enrichment pass, only genuinely new deals need a lookup, same
-  // as Keepa's approach, but here each lookup is its own credit-consuming call.
-  // Capped at 8 per run — Rainforest has no batching (1 credit/ASIN, ~10s each),
-  // and they run 8-concurrent. 8 ASINs = 1 round = ~10s. Combined with the
-  // 2-page listing (~8s), total is ~18s — within CloudFront's 30s timeout.
-  // Backlog clears across multiple sync cycles (2x/day).
+  // ── Enrich lightning deals with categories via Keepa (not Rainforest) ────
+  // Rainforest enrichment costs 1 credit/ASIN with no batching (~10s each).
+  // Keepa's /product endpoint batches 100 ASINs per call in ~1.5s, using
+  // tokens that refill (free). This saves Rainforest credits and is 50x faster.
   try {
+    const { KeepaProvider } = await import("./providers/keepa");
+    const keepa = new KeepaProvider();
+
     const uncategorized = await db.deal.findMany({
       where: {
         dealType:   "LIGHTNING_DEAL",
@@ -391,25 +390,31 @@ async function syncLightningDealsRainforest(): Promise<{ synced: number; errors:
         categories: { none: {} },
       },
       select: { id: true, asin: true },
-      take: 8,
+      take: 200,
     });
 
-    await processConcurrently(uncategorized, 8, async (deal) => {
-      try {
-        const category = await provider.getProductCategory(deal.asin);
-        if (!category) return;
-        const categoryId = await resolveCategoryId(category, categorizeCache);
-        await db.dealCategory.upsert({
-          where:  { dealId_categoryId: { dealId: deal.id, categoryId } },
-          create: { dealId: deal.id, categoryId },
-          update: {},
-        });
-        categorized++;
-      } catch (err) {
-        errors.push(`cat-enrich ${deal.asin}: ${err instanceof Error ? err.message : String(err)}`);
-        logError("sync:lightning:categorize", err, { asin: deal.asin });
+    if (uncategorized.length > 0) {
+      for (let i = 0; i < uncategorized.length; i += 100) {
+        const batch = uncategorized.slice(i, i + 100);
+        try {
+          const catResults = await keepa.getProductCategories(batch.map((d) => d.asin));
+          for (const { asin, category } of catResults) {
+            const deal = batch.find((d) => d.asin === asin);
+            if (!deal) continue;
+            const categoryId = await resolveCategoryId(category, categorizeCache);
+            await db.dealCategory.upsert({
+              where:  { dealId_categoryId: { dealId: deal.id, categoryId } },
+              create: { dealId: deal.id, categoryId },
+              update: {},
+            });
+            categorized++;
+          }
+        } catch (err) {
+          errors.push(`cat-enrich batch ${i}: ${err instanceof Error ? err.message : String(err)}`);
+          logError("sync:lightning:categorize", err, { batchStart: i });
+        }
       }
-    });
+    }
   } catch (err) {
     errors.push(`cat-enrich: ${err instanceof Error ? err.message : String(err)}`);
     logError("sync:lightning:categorize", err, {});
