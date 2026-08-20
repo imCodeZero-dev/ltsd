@@ -485,10 +485,12 @@ export class RainforestProvider implements DealApiProvider {
    * separately via getProductCategory, same pattern as Keepa's lightning sync.
    *
    * Fetches up to `maxPages` pages (30 deals/page, 1 credit/page).
-   * Default 5 pages = 150 deals, 5 credits per run.
-   * With 2 runs/day = 10 credits/day = 300/month on lightning lists.
+   * Default 3 pages = 90 deals, 3 credits per run.
+   * Higher page counts (5+) cause CloudFront 504 timeouts when combined
+   * with category enrichment. 3 pages keeps total under 30s.
+   * With 2 runs/day = 6 credits/day = 180/month on lightning lists.
    */
-  async getLightningDeals(maxPages = 5): Promise<RainforestDealRecord[]> {
+  async getLightningDeals(maxPages = 3): Promise<RainforestDealRecord[]> {
     const data = await rainforestFetch<RainforestDealsResponse>({
       type: "deals",
       amazon_domain: AMAZON_DOMAIN,
