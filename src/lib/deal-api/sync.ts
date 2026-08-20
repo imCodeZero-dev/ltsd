@@ -379,9 +379,10 @@ async function syncLightningDealsRainforest(): Promise<{ synced: number; errors:
   // Only deals still missing a category (not just this run's batch) — after
   // the first enrichment pass, only genuinely new deals need a lookup, same
   // as Keepa's approach, but here each lookup is its own credit-consuming call.
-  // Capped at 20 per run — Rainforest has no batching (1 credit/ASIN), and
-  // more than ~20 concurrent lookups push total request time past CloudFront's
-  // 30s gateway timeout. Backlog clears across multiple sync cycles.
+  // Capped at 8 per run — Rainforest has no batching (1 credit/ASIN, ~10s each),
+  // and they run 8-concurrent. 8 ASINs = 1 round = ~10s. Combined with the
+  // 2-page listing (~8s), total is ~18s — within CloudFront's 30s timeout.
+  // Backlog clears across multiple sync cycles (2x/day).
   try {
     const uncategorized = await db.deal.findMany({
       where: {
@@ -390,7 +391,7 @@ async function syncLightningDealsRainforest(): Promise<{ synced: number; errors:
         categories: { none: {} },
       },
       select: { id: true, asin: true },
-      take: 20,
+      take: 8,
     });
 
     await processConcurrently(uncategorized, 8, async (deal) => {
