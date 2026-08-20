@@ -1,0 +1,523 @@
+<title>Deal Sourcing Guide</title>
+<style>
+  :root {
+    --paper: #F3F1EC;
+    --surface: #FFFFFF;
+    --surface-2: #EAE7DF;
+    --line: #DBD6CB;
+    --ink: #201F1C;
+    --ink-dim: #5C584F;
+    --ink-faint: #948E80;
+
+    --keepa: #3E4C6B;
+    --keepa-soft: #E6E9F0;
+    --keepa-ink: #2A3450;
+
+    --rain: #2F7A4A;
+    --rain-soft: #E3F0E6;
+    --rain-ink: #1F5A35;
+
+    --warn: #B8631E;
+    --warn-soft: #F5E6D8;
+
+    --shadow: 0 1px 2px rgba(30,26,18,0.05), 0 6px 20px rgba(30,26,18,0.06);
+    --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #17181B;
+      --surface: #1E2023;
+      --surface-2: #26282C;
+      --line: #34363B;
+      --ink: #EDEAE2;
+      --ink-dim: #A8A399;
+      --ink-faint: #726D62;
+
+      --keepa: #8B9BC4;
+      --keepa-soft: #232838;
+      --keepa-ink: #B3BFE0;
+
+      --rain: #6FBF8B;
+      --rain-soft: #1C2B21;
+      --rain-ink: #8FD4A8;
+
+      --warn: #E2A159;
+      --warn-soft: #332417;
+
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #17181B;
+    --surface: #1E2023;
+    --surface-2: #26282C;
+    --line: #34363B;
+    --ink: #EDEAE2;
+    --ink-dim: #A8A399;
+    --ink-faint: #726D62;
+
+    --keepa: #8B9BC4;
+    --keepa-soft: #232838;
+    --keepa-ink: #B3BFE0;
+
+    --rain: #6FBF8B;
+    --rain-soft: #1C2B21;
+    --rain-ink: #8FD4A8;
+
+    --warn: #E2A159;
+    --warn-soft: #332417;
+
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-size: 15.5px;
+    line-height: 1.6;
+  }
+  .mono {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, "Roboto Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  h1, h2, h3 {
+    font-family: Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    font-weight: 700;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .page {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 44px 22px 90px;
+    display: flex;
+    flex-direction: column;
+    gap: 34px;
+  }
+
+  header.hero {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-bottom: 26px;
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  header.hero h1 { font-size: clamp(26px, 4vw, 34px); }
+  header.hero p.sub { margin: 0; max-width: 60ch; color: var(--ink-dim); font-size: 15.5px; }
+
+  section { display: flex; flex-direction: column; gap: 14px; }
+  section h2 {
+    font-size: 20px;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  section > p.lead { margin: -4px 0 2px; color: var(--ink-dim); max-width: 66ch; font-size: 14.5px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  /* ── Stat strip ─────────────────────────────────────────────────── */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+  }
+  .stat-card { padding: 16px 18px; }
+  .stat-card .provider-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-bottom: 8px;
+  }
+  .tag-keepa { background: var(--keepa-soft); color: var(--keepa-ink); }
+  .tag-rain  { background: var(--rain-soft);  color: var(--rain-ink); }
+  .stat-card .value { font-size: 24px; font-weight: 800; font-family: Georgia, serif; }
+  .stat-card .label { font-size: 12.5px; color: var(--ink-dim); margin-top: 2px; }
+  .gauge-track { height: 7px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin-top: 10px; }
+  .gauge-fill { height: 100%; border-radius: 999px; }
+  .fill-rain { background: var(--rain); }
+  .fill-keepa { background: var(--keepa); }
+
+  /* ── Pipeline steps ─────────────────────────────────────────────── */
+  .steps { display: flex; flex-direction: column; gap: 0; }
+  .step {
+    display: grid;
+    grid-template-columns: 30px 1fr;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px dashed var(--line);
+  }
+  .step:last-child { border-bottom: none; padding-bottom: 0; }
+  .step:first-child { padding-top: 0; }
+  .step .num {
+    font-family: Georgia, serif;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--ink-faint);
+    padding-top: 1px;
+  }
+  .step h4 { margin: 0 0 3px; font-size: 15px; font-weight: 700; }
+  .step p { margin: 0; font-size: 14px; color: var(--ink-dim); }
+
+  /* ── Provider split table ───────────────────────────────────────── */
+  .split-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 640px) { .split-grid { grid-template-columns: 1fr; } }
+  .split-col { padding: 18px 20px; border-top: 3px solid; }
+  .split-col.keepa { border-color: var(--keepa); }
+  .split-col.rain { border-color: var(--rain); }
+  .split-col h3 { font-size: 16px; margin-bottom: 4px; }
+  .split-col .role { font-size: 13px; color: var(--ink-dim); margin-bottom: 12px; }
+  .split-col ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .split-col li { font-size: 13.5px; display: flex; gap: 8px; }
+  .split-col li::before { content: "—"; color: var(--ink-faint); flex-shrink: 0; }
+
+  /* ── Tables ─────────────────────────────────────────────────────── */
+  .table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--line); }
+  table { width: 100%; border-collapse: collapse; min-width: 560px; background: var(--surface); }
+  th, td { text-align: left; padding: 10px 14px; font-size: 13.5px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th {
+    background: var(--surface-2);
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--ink-faint);
+    font-weight: 700;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { text-align: right; }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .badge-keepa { background: var(--keepa-soft); color: var(--keepa-ink); }
+  .badge-rain { background: var(--rain-soft); color: var(--rain-ink); }
+
+  /* ── Deal type cards ────────────────────────────────────────────── */
+  .type-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .type-card { padding: 16px 18px; }
+  .type-card .name { font-family: Georgia, serif; font-weight: 700; font-size: 15px; margin-bottom: 6px; }
+  .type-card p { margin: 0; font-size: 13.5px; color: var(--ink-dim); }
+  .type-card .signal { margin-top: 10px; font-size: 12px; color: var(--ink-faint); font-style: italic; }
+
+  /* ── Sections list (homepage) ──────────────────────────────────── */
+  .section-list { display: flex; flex-direction: column; gap: 10px; }
+  .section-row {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 14px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+    font-size: 13.5px;
+  }
+  .section-row:last-child { border-bottom: none; }
+  .section-row .name { font-weight: 700; }
+  .section-row .desc { color: var(--ink-dim); }
+
+  .callout {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    font-size: 13.5px;
+    color: var(--ink-dim);
+  }
+  .callout b { color: var(--ink); }
+  .callout.warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); background: var(--warn-soft); }
+
+  footer.page-foot {
+    border-top: 1px solid var(--line);
+    padding-top: 18px;
+    font-size: 12px;
+    color: var(--ink-faint);
+  }
+</style>
+
+<div class="page">
+
+  <header class="hero">
+    <span class="eyebrow">LTSD — Plain-Language Reference</span>
+    <h1>Deal Sourcing Guide</h1>
+    <p class="sub">How deals get onto the site, what's running on Keepa vs. Rainforest, what each one costs, and when the automatic jobs fire. Written for a quick refresher, not a deep dive.</p>
+  </header>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>At a glance</h2>
+    <div class="stat-grid">
+      <div class="card stat-card">
+        <span class="provider-tag tag-rain">Rainforest</span>
+        <div class="value mono">10,000<span style="font-size:13px;font-weight:600;color:var(--ink-faint)"> / mo</span></div>
+        <div class="label">Starter plan, $83/month. Credits reset monthly — they do <b>not</b> refill during the month.</div>
+        <div class="gauge-track"><div class="gauge-fill fill-rain" style="width:100%"></div></div>
+      </div>
+      <div class="card stat-card">
+        <span class="provider-tag tag-keepa">Keepa</span>
+        <div class="value mono">1,200<span style="font-size:13px;font-weight:600;color:var(--ink-faint)"> tokens</span></div>
+        <div class="label">Refills 20/minute, continuously. Already part of the existing plan — no extra cost either way.</div>
+        <div class="gauge-track"><div class="gauge-fill fill-keepa" style="width:100%"></div></div>
+      </div>
+      <div class="card stat-card">
+        <span class="provider-tag tag-rain">Rainforest usage</span>
+        <div class="value mono">~66%<span style="font-size:13px;font-weight:600;color:var(--ink-faint)"> of budget</span></div>
+        <div class="label">Estimated monthly usage, ~6,570 of 10,000 credits — leaves real headroom, not a razor-thin margin.</div>
+      </div>
+    </div>
+    <div class="callout">
+      <span>ⓘ</span>
+      <span>Live since <b>2026-08-19, ~00:36 AM PKT</b>. One number in that 66% estimate — how many lightning deals turn over between checks — is still an estimate, not yet confirmed by a full week of real data.</span>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>How a deal actually gets to the site</h2>
+    <div class="card" style="padding: 4px 22px;">
+      <div class="steps">
+        <div class="step">
+          <span class="num mono">1</span>
+          <div>
+            <h4>A scheduled job wakes up</h4>
+            <p>AWS fires on a timer — see the schedule table below. Nothing runs on demand from a page visit.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="num mono">2</span>
+          <div>
+            <h4>It asks Keepa or Rainforest for deals</h4>
+            <p>Which one depends on the job — category deals and lightning deals ask Rainforest; bestsellers, brand search, and price upkeep ask Keepa.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="num mono">3</span>
+          <div>
+            <h4>Results get saved to the database</h4>
+            <p>Prices, titles, images, discount %, and a deal type get written or updated. This is the <b>only</b> place deal data lives.</p>
+          </div>
+        </div>
+        <div class="step">
+          <span class="num mono">4</span>
+          <div>
+            <h4>The site reads only from the database</h4>
+            <p>Every page you browse — dashboard, category pages, a deal's own page — reads what's already saved. It never calls Keepa or Rainforest live while someone's looking at the site.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>Who does what</h2>
+    <p class="lead">Not a full swap — each provider does what it's actually good at, based on real testing, not guesswork.</p>
+    <div class="split-grid">
+      <div class="card split-col keepa">
+        <h3>Keepa</h3>
+        <div class="role">The steady one — history &amp; upkeep</div>
+        <ul>
+          <li>Best sellers (once a day)</li>
+          <li>Brand/preference search (weekly)</li>
+          <li>Daily price refresh — the 50 longest-untouched deals, every day</li>
+          <li>Cleanup: expired deals, stale listings, log housekeeping</li>
+          <li>Watchlist alerts &amp; daily digest emails</li>
+        </ul>
+      </div>
+      <div class="card split-col rain">
+        <h3>Rainforest</h3>
+        <div class="role">The live one — real-time discovery</div>
+        <ul>
+          <li>Category deals — all 19 categories, twice a day</li>
+          <li>Lightning deals — every 6 hours</li>
+          <li>Real, live Amazon data at the moment it's fetched, not a tracked history</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">
+      <span>ⓘ</span>
+      <span>Why split this way: real side-by-side testing showed Keepa's category deals sometimes included low-value noise (like $0.09 trading cards tagged "91% off"), while Rainforest returned genuine branded products at honest discounts. Keepa's price-history tracking has no Rainforest equivalent, so upkeep stays there — and it's free either way.</span>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>The schedule</h2>
+    <p class="lead">All times Asia/Karachi (PKT).</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Job</th><th>Runs</th><th>Provider</th><th>What it does</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Category feed</td>
+            <td class="mono">3:00 AM &amp; 3:00 PM</td>
+            <td><span class="badge badge-rain">Rainforest</span></td>
+            <td>Refreshes all 19 categories, up to 120 products each</td>
+          </tr>
+          <tr>
+            <td>Lightning deals</td>
+            <td class="mono">12, 6 AM · 12, 6 PM</td>
+            <td><span class="badge badge-rain">Rainforest</span></td>
+            <td>Every 6 hours — matched to the ~12-hour real lifespan of a lightning deal</td>
+          </tr>
+          <tr>
+            <td>Best sellers</td>
+            <td class="mono">once daily</td>
+            <td><span class="badge badge-keepa">Keepa</span></td>
+            <td>Popular products per category, even without an active discount</td>
+          </tr>
+          <tr>
+            <td>Brand sync</td>
+            <td class="mono">weekly, Mon 3 PM</td>
+            <td><span class="badge badge-keepa">Keepa</span></td>
+            <td>Deals for every brand a user has saved as a preference</td>
+          </tr>
+          <tr>
+            <td>Maintenance</td>
+            <td class="mono">~11 PM daily</td>
+            <td><span class="badge badge-keepa">Keepa</span></td>
+            <td>Price refresh, cleanup, weekly picks (Mondays), alerts &amp; digests</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>What things actually cost</h2>
+    <p class="lead">Real, measured numbers — not estimates from documentation.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Action</th><th>Provider</th><th class="num">Cost</th><th>Note</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Fetch one category (up to 120 items)</td>
+            <td><span class="badge badge-rain">Rainforest</span></td>
+            <td class="num mono">4 credits</td>
+            <td>Same cost for 3 items or 120 — it's per page, not per result</td>
+          </tr>
+          <tr>
+            <td>Fetch the live lightning-deal list</td>
+            <td><span class="badge badge-rain">Rainforest</span></td>
+            <td class="num mono">1 credit</td>
+            <td>Up to 30 deals per fetch</td>
+          </tr>
+          <tr>
+            <td>Tag one new lightning deal with its category</td>
+            <td><span class="badge badge-rain">Rainforest</span></td>
+            <td class="num mono">1 credit each</td>
+            <td>No bulk option — this is the one real unknown in the budget</td>
+          </tr>
+          <tr>
+            <td>Refresh 50 deals' prices</td>
+            <td><span class="badge badge-keepa">Keepa</span></td>
+            <td class="num mono">~50 tokens</td>
+            <td>One batched call — effectively free against the refilling pool</td>
+          </tr>
+          <tr>
+            <td>Search one brand</td>
+            <td><span class="badge badge-keepa">Keepa</span></td>
+            <td class="num mono">~30 tokens</td>
+            <td>Only 3 brands currently saved, so ~90 tokens/week total</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>Deal types — what each label actually means</h2>
+    <div class="type-grid">
+      <div class="card type-card">
+        <div class="name">⚡ Lightning Deal</div>
+        <p>Amazon's own official flash-sale program. Real countdown timer, highest urgency — measured at ~12 hours from start to finish.</p>
+        <div class="signal">Signal: Amazon's own lightning-deal flag</div>
+      </div>
+      <div class="card type-card">
+        <div class="name">⏳ Limited Time</div>
+        <p>Has a genuine end date from Amazon, but isn't an official lightning slot — a promotional window, often weeks long.</p>
+        <div class="signal">Signal: a real end-date exists</div>
+      </div>
+      <div class="card type-card">
+        <div class="name">📉 Price Drop</div>
+        <p>No end date at all — just a plain, currently-lower price with no promotional countdown attached.</p>
+        <div class="signal">Signal: no end-date exists</div>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--ink-faint);margin-top:2px">A few older labels (Coupon, Deal of Day, Prime Exclusive) still exist in the system but aren't currently produced by either provider's sync.</p>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>What each homepage section actually shows</h2>
+    <p class="lead">These aren't separate deal types — they're just different sort orders over the same saved deals.</p>
+    <div class="card" style="padding: 4px 20px;">
+      <div class="section-list">
+        <div class="section-row"><span class="name">Lightning Deals</span><span class="desc">Strictly Lightning-type deals, soonest-to-expire shown first.</span></div>
+        <div class="section-row"><span class="name">Top Picks</span><span class="desc">Everything else, sorted best-rated first, then by discount.</span></div>
+        <div class="section-row"><span class="name">Hot Price Drops</span><span class="desc">The next batch after Top Picks — same pool, sorted by discount first instead.</span></div>
+        <div class="section-row"><span class="name">Deal of the Week</span><span class="desc">100% manual — an admin picks these by hand, no automatic sync involved.</span></div>
+        <div class="section-row"><span class="name">Trending tabs</span><span class="desc">Lightning sorted by review count · Price Drops by discount · Best Deals same pool with a minimum-discount floor.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════════════════ -->
+  <section>
+    <h2>Known trade-offs, on purpose</h2>
+    <div class="callout warn">
+      <span>⚠</span>
+      <span><b>One photo per deal, not a gallery.</b> Rainforest's bulk feed only returns a single image per product — a full photo gallery needs a separate paid lookup per item, so it's deliberately skipped for now to keep costs down.</span>
+    </div>
+    <div class="callout warn">
+      <span>⚠</span>
+      <span><b>Best Sellers stays on Keepa.</b> Rainforest's best-seller pages use a totally different addressing scheme than its category pages, and only 1 of 19 categories has been mapped so far — not worth switching until that's finished.</span>
+    </div>
+  </section>
+
+  <footer class="page-foot">
+    Reflects the system as deployed 2026-08-19. Update this alongside any change to the cron schedule or the provider split.
+  </footer>
+
+</div>
